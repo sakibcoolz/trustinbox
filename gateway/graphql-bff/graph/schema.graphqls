@@ -1,0 +1,357 @@
+scalar Time
+scalar DateTime
+scalar JSON
+
+# ============================================================
+# ENUMS
+# ============================================================
+
+enum NotificationCategory {
+  PERSONAL
+  ORGANIZATIONAL
+  ADVERTISEMENT
+}
+
+enum CallbackRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RESCHEDULED
+  EXPIRED
+}
+
+enum ConversationStatus {
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+# ============================================================
+# TYPES
+# ============================================================
+
+type User {
+  id: ID!
+  username: String!
+  fullName: String!
+  email: String
+  virtualPublicId: String!
+  avatarUrl: String
+  timezone: String!
+  language: String!
+  privacyPreference: PrivacyPreference
+  availabilitySlots: [AvailabilitySlot!]!
+  dndRules: [DNDRule!]!
+}
+
+type PrivacyPreference {
+  allowPersonalNotifications: Boolean!
+  allowOrgNotifications: Boolean!
+  allowAdvertisements: Boolean!
+  allowCallbackRequests: Boolean!
+  allowChat: Boolean!
+  allowDocumentShares: Boolean!
+  requireCallApproval: Boolean!
+}
+
+type DNDRule {
+  id: ID!
+  scopeType: String!
+  scopeRefId: ID
+  startTime: String!
+  endTime: String!
+  daysOfWeek: [Int!]!
+  isActive: Boolean!
+}
+
+type AvailabilitySlot {
+  id: ID!
+  dayOfWeek: Int!
+  startTime: String!
+  endTime: String!
+  slotType: String!
+  isActive: Boolean!
+}
+
+type Organization {
+  id: ID!
+  slug: String!
+  name: String!
+  legalName: String
+  industry: String!
+  description: String
+  verificationStatus: String!
+  status: String!
+  website: String
+}
+
+type Notification {
+  id: ID!
+  category: NotificationCategory!
+  title: String!
+  body: String!
+  priority: String!
+  status: String!
+  metadata: JSON
+  organization: Organization
+  createdAt: DateTime!
+}
+
+type NotificationConnection {
+  nodes: [Notification!]!
+  totalCount: Int!
+}
+
+type CallbackRequest {
+  id: ID!
+  organization: Organization!
+  reason: String!
+  details: String
+  status: CallbackRequestStatus!
+  requestedAt: DateTime!
+  respondedAt: DateTime
+  approvedSlotStart: DateTime
+  approvedSlotEnd: DateTime
+}
+
+type CallbackRequestConnection {
+  nodes: [CallbackRequest!]!
+  totalCount: Int!
+}
+
+type Conversation {
+  id: ID!
+  status: ConversationStatus!
+  organization: Organization!
+  messages(limit: Int, offset: Int): MessageConnection!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ConversationConnection {
+  nodes: [Conversation!]!
+  totalCount: Int!
+}
+
+type Message {
+  id: ID!
+  senderType: String!
+  senderRefId: ID
+  messageType: String!
+  content: String!
+  metadata: JSON
+  createdAt: DateTime!
+}
+
+type MessageConnection {
+  nodes: [Message!]!
+  totalCount: Int!
+}
+
+type DocumentShare {
+  id: ID!
+  documentId: ID!
+  fileName: String!
+  fileType: String!
+  shareContext: String!
+  organization: Organization!
+  createdAt: DateTime!
+  openedAt: DateTime
+}
+
+type DashboardSummary {
+  unreadPersonal: Int!
+  unreadOrganizational: Int!
+  unreadAdvertisements: Int!
+  pendingCallbackRequests: Int!
+  totalConversations: Int!
+}
+
+type PolicyCheckResult {
+  allowed: Boolean!
+  decisionCode: String!
+  reason: String!
+  appliedRules: [String!]!
+}
+
+# ============================================================
+# QUERIES
+# ============================================================
+
+type Query {
+  # User
+  me: User!
+  dashboardSummary: DashboardSummary!
+
+  # Notifications
+  notifications(
+    category: NotificationCategory
+    status: String
+    limit: Int
+    offset: Int
+  ): NotificationConnection!
+
+  notification(id: ID!): Notification!
+
+  # Callback Requests
+  callbackRequests(
+    status: CallbackRequestStatus
+    limit: Int
+    offset: Int
+  ): CallbackRequestConnection!
+
+  callbackRequest(id: ID!): CallbackRequest!
+
+  # Conversations
+  conversations(
+    limit: Int
+    offset: Int
+  ): ConversationConnection!
+
+  conversation(id: ID!): Conversation!
+
+  # Organizations
+  organizations(
+    search: String
+    limit: Int
+    offset: Int
+  ): [Organization!]!
+
+  organization(id: ID!): Organization!
+
+  # Policy
+  checkCommunicationPolicy(
+    organizationId: ID!
+    category: NotificationCategory!
+    channel: String!
+  ): PolicyCheckResult!
+}
+
+# ============================================================
+# INPUTS
+# ============================================================
+
+input UpdatePrivacyPreferenceInput {
+  allowPersonalNotifications: Boolean
+  allowOrgNotifications: Boolean
+  allowAdvertisements: Boolean
+  allowCallbackRequests: Boolean
+  allowChat: Boolean
+  allowDocumentShares: Boolean
+  requireCallApproval: Boolean
+}
+
+input CreateDNDRuleInput {
+  scopeType: String!
+  scopeRefId: ID
+  startTime: String!
+  endTime: String!
+  daysOfWeek: [Int!]!
+  isActive: Boolean!
+}
+
+input UpdateDNDRuleInput {
+  id: ID!
+  startTime: String
+  endTime: String
+  daysOfWeek: [Int!]
+  isActive: Boolean
+}
+
+input CreateAvailabilitySlotInput {
+  dayOfWeek: Int!
+  startTime: String!
+  endTime: String!
+  slotType: String!
+}
+
+input ApproveCallbackRequestInput {
+  callbackRequestId: ID!
+  approvedSlotStart: DateTime!
+  approvedSlotEnd: DateTime!
+}
+
+input RejectCallbackRequestInput {
+  callbackRequestId: ID!
+  reason: String
+}
+
+input SendMessageInput {
+  conversationId: ID!
+  content: String!
+  messageType: String
+}
+
+input SendNotificationInput {
+  userId: ID!
+  category: NotificationCategory!
+  title: String!
+  body: String!
+  priority: NotificationPriority
+  metadata: JSON
+}
+
+input CreateCallbackRequestInput {
+  userId: ID!
+  reason: String!
+  details: String
+}
+
+input ReportSpamInput {
+  organizationId: ID!
+  notificationId: ID
+  callbackRequestId: ID
+  reason: String!
+  details: String
+}
+
+# ============================================================
+# MUTATIONS
+# ============================================================
+
+type Mutation {
+  # Privacy & Settings
+  updatePrivacyPreference(input: UpdatePrivacyPreferenceInput!): PrivacyPreference!
+  createDNDRule(input: CreateDNDRuleInput!): DNDRule!
+  updateDNDRule(input: UpdateDNDRuleInput!): DNDRule!
+  deleteDNDRule(id: ID!): Boolean!
+  createAvailabilitySlot(input: CreateAvailabilitySlotInput!): AvailabilitySlot!
+  deleteAvailabilitySlot(id: ID!): Boolean!
+
+  # Callback Requests
+  approveCallbackRequest(input: ApproveCallbackRequestInput!): CallbackRequest!
+  rejectCallbackRequest(input: RejectCallbackRequestInput!): CallbackRequest!
+
+  # Messages
+  sendMessage(input: SendMessageInput!): Message!
+
+  # Organization actions
+  blockOrganization(organizationId: ID!): Boolean!
+  unblockOrganization(organizationId: ID!): Boolean!
+  reportSpam(input: ReportSpamInput!): Boolean!
+
+  # Notifications (read)
+  markNotificationAsRead(id: ID!): Boolean!
+  archiveNotification(id: ID!): Boolean!
+
+  # Org portal mutations
+  sendNotification(input: SendNotificationInput!): Notification!
+  createCallbackRequest(input: CreateCallbackRequestInput!): CallbackRequest!
+}
+
+# ============================================================
+# SUBSCRIPTIONS
+# ============================================================
+
+type Subscription {
+  notificationReceived: Notification!
+  callbackRequestUpdated(id: ID!): CallbackRequest!
+  messageReceived(conversationId: ID!): Message!
+}

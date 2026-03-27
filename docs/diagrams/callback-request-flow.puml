@@ -1,0 +1,58 @@
+@startuml callback-request-flow
+title Callback Request Flow
+
+actor "Organization" as org
+actor "User" as user
+participant "GraphQL Gateway" as gw
+participant "Communication Service" as cs
+participant "Policy Service" as ps
+participant "Notification Service" as ns
+participant "PostgreSQL" as db
+participant "Worker Service" as worker
+
+== Request Phase ==
+org -> gw : createCallbackRequest(input)
+gw -> cs : CreateCallbackRequest(req) [gRPC]
+
+cs -> ps : EvaluatePolicy(req) [gRPC]
+ps -> db : Check user preferences
+ps -> db : Check org verified
+ps -> db : Check blocked orgs
+ps -> db : Check DND / availability
+
+alt Policy: ALLOW or REQUIRE_APPROVAL
+  ps --> cs : Decision: REQUIRE_APPROVAL
+  cs -> db : INSERT callback_request (status=pending)
+  cs -> ns : Send notification to user
+  ns -> db : INSERT notification
+  cs --> gw : CallbackRequestCreated
+  gw --> org : { callbackRequest: { status: "pending" } }
+else Policy: DENY
+  ps --> cs : Decision: DENY
+  cs --> gw : PolicyDenied
+  gw --> org : { error: "policy_denied" }
+end
+
+== Approval Phase ==
+user -> gw : approveCallbackRequest(id)
+gw -> cs : ApproveCallbackRequest(id, userID)
+cs -> db : Verify ownership + status
+cs -> db : UPDATE callback_request (status=approved)
+cs -> ns : Notify organization
+cs --> gw : CallbackApproved
+gw --> user : { success: true }
+
+== Scheduled Call ==
+worker -> db : Check scheduled callbacks
+worker -> org : Trigger callback to organization
+worker -> db : UPDATE callback_request (status=completed)
+
+== Rejection Flow ==
+user -> gw : rejectCallbackRequest(id)
+gw -> cs : RejectCallbackRequest(id, userID)
+cs -> db : UPDATE callback_request (status=rejected)
+cs -> ns : Notify organization of rejection
+cs --> gw : CallbackRejected
+gw --> user : { success: true }
+
+@enduml

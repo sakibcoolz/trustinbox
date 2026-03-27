@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/trustinbox/proto/gen/notification/v1;notificationv1";
+
+import "google/protobuf/timestamp.proto";
+
+service NotificationService {
+  rpc CreateNotification(CreateNotificationRequest) returns (CreateNotificationResponse);
+  rpc GetNotification(GetNotificationRequest) returns (Notification);
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
+  rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse);
+  rpc ArchiveNotification(ArchiveNotificationRequest) returns (ArchiveNotificationResponse);
+  rpc GetDeliveryStatus(GetDeliveryStatusRequest) returns (GetDeliveryStatusResponse);
+}
+
+message CreateNotificationRequest {
+  string user_id = 1;
+  string organization_id = 2;
+  string category = 3;   // PERSONAL, ORGANIZATIONAL, ADVERTISEMENT
+  string title = 4;
+  string body = 5;
+  string priority = 6;   // LOW, NORMAL, HIGH, URGENT
+  map<string, string> metadata = 7;
+}
+
+message CreateNotificationResponse {
+  string notification_id = 1;
+  string status = 2;     // PENDING, QUEUED, REJECTED
+  string rejection_reason = 3;
+}
+
+message GetNotificationRequest {
+  string notification_id = 1;
+  string user_id = 2;
+}
+
+message Notification {
+  string id = 1;
+  string user_id = 2;
+  string organization_id = 3;
+  string category = 4;
+  string title = 5;
+  string body = 6;
+  string priority = 7;
+  string status = 8;
+  map<string, string> metadata = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp read_at = 11;
+}
+
+message ListNotificationsRequest {
+  string user_id = 1;
+  string category = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+  string status = 5;
+}
+
+message ListNotificationsResponse {
+  repeated Notification notifications = 1;
+  int32 total = 2;
+}
+
+message MarkAsReadRequest {
+  string notification_id = 1;
+  string user_id = 2;
+}
+
+message MarkAsReadResponse {
+  bool success = 1;
+}
+
+message ArchiveNotificationRequest {
+  string notification_id = 1;
+  string user_id = 2;
+}
+
+message ArchiveNotificationResponse {
+  bool success = 1;
+}
+
+message GetDeliveryStatusRequest {
+  string notification_id = 1;
+}
+
+message GetDeliveryStatusResponse {
+  string notification_id = 1;
+  string delivery_status = 2;
+  google.protobuf.Timestamp delivered_at = 3;
+  string failure_reason = 4;
+}

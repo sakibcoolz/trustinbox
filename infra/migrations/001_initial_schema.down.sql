@@ -1,0 +1,30 @@
+-- Rollback: 001_initial_schema
+
+DROP TABLE IF EXISTS refresh_tokens CASCADE;
+DROP TABLE IF EXISTS invoices CASCADE;
+DROP TABLE IF EXISTS organization_subscriptions CASCADE;
+DROP TABLE IF EXISTS subscription_plans CASCADE;
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS spam_scores CASCADE;
+DROP TABLE IF EXISTS spam_reports CASCADE;
+DROP TABLE IF EXISTS policy_decision_logs CASCADE;
+DROP TABLE IF EXISTS consent_records CASCADE;
+DROP TABLE IF EXISTS document_shares CASCADE;
+DROP TABLE IF EXISTS documents CASCADE;
+DROP TABLE IF EXISTS messages CASCADE;
+DROP TABLE IF EXISTS conversations CASCADE;
+DROP TABLE IF EXISTS callback_requests CASCADE;
+DROP TABLE IF EXISTS campaigns CASCADE;
+DROP TABLE IF EXISTS notification_deliveries CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS organization_verifications CASCADE;
+DROP TABLE IF EXISTS organization_users CASCADE;
+DROP TABLE IF EXISTS organizations CASCADE;
+DROP TABLE IF EXISTS blocked_organizations CASCADE;
+DROP TABLE IF EXISTS user_category_preferences CASCADE;
+DROP TABLE IF EXISTS availability_slots CASCADE;
+DROP TABLE IF EXISTS dnd_rules CASCADE;
+DROP TABLE IF EXISTS privacy_preferences CASCADE;
+DROP TABLE IF EXISTS user_identities CASCADE;
+DROP TABLE IF EXISTS user_profiles CASCADE;
+DROP TABLE IF EXISTS users CASCADE;

@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg-primary text-text-primary;
+  }
+  * {
+    @apply border-border-primary;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-bg-secondary border border-border-primary rounded-lg p-4;
+  }
+  .btn-primary {
+    @apply bg-accent-blue text-white px-4 py-2 rounded-md font-medium hover:bg-blue-600 transition-colors;
+  }
+  .btn-secondary {
+    @apply bg-bg-tertiary text-text-primary px-4 py-2 rounded-md font-medium border border-border-primary hover:bg-bg-hover transition-colors;
+  }
+  .btn-danger {
+    @apply bg-accent-red text-white px-4 py-2 rounded-md font-medium hover:bg-red-600 transition-colors;
+  }
+  .chip {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+  }
+  .chip-green { @apply chip bg-status-success/20 text-status-success; }
+  .chip-orange { @apply chip bg-accent-orange/20 text-accent-orange; }
+  .chip-red { @apply chip bg-accent-red/20 text-accent-red; }
+  .chip-blue { @apply chip bg-accent-blue/20 text-accent-blue; }
+  .chip-purple { @apply chip bg-accent-purple/20 text-accent-purple; }
+  .input-field {
+    @apply bg-bg-tertiary border border-border-primary rounded-md px-3 py-2 text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-blue focus:ring-1 focus:ring-accent-blue;
+  }
+  .tab {
+    @apply px-4 py-2 text-sm font-medium text-text-secondary border-b-2 border-transparent hover:text-text-primary transition-colors;
+  }
+  .tab-active {
+    @apply tab text-text-primary border-accent-blue;
+  }
+}

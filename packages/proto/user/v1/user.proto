@@ -1,0 +1,186 @@
+syntax = "proto3";
+
+package user.v1;
+
+option go_package = "github.com/trustinbox/proto/gen/user/v1;userv1";
+
+import "google/protobuf/timestamp.proto";
+
+service UserService {
+  rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse);
+  rpc UpdateUserProfile(UpdateUserProfileRequest) returns (UpdateUserProfileResponse);
+  rpc GetPrivacyPreference(GetPrivacyPreferenceRequest) returns (PrivacyPreference);
+  rpc UpdatePrivacyPreference(UpdatePrivacyPreferenceRequest) returns (PrivacyPreference);
+  rpc ListAvailabilitySlots(ListAvailabilitySlotsRequest) returns (ListAvailabilitySlotsResponse);
+  rpc CreateAvailabilitySlot(CreateAvailabilitySlotRequest) returns (AvailabilitySlot);
+  rpc DeleteAvailabilitySlot(DeleteAvailabilitySlotRequest) returns (DeleteAvailabilitySlotResponse);
+  rpc ListDNDRules(ListDNDRulesRequest) returns (ListDNDRulesResponse);
+  rpc CreateDNDRule(CreateDNDRuleRequest) returns (DNDRule);
+  rpc UpdateDNDRule(UpdateDNDRuleRequest) returns (DNDRule);
+  rpc DeleteDNDRule(DeleteDNDRuleRequest) returns (DeleteDNDRuleResponse);
+  rpc BlockOrganization(BlockOrganizationRequest) returns (BlockOrganizationResponse);
+  rpc UnblockOrganization(UnblockOrganizationRequest) returns (UnblockOrganizationResponse);
+  rpc ListBlockedOrganizations(ListBlockedOrganizationsRequest) returns (ListBlockedOrganizationsResponse);
+}
+
+message GetUserProfileRequest {
+  string user_id = 1;
+}
+
+message GetUserProfileResponse {
+  string user_id = 1;
+  string username = 2;
+  string full_name = 3;
+  string email = 4;
+  string virtual_public_id = 5;
+  string avatar_url = 6;
+  string timezone = 7;
+  string language = 8;
+  string status = 9;
+}
+
+message UpdateUserProfileRequest {
+  string user_id = 1;
+  string full_name = 2;
+  string avatar_url = 3;
+  string timezone = 4;
+  string language = 5;
+}
+
+message UpdateUserProfileResponse {
+  bool success = 1;
+}
+
+message GetPrivacyPreferenceRequest {
+  string user_id = 1;
+}
+
+message PrivacyPreference {
+  string user_id = 1;
+  bool allow_personal_notifications = 2;
+  bool allow_org_notifications = 3;
+  bool allow_advertisements = 4;
+  bool allow_callback_requests = 5;
+  bool allow_chat = 6;
+  bool allow_document_shares = 7;
+  bool require_call_approval = 8;
+}
+
+message UpdatePrivacyPreferenceRequest {
+  string user_id = 1;
+  optional bool allow_personal_notifications = 2;
+  optional bool allow_org_notifications = 3;
+  optional bool allow_advertisements = 4;
+  optional bool allow_callback_requests = 5;
+  optional bool allow_chat = 6;
+  optional bool allow_document_shares = 7;
+  optional bool require_call_approval = 8;
+}
+
+message ListAvailabilitySlotsRequest {
+  string user_id = 1;
+}
+
+message ListAvailabilitySlotsResponse {
+  repeated AvailabilitySlot slots = 1;
+}
+
+message AvailabilitySlot {
+  string id = 1;
+  string user_id = 2;
+  int32 day_of_week = 3;
+  string start_time = 4; // HH:MM format
+  string end_time = 5;   // HH:MM format
+  string slot_type = 6;  // GENERAL, CALLBACK, CHAT
+  bool is_active = 7;
+}
+
+message CreateAvailabilitySlotRequest {
+  string user_id = 1;
+  int32 day_of_week = 2;
+  string start_time = 3;
+  string end_time = 4;
+  string slot_type = 5;
+}
+
+message DeleteAvailabilitySlotRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message DeleteAvailabilitySlotResponse {
+  bool success = 1;
+}
+
+message ListDNDRulesRequest {
+  string user_id = 1;
+}
+
+message ListDNDRulesResponse {
+  repeated DNDRule rules = 1;
+}
+
+message DNDRule {
+  string id = 1;
+  string user_id = 2;
+  string scope_type = 3;  // GLOBAL, CATEGORY, ORGANIZATION
+  string scope_ref_id = 4;
+  string start_time = 5;  // HH:MM format
+  string end_time = 6;    // HH:MM format
+  repeated int32 days_of_week = 7;
+  bool is_active = 8;
+}
+
+message CreateDNDRuleRequest {
+  string user_id = 1;
+  string scope_type = 2;
+  string scope_ref_id = 3;
+  string start_time = 4;
+  string end_time = 5;
+  repeated int32 days_of_week = 6;
+  bool is_active = 7;
+}
+
+message UpdateDNDRuleRequest {
+  string id = 1;
+  string user_id = 2;
+  string start_time = 3;
+  string end_time = 4;
+  repeated int32 days_of_week = 5;
+  bool is_active = 6;
+}
+
+message DeleteDNDRuleRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message DeleteDNDRuleResponse {
+  bool success = 1;
+}
+
+message BlockOrganizationRequest {
+  string user_id = 1;
+  string organization_id = 2;
+}
+
+message BlockOrganizationResponse {
+  bool success = 1;
+}
+
+message UnblockOrganizationRequest {
+  string user_id = 1;
+  string organization_id = 2;
+}
+
+message UnblockOrganizationResponse {
+  bool success = 1;
+}
+
+message ListBlockedOrganizationsRequest {
+  string user_id = 1;
+}
+
+message ListBlockedOrganizationsResponse {
+  repeated string organization_ids = 1;
+}

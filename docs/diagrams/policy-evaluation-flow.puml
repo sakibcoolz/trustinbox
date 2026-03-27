@@ -1,0 +1,59 @@
+@startuml policy-evaluation-flow
+title Policy Evaluation Engine
+
+participant "Calling Service" as caller
+participant "Policy Service" as ps
+database "PostgreSQL" as db
+
+caller -> ps : EvaluatePolicy(request)
+
+ps -> db : SELECT user WHERE id = request.userID
+alt User not found
+  ps --> caller : DENY: user_not_found
+end
+
+ps -> db : SELECT org WHERE id = request.orgID
+alt Org not verified
+  ps --> caller : DENY: org_not_verified
+end
+
+ps -> db : Check blocked_organizations
+alt User blocked this org
+  ps --> caller : DENY: org_blocked
+end
+
+ps -> db : SELECT privacy_preferences
+alt Category disabled by user
+  ps --> caller : DENY: category_disabled
+end
+
+ps -> db : SELECT dnd_rules WHERE active
+loop For each DND rule
+  ps -> ps : Check if current time in DND window
+  alt Time is in DND window
+    ps --> caller : DENY: dnd_active
+  end
+end
+
+alt Communication is callback
+  ps -> db : Check user preferences
+  alt Require callback approval
+    ps --> caller : REQUIRE_APPROVAL: callback_needs_consent
+  end
+end
+
+alt Category is advertisement
+  ps -> db : COUNT today's ads from this org
+  alt Count >= adCapPerOrgPerDay (3)
+    ps --> caller : DENY: ad_cap_exceeded
+  end
+end
+
+ps -> db : SELECT spam_scores for org
+alt Spam score >= threshold (8.0)
+  ps --> caller : DENY: spam_score_high
+end
+
+ps --> caller : ALLOW
+
+@enduml

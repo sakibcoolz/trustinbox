@@ -1,0 +1,45 @@
+@startuml secure-chat-flow
+title Secure Chat Flow
+
+actor "User" as user
+actor "Organization Agent" as agent
+participant "GraphQL Gateway" as gw
+participant "Communication Service" as cs
+participant "Policy Service" as ps
+participant "PostgreSQL" as db
+
+== Conversation Start ==
+agent -> gw : startConversation(userId, orgId)
+gw -> cs : CreateConversation(req) [gRPC]
+cs -> ps : EvaluatePolicy(req) [gRPC]
+ps --> cs : Decision: ALLOW
+cs -> db : INSERT conversation
+cs --> gw : ConversationCreated
+gw --> agent : { conversation: {...} }
+
+== Message Exchange ==
+agent -> gw : sendMessage(conversationId, body)
+gw -> cs : SendMessage(req) [gRPC]
+cs -> db : Verify conversation active + participant
+cs -> db : INSERT message
+cs --> gw : MessageSent
+gw --> agent : { message: {...} }
+
+note over gw : WebSocket subscription\npushes message to user
+
+gw --> user : [subscription] newMessage
+user -> gw : sendMessage(conversationId, body)
+gw -> cs : SendMessage(req) [gRPC]
+cs -> db : INSERT message
+cs --> gw : MessageSent
+gw --> agent : [subscription] newMessage
+
+== Spam Report ==
+user -> gw : reportSpam(messageId, reason)
+gw -> cs : ReportSpam(req) [gRPC]
+cs -> db : INSERT spam_report
+cs -> db : UPDATE spam_scores (increment)
+cs --> gw : SpamReported
+gw --> user : { success: true }
+
+@enduml

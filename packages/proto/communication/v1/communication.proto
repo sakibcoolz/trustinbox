@@ -1,0 +1,221 @@
+syntax = "proto3";
+
+package communication.v1;
+
+option go_package = "github.com/trustinbox/proto/gen/communication/v1;communicationv1";
+
+import "google/protobuf/timestamp.proto";
+
+service CommunicationService {
+  // Callback requests
+  rpc CreateCallbackRequest(CreateCallbackRequestRequest) returns (CreateCallbackRequestResponse);
+  rpc ApproveCallbackRequest(ApproveCallbackRequestRequest) returns (ApproveCallbackRequestResponse);
+  rpc RejectCallbackRequest(RejectCallbackRequestRequest) returns (RejectCallbackRequestResponse);
+  rpc ListCallbackRequests(ListCallbackRequestsRequest) returns (ListCallbackRequestsResponse);
+  rpc GetCallbackRequest(GetCallbackRequestRequest) returns (CallbackRequest);
+
+  // Conversations and messages
+  rpc CreateConversation(CreateConversationRequest) returns (Conversation);
+  rpc GetConversation(GetConversationRequest) returns (Conversation);
+  rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
+  rpc SendMessage(SendMessageRequest) returns (Message);
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  rpc CloseConversation(CloseConversationRequest) returns (CloseConversationResponse);
+
+  // Documents
+  rpc ShareDocument(ShareDocumentRequest) returns (ShareDocumentResponse);
+  rpc ListDocumentShares(ListDocumentSharesRequest) returns (ListDocumentSharesResponse);
+
+  // Spam reports
+  rpc ReportSpam(ReportSpamRequest) returns (ReportSpamResponse);
+}
+
+// Callback messages
+message CreateCallbackRequestRequest {
+  string user_id = 1;
+  string organization_id = 2;
+  string requested_by_org_user_id = 3;
+  string reason = 4;
+  string details = 5;
+}
+
+message CreateCallbackRequestResponse {
+  string callback_request_id = 1;
+  string status = 2;
+  string rejection_reason = 3;
+}
+
+message ApproveCallbackRequestRequest {
+  string callback_request_id = 1;
+  string user_id = 2;
+  google.protobuf.Timestamp approved_slot_start = 3;
+  google.protobuf.Timestamp approved_slot_end = 4;
+}
+
+message ApproveCallbackRequestResponse {
+  bool success = 1;
+}
+
+message RejectCallbackRequestRequest {
+  string callback_request_id = 1;
+  string user_id = 2;
+  string reason = 3;
+}
+
+message RejectCallbackRequestResponse {
+  bool success = 1;
+}
+
+message ListCallbackRequestsRequest {
+  string user_id = 1;
+  string status = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListCallbackRequestsResponse {
+  repeated CallbackRequest requests = 1;
+  int32 total = 2;
+}
+
+message GetCallbackRequestRequest {
+  string callback_request_id = 1;
+  string user_id = 2;
+}
+
+message CallbackRequest {
+  string id = 1;
+  string user_id = 2;
+  string organization_id = 3;
+  string requested_by_org_user_id = 4;
+  string reason = 5;
+  string details = 6;
+  string status = 7;
+  google.protobuf.Timestamp requested_at = 8;
+  google.protobuf.Timestamp responded_at = 9;
+  google.protobuf.Timestamp approved_slot_start = 10;
+  google.protobuf.Timestamp approved_slot_end = 11;
+}
+
+// Conversation messages
+message CreateConversationRequest {
+  string user_id = 1;
+  string organization_id = 2;
+}
+
+message GetConversationRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+}
+
+message ListConversationsRequest {
+  string user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ListConversationsResponse {
+  repeated Conversation conversations = 1;
+  int32 total = 2;
+}
+
+message Conversation {
+  string id = 1;
+  string user_id = 2;
+  string organization_id = 3;
+  string status = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message SendMessageRequest {
+  string conversation_id = 1;
+  string sender_type = 2; // USER, ORG_AGENT, SYSTEM, AI
+  string sender_ref_id = 3;
+  string message_type = 4; // TEXT, IMAGE, DOCUMENT, SYSTEM
+  string content = 5;
+  map<string, string> metadata = 6;
+}
+
+message Message {
+  string id = 1;
+  string conversation_id = 2;
+  string sender_type = 3;
+  string sender_ref_id = 4;
+  string message_type = 5;
+  string content = 6;
+  map<string, string> metadata = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message ListMessagesRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListMessagesResponse {
+  repeated Message messages = 1;
+  int32 total = 2;
+}
+
+message CloseConversationRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+}
+
+message CloseConversationResponse {
+  bool success = 1;
+}
+
+// Document messages
+message ShareDocumentRequest {
+  string document_id = 1;
+  string user_id = 2;
+  string organization_id = 3;
+  string share_context = 4; // NOTIFICATION, CHAT, CALLBACK, DIRECT
+}
+
+message ShareDocumentResponse {
+  string document_share_id = 1;
+  bool success = 2;
+}
+
+message ListDocumentSharesRequest {
+  string user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ListDocumentSharesResponse {
+  repeated DocumentShare shares = 1;
+  int32 total = 2;
+}
+
+message DocumentShare {
+  string id = 1;
+  string document_id = 2;
+  string user_id = 3;
+  string organization_id = 4;
+  string share_context = 5;
+  string file_name = 6;
+  string file_type = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp opened_at = 9;
+}
+
+// Spam report messages
+message ReportSpamRequest {
+  string user_id = 1;
+  string organization_id = 2;
+  string notification_id = 3;
+  string callback_request_id = 4;
+  string reason = 5;
+  string details = 6;
+}
+
+message ReportSpamResponse {
+  string report_id = 1;
+  bool success = 2;
+}

@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package organization.v1;
+
+option go_package = "github.com/trustinbox/proto/gen/organization/v1;organizationv1";
+
+import "google/protobuf/timestamp.proto";
+
+service OrganizationService {
+  rpc CreateOrganization(CreateOrganizationRequest) returns (Organization);
+  rpc GetOrganization(GetOrganizationRequest) returns (Organization);
+  rpc ListOrganizations(ListOrganizationsRequest) returns (ListOrganizationsResponse);
+  rpc UpdateOrganization(UpdateOrganizationRequest) returns (Organization);
+  rpc VerifyOrganization(VerifyOrganizationRequest) returns (VerifyOrganizationResponse);
+  rpc SuspendOrganization(SuspendOrganizationRequest) returns (SuspendOrganizationResponse);
+
+  // Organization users
+  rpc AddOrganizationUser(AddOrganizationUserRequest) returns (OrganizationUser);
+  rpc RemoveOrganizationUser(RemoveOrganizationUserRequest) returns (RemoveOrganizationUserResponse);
+  rpc ListOrganizationUsers(ListOrganizationUsersRequest) returns (ListOrganizationUsersResponse);
+  rpc GetOrganizationUser(GetOrganizationUserRequest) returns (OrganizationUser);
+}
+
+message CreateOrganizationRequest {
+  string name = 1;
+  string legal_name = 2;
+  string industry = 3;
+  string description = 4;
+  string website = 5;
+  string admin_user_id = 6;
+}
+
+message GetOrganizationRequest {
+  string organization_id = 1;
+}
+
+message ListOrganizationsRequest {
+  string search = 1;
+  string verification_status = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListOrganizationsResponse {
+  repeated Organization organizations = 1;
+  int32 total = 2;
+}
+
+message UpdateOrganizationRequest {
+  string organization_id = 1;
+  string name = 2;
+  string legal_name = 3;
+  string industry = 4;
+  string description = 5;
+  string website = 6;
+}
+
+message Organization {
+  string id = 1;
+  string name = 2;
+  string legal_name = 3;
+  string industry = 4;
+  string description = 5;
+  string verification_status = 6; // PENDING, VERIFIED, REJECTED, SUSPENDED
+  string status = 7;              // ACTIVE, SUSPENDED, DEACTIVATED
+  string website = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message VerifyOrganizationRequest {
+  string organization_id = 1;
+  string decision = 2; // APPROVED, REJECTED
+  string reason = 3;
+  string admin_user_id = 4;
+}
+
+message VerifyOrganizationResponse {
+  bool success = 1;
+}
+
+message SuspendOrganizationRequest {
+  string organization_id = 1;
+  string reason = 2;
+  string admin_user_id = 3;
+}
+
+message SuspendOrganizationResponse {
+  bool success = 1;
+}
+
+message AddOrganizationUserRequest {
+  string organization_id = 1;
+  string user_id = 2;
+  string role = 3; // ORG_ADMIN, AGENT, ANALYST
+}
+
+message OrganizationUser {
+  string id = 1;
+  string organization_id = 2;
+  string user_id = 3;
+  string role = 4;
+  string status = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message RemoveOrganizationUserRequest {
+  string organization_user_id = 1;
+  string organization_id = 2;
+}
+
+message RemoveOrganizationUserResponse {
+  bool success = 1;
+}
+
+message ListOrganizationUsersRequest {
+  string organization_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ListOrganizationUsersResponse {
+  repeated OrganizationUser users = 1;
+  int32 total = 2;
+}
+
+message GetOrganizationUserRequest {
+  string organization_user_id = 1;
+}

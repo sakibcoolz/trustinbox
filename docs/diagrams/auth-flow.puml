@@ -1,0 +1,48 @@
+@startuml auth-flow
+title Authentication & Token Flow
+
+actor "User" as user
+participant "Web App" as web
+participant "GraphQL Gateway" as gw
+participant "Auth Service" as auth
+participant "PostgreSQL" as db
+
+== Registration ==
+user -> web : Fill registration form
+web -> gw : register(input)
+gw -> auth : Register(req) [gRPC]
+auth -> auth : Hash password (bcrypt)
+auth -> db : INSERT user
+auth -> auth : Generate JWT access token
+auth -> auth : Generate refresh token
+auth -> db : INSERT refresh_token (hashed)
+auth --> gw : { accessToken, refreshToken }
+gw --> web : Set httpOnly cookies
+web --> user : Redirect to dashboard
+
+== Login ==
+user -> web : Enter credentials
+web -> gw : login(email, password)
+gw -> auth : Login(req) [gRPC]
+auth -> db : SELECT user by email
+auth -> auth : Verify password (bcrypt)
+auth -> auth : Generate JWT access token
+auth -> auth : Generate refresh token
+auth -> db : INSERT refresh_token (hashed)
+auth --> gw : { accessToken, refreshToken }
+gw --> web : Set httpOnly cookies
+web --> user : Redirect to dashboard
+
+== Token Refresh ==
+web -> gw : refreshToken(refreshToken)
+gw -> auth : RefreshToken(req) [gRPC]
+auth -> auth : Hash incoming token
+auth -> db : SELECT refresh_token by hash
+auth -> auth : Verify not expired/revoked
+auth -> auth : Generate new access + refresh tokens
+auth -> db : Revoke old refresh_token
+auth -> db : INSERT new refresh_token
+auth --> gw : { accessToken, refreshToken }
+gw --> web : Update cookies
+
+@enduml

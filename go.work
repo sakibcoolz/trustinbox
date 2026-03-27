@@ -1,0 +1,15 @@
+go 1.23
+
+use (
+	./gateway/graphql-bff
+	./packages/cornerstone
+	./packages/proto
+	./services/ai-service
+	./services/auth-service
+	./services/communication-service
+	./services/notification-service
+	./services/organization-service
+	./services/policy-service
+	./services/user-service
+	./services/worker-service
+)

@@ -1,0 +1,41 @@
+@startuml notification-delivery-flow
+title Notification Delivery Flow
+
+actor "Organization" as org
+participant "GraphQL Gateway" as gw
+participant "Notification Service" as ns
+participant "Policy Service" as ps
+participant "PostgreSQL" as db
+participant "Message Queue" as queue
+participant "Worker Service" as worker
+participant "User Device" as device
+
+org -> gw : createNotification(input)
+gw -> ns : CreateNotification(req) [gRPC]
+
+ns -> ps : EvaluatePolicy(req) [gRPC]
+ps -> db : Load user preferences
+ps -> db : Load org verification status
+ps -> db : Check DND rules
+ps -> db : Check frequency caps
+ps -> db : Check spam score
+
+alt Policy: ALLOW
+  ps --> ns : Decision: ALLOW
+  ns -> db : INSERT notification (status=pending)
+  ns -> queue : Publish delivery job
+  ns --> gw : NotificationCreated
+  gw --> org : { notification: {...} }
+
+  queue -> worker : Consume delivery job
+  worker -> db : UPDATE notification (status=delivered)
+  worker -> device : Push notification to user
+
+else Policy: DENY
+  ps --> ns : Decision: DENY (reason)
+  ns -> db : INSERT policy_decision_logs
+  ns --> gw : PolicyDenied(reason)
+  gw --> org : { error: "policy_denied", reason }
+end
+
+@enduml
