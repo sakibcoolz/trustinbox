@@ -229,9 +229,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       status: event.status || 'sent',
     };
 
-    // If this is the active conversation, add the message
+    // If this is the active conversation, add the message (deduplicate)
     if (activeConvRef.current?.id === event.conversationId) {
-      setMessages(prev => [...prev, msg]);
+      setMessages(prev => {
+        if (prev.find(m => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
     }
 
     // Update conversation list
@@ -415,16 +418,51 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const sendMessage = useCallback((content: string, replyToId?: string, attachmentIds?: string[]) => {
+  const sendMessage = useCallback(async (content: string, replyToId?: string, attachmentIds?: string[]) => {
     if (!activeConvRef.current) return;
-    wsSend({
-      type: 'send_message',
-      conversationId: activeConvRef.current.id,
-      content,
-      replyToId,
-      attachmentIds,
-    });
-  }, [wsSend]);
+    const convId = activeConvRef.current.id;
+
+    // Try WebSocket first
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsSend({
+        type: 'send_message',
+        conversationId: convId,
+        content,
+        replyToId,
+        attachmentIds,
+      });
+    } else {
+      // Fallback to REST API when WS is not connected
+      try {
+        const res = await fetch(`${API_BASE}/api/conversations/${convId}/messages`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ content, replyToId, attachmentIds }),
+        });
+        if (!res.ok) throw new Error('send failed');
+        const msg = await res.json();
+        // Add message to local state (deduplicate in case WS also delivers)
+        setMessages(prev => {
+          if (prev.find(m => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+        setConversations(prev => {
+          const updated = prev.map(c => {
+            if (c.id === convId) {
+              return { ...c, lastMessageAt: msg.createdAt, lastMessagePreview: content };
+            }
+            return c;
+          });
+          return updated.sort((a, b) =>
+            new Date(b.lastMessageAt || b.createdAt).getTime() -
+            new Date(a.lastMessageAt || a.createdAt).getTime()
+          );
+        });
+      } catch {
+        // silent — message not sent
+      }
+    }
+  }, [wsSend, authHeaders]);
 
   const editMessage = useCallback((messageId: string, content: string) => {
     wsSend({ type: 'edit_message', messageId, content });

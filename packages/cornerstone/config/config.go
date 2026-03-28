@@ -70,8 +70,8 @@ func LoadServiceConfig(serviceName string) ServiceConfig {
 	return ServiceConfig{
 		ServiceName: serviceName,
 		GRPCPort:    GetEnv("GRPC_PORT", "50051"),
-		HTTPPort:    GetEnv("HTTP_PORT", "8080"),
-		DatabaseURL: GetEnv("DATABASE_URL", "postgres://trustinbox:trustinbox@localhost:5432/trustinbox?sslmode=disable"),
+		HTTPPort:    GetEnv("HTTP_PORT", "4000"),
+		DatabaseURL: GetEnv("DATABASE_URL", "postgres://trustinbox:trustinbox_dev@localhost:5432/trustinbox?sslmode=disable"),
 		RedisURL:    GetEnv("REDIS_URL", "redis://localhost:6379"),
 		JWTSecret:   GetEnv("JWT_SECRET", "dev-secret-change-in-production"),
 		LogLevel:    GetEnv("LOG_LEVEL", "info"),

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useNotifications } from '@/lib/notification-context';
+import { useChat } from '@/lib/chat-context';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -49,6 +50,7 @@ function UserAvatar({ name, online, size = 'md' }: { name: string; online?: bool
 export default function FriendsPage() {
   const { token } = useAuth();
   const { addToast, onFriendEvent } = useNotifications();
+  const { createConversation } = useChat();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('friends');
   const [search, setSearch] = useState('');
@@ -170,13 +172,9 @@ export default function FriendsPage() {
 
   async function handleSendMessage(userId: string) {
     try {
-      const res = await fetch(`${API_BASE}/api/conversations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ type: 'DIRECT', participantId: userId }),
-      });
-      if (!res.ok) throw new Error('Failed to create conversation');
-      router.push('/conversations');
+      const conv = await createConversation(userId);
+      if (!conv) throw new Error('Failed to create conversation');
+      router.push(`/conversations?id=${conv.id}`);
     } catch {
       addToast({ type: 'error', title: 'Could not start conversation' });
     }

@@ -182,7 +182,7 @@
 
   /* Message bubbles */
   .bubble {
-    @apply max-w-[70%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed;
+    @apply px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed;
   }
 
   .bubble-own {

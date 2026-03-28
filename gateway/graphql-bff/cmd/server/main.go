@@ -221,7 +221,11 @@ func main() {
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			origin = "http://localhost:3000"
+		}
+		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -730,7 +734,11 @@ func handleSSEStream(tokenSvc *jwt.TokenService, log *zap.Logger, hub *sseHub) h
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		sseOrigin := r.Header.Get("Origin")
+		if sseOrigin == "" {
+			sseOrigin = "http://localhost:3000"
+		}
+		w.Header().Set("Access-Control-Allow-Origin", sseOrigin)
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		client := &sseClient{userID: userID, ch: make(chan []byte, 16)}
