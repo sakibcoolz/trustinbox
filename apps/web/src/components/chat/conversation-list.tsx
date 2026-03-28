@@ -1,157 +1,29 @@
 'use client';
 
 import { useState } from 'react';
+import { useChat, Conversation } from '@/lib/chat-context';
 
-export interface Conversation {
-  id: string;
-  name: string;
-  orgSlug?: string;
-  username?: string;
-  avatar?: string;
-  lastMessage: string;
-  time: string;
-  unread: number;
-  online?: boolean;
-  verified?: boolean;
-  isFriend?: boolean;
-  category: 'personal' | 'organizational' | 'advertisement';
-  pinned?: boolean;
-}
-
-const mockConversations: Conversation[] = [
-  {
-    id: '1',
-    name: 'Acme Bank',
-    orgSlug: 'o/acmebank',
-    lastMessage: 'Your loan application has been approved. Please review the terms and conditions.',
-    time: '2m',
-    unread: 3,
-    online: true,
-    verified: true,
-    category: 'organizational',
-    pinned: true,
-  },
-  {
-    id: 'f1',
-    name: 'Bob Wilson',
-    username: 'c/bob',
-    lastMessage: 'Hey! Are you free for coffee this weekend?',
-    time: '5m',
-    unread: 2,
-    online: true,
-    isFriend: true,
-    category: 'personal',
-    pinned: true,
-  },
-  {
-    id: '2',
-    name: 'City Hospital',
-    orgSlug: 'o/cityhospital',
-    lastMessage: 'Your lab results are ready. Please visit your nearest branch.',
-    time: '15m',
-    unread: 1,
-    online: true,
-    verified: true,
-    category: 'personal',
-    pinned: true,
-  },
-  {
-    id: 'f2',
-    name: 'Carol Martinez',
-    username: 'c/carol',
-    lastMessage: 'Thanks for sharing that article! Really insightful.',
-    time: '30m',
-    unread: 0,
-    online: true,
-    isFriend: true,
-    category: 'personal',
-  },
-  {
-    id: '3',
-    name: 'Quick Realty',
-    orgSlug: 'o/quickrealty',
-    lastMessage: 'New property listing matches your criteria in downtown area.',
-    time: '1h',
-    unread: 0,
-    online: false,
-    verified: true,
-    category: 'advertisement',
-  },
-  {
-    id: '4',
-    name: 'TrustInbox Support',
-    orgSlug: 'o/trustinbox',
-    lastMessage: 'Welcome to TrustInbox! Your privacy is our priority.',
-    time: '2h',
-    unread: 0,
-    online: true,
-    verified: true,
-    category: 'organizational',
-  },
-  {
-    id: '5',
-    name: 'SecurePay',
-    orgSlug: 'o/securepay',
-    lastMessage: 'Transaction #8291 completed successfully. Amount: ₹15,000',
-    time: '5h',
-    unread: 0,
-    online: false,
-    verified: true,
-    category: 'organizational',
-  },
-  {
-    id: '6',
-    name: 'MediCare Plus',
-    orgSlug: 'o/medicareplus',
-    lastMessage: 'Your health insurance renewal is due in 15 days.',
-    time: '1d',
-    unread: 0,
-    online: false,
-    verified: true,
-    category: 'personal',
-  },
-  {
-    id: 'f3',
-    name: 'Dave Chen',
-    username: 'c/dave',
-    lastMessage: 'See you at the meetup tomorrow!',
-    time: '3h',
-    unread: 0,
-    online: false,
-    isFriend: true,
-    category: 'personal',
-  },
-];
-
-const filters = ['All', 'Unread', 'Friends', 'Personal', 'Business', 'Ads'] as const;
-
-const categoryColors: Record<string, string> = {
-  personal: 'bg-accent-blue',
-  organizational: 'bg-accent-green',
-  advertisement: 'bg-accent-orange',
-};
+const filters = ['All', 'Unread', 'Friends'] as const;
 
 interface ConversationListProps {
   activeId: string | null;
   onSelect: (conv: Conversation) => void;
 }
 
+export type { Conversation } from '@/lib/chat-context';
+
 export function ConversationList({ activeId, onSelect }: ConversationListProps) {
+  const { conversations, isLoadingConversations } = useChat();
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>('All');
 
-  const filtered = mockConversations.filter((c) => {
-    if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
-    if (activeFilter === 'Unread' && c.unread === 0) return false;
-    if (activeFilter === 'Friends' && !c.isFriend) return false;
-    if (activeFilter === 'Personal' && c.category !== 'personal') return false;
-    if (activeFilter === 'Business' && c.category !== 'organizational') return false;
-    if (activeFilter === 'Ads' && c.category !== 'advertisement') return false;
+  const filtered = conversations.filter((c) => {
+    const name = c.name || c.otherUser?.fullName || '';
+    if (search && !name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (activeFilter === 'Unread' && c.unreadCount === 0) return false;
+    if (activeFilter === 'Friends' && c.type !== 'DIRECT') return false;
     return true;
   });
-
-  const pinned = filtered.filter((c) => c.pinned);
-  const rest = filtered.filter((c) => !c.pinned);
 
   return (
     <div className="w-panel h-full flex flex-col bg-bg-secondary border-r border-border-primary shrink-0">
@@ -200,42 +72,28 @@ export function ConversationList({ activeId, onSelect }: ConversationListProps) 
 
       {/* Conversation list */}
       <div className="flex-1 overflow-y-auto">
-        {pinned.length > 0 && (
-          <>
-            <div className="px-4 py-1.5">
-              <span className="text-2xs text-text-muted font-medium uppercase tracking-wider">Pinned</span>
-            </div>
-            {pinned.map((conv) => (
-              <ConversationItem
-                key={conv.id}
-                conversation={conv}
-                isActive={activeId === conv.id}
-                onClick={() => onSelect(conv)}
-                categoryColor={categoryColors[conv.category]}
-              />
-            ))}
-            <div className="px-4 py-1.5">
-              <span className="text-2xs text-text-muted font-medium uppercase tracking-wider">Recent</span>
-            </div>
-          </>
-        )}
-        {rest.map((conv) => (
-          <ConversationItem
-            key={conv.id}
-            conversation={conv}
-            isActive={activeId === conv.id}
-            onClick={() => onSelect(conv)}
-            categoryColor={categoryColors[conv.category]}
-          />
-        ))}
-
-        {filtered.length === 0 && (
+        {isLoadingConversations ? (
+          <div className="flex flex-col items-center justify-center py-12 text-text-muted">
+            <div className="w-6 h-6 border-2 border-accent-blue border-t-transparent rounded-full animate-spin mb-3" />
+            <p className="text-sm">Loading conversations...</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-text-muted">
             <svg className="w-12 h-12 mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
             </svg>
-            <p className="text-sm">No conversations found</p>
+            <p className="text-sm font-medium mb-1">No conversations yet</p>
+            <p className="text-xs text-text-muted">Start chatting with your friends!</p>
           </div>
+        ) : (
+          filtered.map((conv) => (
+            <ConversationItem
+              key={conv.id}
+              conversation={conv}
+              isActive={activeId === conv.id}
+              onClick={() => onSelect(conv)}
+            />
+          ))
         )}
       </div>
     </div>
@@ -246,19 +104,24 @@ function ConversationItem({
   conversation,
   isActive,
   onClick,
-  categoryColor,
 }: {
   conversation: Conversation;
   isActive: boolean;
   onClick: () => void;
-  categoryColor: string;
 }) {
-  const initials = conversation.name
+  const displayName = conversation.name || conversation.otherUser?.fullName || 'Unknown';
+  const initials = displayName
     .split(' ')
     .map((n) => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
+
+  const isOnline = conversation.otherUser?.online ?? false;
+  const isDirect = conversation.type === 'DIRECT';
+
+  // Format time
+  const timeStr = formatRelativeTime(conversation.lastMessageAt || conversation.createdAt);
 
   return (
     <div
@@ -272,13 +135,13 @@ function ConversationItem({
       {/* Avatar with status */}
       <div className="relative shrink-0">
         <div className={`w-11 h-11 rounded-full ${
-          conversation.isFriend
+          isDirect
             ? 'bg-gradient-to-br from-accent-blue to-accent-purple'
-            : categoryColor
+            : 'bg-accent-green'
         } flex items-center justify-center text-white text-sm font-semibold`}>
           {initials}
         </div>
-        {conversation.online && (
+        {isOnline && (
           <span className="absolute bottom-0 right-0 w-3 h-3 bg-status-online rounded-full border-2 border-bg-secondary" />
         )}
       </div>
@@ -287,31 +150,42 @@ function ConversationItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className={`text-sm font-medium truncate ${conversation.unread > 0 ? 'text-text-primary' : 'text-text-secondary'}`}>
-              {conversation.name}
+            <span className={`text-sm font-medium truncate ${conversation.unreadCount > 0 ? 'text-text-primary' : 'text-text-secondary'}`}>
+              {displayName}
             </span>
-            {conversation.verified && (
-              <svg className="w-3.5 h-3.5 text-accent-blue shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" />
+            {isDirect && (
+              <svg className="w-3.5 h-3.5 text-accent-purple shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
               </svg>
             )}
-            {conversation.isFriend && (
-              <svg className="w-3.5 h-3.5 text-accent-purple shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
-            )}
           </div>
-          <span className={`text-2xs shrink-0 ${conversation.unread > 0 ? 'text-accent-blue font-medium' : 'text-text-muted'}`}>
-            {conversation.time}
+          <span className={`text-2xs shrink-0 ${conversation.unreadCount > 0 ? 'text-accent-blue font-medium' : 'text-text-muted'}`}>
+            {timeStr}
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <p className={`text-xs truncate ${conversation.unread > 0 ? 'text-text-secondary' : 'text-text-muted'}`}>
-            {conversation.lastMessage}
+          <p className={`text-xs truncate ${conversation.unreadCount > 0 ? 'text-text-secondary' : 'text-text-muted'}`}>
+            {conversation.lastMessagePreview || 'No messages yet'}
           </p>
-          {conversation.unread > 0 && (
-            <span className="badge-count ml-2 shrink-0">{conversation.unread}</span>
+          {conversation.unreadCount > 0 && (
+            <span className="badge-count ml-2 shrink-0">{conversation.unreadCount}</span>
           )}
         </div>
       </div>
     </div>
   );
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'now';
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }

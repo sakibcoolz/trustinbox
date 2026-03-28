@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useNotifications } from '@/lib/notification-context';
 
@@ -47,7 +48,8 @@ function UserAvatar({ name, online, size = 'md' }: { name: string; online?: bool
 
 export default function FriendsPage() {
   const { token } = useAuth();
-  const { addToast } = useNotifications();
+  const { addToast, onFriendEvent } = useNotifications();
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>('friends');
   const [search, setSearch] = useState('');
   const [findSearch, setFindSearch] = useState('');
@@ -98,6 +100,14 @@ export default function FriendsPage() {
     fetchRequests();
   }, [fetchFriends, fetchRequests]);
 
+  // Auto-refresh when a friend event arrives via SSE (accept/request from other user)
+  useEffect(() => {
+    return onFriendEvent(() => {
+      fetchFriends();
+      fetchRequests();
+    });
+  }, [onFriendEvent, fetchFriends, fetchRequests]);
+
   // Debounced API search
   useEffect(() => {
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
@@ -139,9 +149,12 @@ export default function FriendsPage() {
     };
   }, [findSearch, token]);
 
+  const incomingRequests = requests.filter((r) => r.direction === 'incoming' && r.status === 'PENDING');
+  const outgoingRequests = requests.filter((r) => r.direction === 'outgoing' && r.status === 'PENDING');
+
   const tabs: { key: Tab; label: string; count?: number }[] = [
-    { key: 'friends', label: 'Friends', count: friends.length },
-    { key: 'requests', label: 'Requests', count: requests.filter((r) => r.direction === 'incoming' && r.status === 'PENDING').length },
+    { key: 'friends', label: 'Friends', count: friends.length + outgoingRequests.length },
+    { key: 'requests', label: 'Requests', count: incomingRequests.length },
     { key: 'find', label: 'Find People' },
   ];
 
@@ -149,10 +162,25 @@ export default function FriendsPage() {
     (f) => !search || f.user.fullName.toLowerCase().includes(search.toLowerCase()) || f.user.username.toLowerCase().includes(search.toLowerCase())
   );
 
-  const incomingRequests = requests.filter((r) => r.direction === 'incoming' && r.status === 'PENDING');
-  const outgoingRequests = requests.filter((r) => r.direction === 'outgoing' && r.status === 'PENDING');
+  const filteredOutgoing = outgoingRequests.filter(
+    (r) => !search || r.user.fullName.toLowerCase().includes(search.toLowerCase()) || r.user.username.toLowerCase().includes(search.toLowerCase())
+  );
 
   const selectedFriend = friends.find((f) => f.id === selectedId);
+
+  async function handleSendMessage(userId: string) {
+    try {
+      const res = await fetch(`${API_BASE}/api/conversations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type: 'DIRECT', participantId: userId }),
+      });
+      if (!res.ok) throw new Error('Failed to create conversation');
+      router.push('/conversations');
+    } catch {
+      addToast({ type: 'error', title: 'Could not start conversation' });
+    }
+  }
 
   async function handleAccept(reqId: string) {
     setActionLoading(reqId);
@@ -342,7 +370,29 @@ export default function FriendsPage() {
                 </>
               )}
 
-              {filteredFriends.length === 0 && (
+              {/* Added / Pending section */}
+              {filteredOutgoing.length > 0 && (
+                <>
+                  <div className="px-4 py-1.5">
+                    <span className="text-2xs text-text-muted font-medium uppercase tracking-wider">Added — {filteredOutgoing.length}</span>
+                  </div>
+                  {filteredOutgoing.map((req) => (
+                    <div
+                      key={req.id}
+                      className="flex items-center gap-3 px-4 py-3 cursor-default transition-all duration-150 border-l-2 border-l-transparent hover:bg-bg-hover"
+                    >
+                      <UserAvatar name={req.user.fullName} online={req.user.online} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-text-secondary truncate">{req.user.fullName}</p>
+                        <p className="text-2xs text-text-muted">{req.user.username}</p>
+                      </div>
+                      <span className="chip-default text-2xs">Pending</span>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {filteredFriends.length === 0 && filteredOutgoing.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-center px-6">
                   <div className="w-12 h-12 rounded-2xl bg-bg-tertiary flex items-center justify-center mb-3">
                     <svg className="w-6 h-6 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
@@ -541,7 +591,7 @@ export default function FriendsPage() {
 
               {/* Actions */}
               <div className="space-y-2">
-                <button className="btn-primary w-full flex items-center justify-center gap-2">
+                <button onClick={() => handleSendMessage(selectedFriend.user.id)} className="btn-primary w-full flex items-center justify-center gap-2">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
                   Send Message
                 </button>

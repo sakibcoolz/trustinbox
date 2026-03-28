@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { ConversationList, type Conversation } from '@/components/chat/conversation-list';
+import { ConversationList } from '@/components/chat/conversation-list';
 import { ChatArea } from '@/components/chat/chat-area';
+import { ChatProvider, useChat } from '@/lib/chat-context';
 
-export default function ConversationsPage() {
-  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+function ConversationsContent() {
+  const { activeConversation, setActiveConversation } = useChat();
 
   return (
     <>
@@ -15,5 +15,13 @@ export default function ConversationsPage() {
       />
       <ChatArea conversation={activeConversation} />
     </>
+  );
+}
+
+export default function ConversationsPage() {
+  return (
+    <ChatProvider>
+      <ConversationsContent />
+    </ChatProvider>
   );
 }

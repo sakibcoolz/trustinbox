@@ -31,6 +31,7 @@ interface NotificationContextType {
   markRead: (ids: string[]) => Promise<void>;
   dismissToast: (id: string) => void;
   addToast: (toast: Omit<Toast, 'id'>) => void;
+  onFriendEvent: (cb: () => void) => () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -40,6 +41,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const friendListenersRef = useRef<Set<() => void>>(new Set());
+
+  const onFriendEvent = useCallback((cb: () => void) => {
+    friendListenersRef.current.add(cb);
+    return () => { friendListenersRef.current.delete(cb); };
+  }, []);
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -119,6 +126,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         // Show toast for the notification
         const toastType = notif.type === 'FRIEND_ACCEPTED' ? 'success' : 'info';
         addToast({ type: toastType, title: notif.title, body: notif.body });
+
+        // Notify friend listeners so friends list can refresh
+        if (notif.type === 'FRIEND_ACCEPTED' || notif.type === 'FRIEND_REQUEST') {
+          friendListenersRef.current.forEach((cb) => cb());
+        }
       } catch {
         // ignore parse errors
       }
@@ -138,7 +150,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   return (
     <NotificationContext.Provider
-      value={{ notifications, unreadCount, toasts, fetchNotifications, markAllRead, markRead, dismissToast, addToast }}
+      value={{ notifications, unreadCount, toasts, fetchNotifications, markAllRead, markRead, dismissToast, addToast, onFriendEvent }}
     >
       {children}
     </NotificationContext.Provider>

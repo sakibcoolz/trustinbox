@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -16,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/trustinbox/cornerstone/auth/jwt"
 	"github.com/trustinbox/cornerstone/config"
 	logger "github.com/trustinbox/cornerstone/logging"
@@ -55,6 +57,40 @@ func main() {
 		7*24*time.Hour,
 	)
 
+	// Connect to Redis
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     getEnvOrDefault("REDIS_ADDR", "localhost:6379"),
+		Password: getEnvOrDefault("REDIS_PASSWORD", ""),
+		DB:       0,
+	})
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		log.Fatal("failed to connect to Redis", zap.Error(err))
+	}
+	log.Info("connected to Redis")
+
+	// Initialize MinIO client
+	minioClient := initMinioClient(log)
+
+	// WebSocket hub with Redis Pub/Sub
+	wsHub := newWSHub(rdb, log)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go wsHub.run(ctx)
+
+	// Presence refresh ticker
+	go func() {
+		ticker := time.NewTicker(60 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				wsHub.refreshPresence(ctx)
+			}
+		}
+	}()
+
 	mux := http.NewServeMux()
 
 	// CORS middleware
@@ -86,6 +122,76 @@ func main() {
 	mux.HandleFunc("/api/notifications", handleListNotifications(db, tokenSvc, log))
 	mux.HandleFunc("/api/notifications/read", handleMarkNotificationsRead(db, tokenSvc, log))
 	mux.HandleFunc("/api/notifications/stream", handleSSEStream(tokenSvc, log, sseHub))
+
+	// Chat dependencies (shared across chat handlers)
+	chatD := &chatDeps{
+		db:       db,
+		hub:      wsHub,
+		sseHub:   sseHub,
+		log:      log,
+		tokenSvc: tokenSvc,
+	}
+
+	// WebSocket endpoint
+	mux.HandleFunc("/api/ws", handleWebSocket(chatD))
+
+	// Chat conversation endpoints
+	mux.HandleFunc("/api/conversations", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handleListConversations(chatD)(w, r)
+		case http.MethodPost:
+			handleCreateConversation(chatD)(w, r)
+		default:
+			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+		}
+	})
+	mux.HandleFunc("/api/conversations/", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		switch {
+		case strings.HasSuffix(path, "/messages"):
+			if r.Method == http.MethodGet {
+				handleListMessages(chatD)(w, r)
+			} else if r.Method == http.MethodPost {
+				handleSendMessageREST(chatD)(w, r)
+			} else {
+				writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+			}
+		case strings.HasSuffix(path, "/read"):
+			handleMarkConversationRead(chatD)(w, r)
+		default:
+			handleConversationByID(chatD)(w, r)
+		}
+	})
+
+	// Message endpoints (edit/delete/reactions)
+	mux.HandleFunc("/api/messages/", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if strings.Contains(path, "/reactions") {
+			if r.Method == http.MethodPost {
+				handleAddReactionREST(chatD)(w, r)
+			} else if r.Method == http.MethodDelete {
+				handleRemoveReactionREST(chatD)(w, r)
+			} else {
+				writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+			}
+			return
+		}
+		if r.Method == http.MethodPut {
+			handleEditMessageREST(chatD)(w, r)
+		} else if r.Method == http.MethodDelete {
+			handleDeleteMessageREST(chatD)(w, r)
+		} else {
+			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+		}
+	})
+
+	// File upload/serve endpoints
+	mux.HandleFunc("/api/upload", handleUploadFile(chatD, minioClient))
+	mux.HandleFunc("/api/files/", handleServeFile(chatD, minioClient))
+
+	// Presence endpoint
+	mux.HandleFunc("/api/presence", handlePresenceQuery(chatD))
 
 	// GraphQL placeholder (will be replaced with gqlgen)
 	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
@@ -673,7 +779,7 @@ func createNotification(db *sql.DB, hub *sseHub, userID, nType, title, body stri
 	dataJSON, _ := json.Marshal(data)
 	var id string
 	err := db.QueryRow(
-		`INSERT INTO notifications (user_id, type, title, body, data, created_at)
+		`INSERT INTO notifications (user_id, category, title, body, metadata, created_at)
 		 VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id`,
 		userID, nType, title, body, dataJSON,
 	).Scan(&id)
@@ -924,11 +1030,21 @@ func handleRespondFriendRequest(db *sql.DB, tokenSvc *jwt.TokenService, log *zap
 		var responderName string
 		db.QueryRow(`SELECT COALESCE(p.full_name, u.username) FROM users u LEFT JOIN user_profiles p ON u.id = p.user_id WHERE u.id = $1`, userID).Scan(&responderName)
 
+		var senderName string
+		db.QueryRow(`SELECT COALESCE(p.full_name, u.username) FROM users u LEFT JOIN user_profiles p ON u.id = p.user_id WHERE u.id = $1`, senderID).Scan(&senderName)
+
 		if input.Action == "accept" {
+			// Notify the original sender that their request was accepted
 			createNotification(db, hub, senderID, "FRIEND_ACCEPTED",
 				"Connection Accepted",
 				fmt.Sprintf("%s accepted your connection request", responderName),
 				map[string]string{"friendId": userID, "friendName": responderName},
+			)
+			// Notify the acceptor so their UI updates in real-time
+			createNotification(db, hub, userID, "FRIEND_ACCEPTED",
+				"New Connection",
+				fmt.Sprintf("You are now connected with %s", senderName),
+				map[string]string{"friendId": senderID, "friendName": senderName},
 			)
 		}
 
@@ -1044,7 +1160,7 @@ func handleListNotifications(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Lo
 		}
 
 		rows, err := db.QueryContext(r.Context(),
-			`SELECT id, type, title, COALESCE(body, ''), COALESCE(data::text, '{}'), read, created_at
+			`SELECT id, category, title, body, COALESCE(metadata::text, '{}'), status, created_at
 			 FROM notifications
 			 WHERE user_id = $1
 			 ORDER BY created_at DESC
@@ -1059,10 +1175,11 @@ func handleListNotifications(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Lo
 		results := []notificationResponse{}
 		for rows.Next() {
 			var n notificationResponse
-			var dataStr, createdAt string
-			if err := rows.Scan(&n.ID, &n.Type, &n.Title, &n.Body, &dataStr, &n.Read, &createdAt); err != nil {
+			var dataStr, createdAt, status string
+			if err := rows.Scan(&n.ID, &n.Type, &n.Title, &n.Body, &dataStr, &status, &createdAt); err != nil {
 				continue
 			}
+			n.Read = status == "READ"
 			n.Data = json.RawMessage(dataStr)
 			t, _ := time.Parse(time.RFC3339Nano, createdAt)
 			n.CreatedAt = t.Format(time.RFC3339)
@@ -1098,11 +1215,11 @@ func handleMarkNotificationsRead(db *sql.DB, tokenSvc *jwt.TokenService, log *za
 		}
 
 		if input.All {
-			_, err = db.Exec(`UPDATE notifications SET read = TRUE WHERE user_id = $1 AND read = FALSE`, userID)
+			_, err = db.Exec(`UPDATE notifications SET status = 'READ' WHERE user_id = $1 AND status != 'READ'`, userID)
 		} else if len(input.IDs) > 0 {
 			// Mark specific ones
 			for _, id := range input.IDs {
-				db.Exec(`UPDATE notifications SET read = TRUE WHERE id = $1 AND user_id = $2`, id, userID)
+				db.Exec(`UPDATE notifications SET status = 'READ' WHERE id = $1 AND user_id = $2`, id, userID)
 			}
 		}
 
