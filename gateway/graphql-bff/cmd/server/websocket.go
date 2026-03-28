@@ -104,6 +104,18 @@ var upgrader = websocket.Upgrader{
 
 func (c *wsClient) readPump(deps *chatDeps) {
 	defer func() {
+		// Publish offline presence via Redis Pub/Sub so all BFF instances
+		// notify their locally-connected friends via SSE.
+		go func() {
+			ctxBg := context.Background()
+			participants := getUserFriendIDs(ctxBg, deps, c.userID)
+			deps.hub.broadcast(ctxBg, participants, wsOutgoing{
+				Type:   WSEventPresence,
+				UserID: c.userID,
+				Online: false,
+			})
+			deps.hub.publishPresence(ctxBg, c.userID, false)
+		}()
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
@@ -176,49 +188,73 @@ func (c *wsClient) sendError(msg string) {
 
 // ==================== WebSocket Hub ====================
 
+// presenceEvent is published to the Redis "presence:events" channel so every
+// BFF instance can push SSE notifications to its locally-connected friends.
+type presenceEvent struct {
+	InstanceID string `json:"instanceId"`
+	UserID     string `json:"userId"`
+	Online     bool   `json:"online"`
+}
+
 type wsHub struct {
 	mu         sync.RWMutex
 	clients    map[string]map[*wsClient]bool // userID -> set of clients
 	register   chan *wsClient
 	unregister chan *wsClient
 	rdb        *redis.Client
+	db         *sql.DB
+	sseHub     *sseHub
 	log        *zap.Logger
 	instanceID string // unique per process, used to skip self-published Redis messages
 }
 
-func newWSHub(rdb *redis.Client, log *zap.Logger) *wsHub {
+func newWSHub(rdb *redis.Client, db *sql.DB, sh *sseHub, log *zap.Logger) *wsHub {
 	return &wsHub{
 		clients:    make(map[string]map[*wsClient]bool),
 		register:   make(chan *wsClient),
 		unregister: make(chan *wsClient),
 		rdb:        rdb,
+		db:         db,
+		sseHub:     sh,
 		log:        log,
 		instanceID: uuid.New().String(),
 	}
 }
 
 func (h *wsHub) run(ctx context.Context) {
-	// Subscribe to Redis Pub/Sub for cross-instance fan-out
-	pubsub := h.rdb.Subscribe(ctx, "chat:broadcast")
+	// Subscribe to Redis Pub/Sub channels:
+	//  - "chat:broadcast"    → cross-instance WS fan-out for chat events
+	//  - "presence:events"   → cross-instance presence online/offline delivery via SSE
+	pubsub := h.rdb.Subscribe(ctx, "chat:broadcast", "presence:events")
 	ch := pubsub.Channel()
 
 	go func() {
 		for msg := range ch {
-			// Broadcast received from another instance via Redis
-			var envelope struct {
-				InstanceID    string     `json:"instanceId"`
-				TargetUserIDs []string   `json:"targetUserIds"`
-				Event         wsOutgoing `json:"event"`
-			}
-			if err := json.Unmarshal([]byte(msg.Payload), &envelope); err != nil {
-				continue
-			}
-			// Skip messages published by this instance (already delivered locally)
-			if envelope.InstanceID == h.instanceID {
-				continue
-			}
-			for _, uid := range envelope.TargetUserIDs {
-				h.sendLocal(uid, envelope.Event)
+			switch msg.Channel {
+			case "chat:broadcast":
+				// Deliver WS messages to locally-connected users from another instance
+				var envelope struct {
+					InstanceID    string     `json:"instanceId"`
+					TargetUserIDs []string   `json:"targetUserIds"`
+					Event         wsOutgoing `json:"event"`
+				}
+				if err := json.Unmarshal([]byte(msg.Payload), &envelope); err != nil {
+					continue
+				}
+				if envelope.InstanceID == h.instanceID {
+					continue
+				}
+				for _, uid := range envelope.TargetUserIDs {
+					h.sendLocal(uid, envelope.Event)
+				}
+
+			case "presence:events":
+				// Deliver SSE presence updates to locally-connected friends on this instance
+				var evt presenceEvent
+				if err := json.Unmarshal([]byte(msg.Payload), &evt); err != nil {
+					continue
+				}
+				go h.deliverPresenceSSE(ctx, evt)
 			}
 		}
 	}()
@@ -236,7 +272,7 @@ func (h *wsHub) run(ctx context.Context) {
 			h.clients[client.userID][client] = true
 			h.mu.Unlock()
 
-			// Set user online in Redis
+			// Set user online in Redis, then broadcast presence transition
 			h.rdb.Set(ctx, "presence:"+client.userID, "online", 2*time.Minute)
 			h.log.Info("WS client connected", zap.String("user_id", client.userID))
 
@@ -254,6 +290,42 @@ func (h *wsHub) run(ctx context.Context) {
 			close(client.send)
 			h.mu.Unlock()
 			h.log.Info("WS client disconnected", zap.String("user_id", client.userID))
+		}
+	}
+}
+
+// publishPresence sets the Redis presence state for userID and publishes a
+// presenceEvent to the "presence:events" channel so all BFF instances deliver
+// SSE notifications to their locally-connected friends of this user.
+func (h *wsHub) publishPresence(ctx context.Context, userID string, online bool) {
+	evt := presenceEvent{
+		InstanceID: h.instanceID,
+		UserID:     userID,
+		Online:     online,
+	}
+	data, _ := json.Marshal(evt)
+	h.rdb.Publish(ctx, "presence:events", string(data))
+}
+
+// deliverPresenceSSE looks up the friends of evt.UserID and pushes an SSE
+// presence_update event to each friend that has an active SSE connection on
+// THIS instance.  Called from the presence:events pub/sub subscriber.
+func (h *wsHub) deliverPresenceSSE(ctx context.Context, evt presenceEvent) {
+	rows, err := h.db.QueryContext(ctx,
+		`SELECT friend_id FROM friendships WHERE user_id = $1`, evt.UserID)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	payload := map[string]interface{}{
+		"type":   WSEventPresence,
+		"userId": evt.UserID,
+		"online": evt.Online,
+	}
+	for rows.Next() {
+		var friendID string
+		if rows.Scan(&friendID) == nil {
+			h.sseHub.send(friendID, "presence_update", payload)
 		}
 	}
 }
@@ -698,14 +770,17 @@ func handleWebSocket(deps *chatDeps) http.HandlerFunc {
 
 		deps.hub.register <- client
 
-		// Broadcast presence
+		// Publish online presence via Redis Pub/Sub so all BFF instances
+		// notify their locally-connected friends via SSE.
 		go func() {
-			participants := getUserFriendIDs(context.Background(), deps, claims.UserID)
-			deps.hub.broadcast(context.Background(), participants, wsOutgoing{
+			ctxBg := context.Background()
+			participants := getUserFriendIDs(ctxBg, deps, claims.UserID)
+			deps.hub.broadcast(ctxBg, participants, wsOutgoing{
 				Type:   WSEventPresence,
 				UserID: claims.UserID,
 				Online: true,
 			})
+			deps.hub.publishPresence(ctxBg, claims.UserID, true)
 		}()
 
 		go client.writePump()
@@ -774,5 +849,98 @@ func handlePresenceQuery(deps *chatDeps) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusOK, results)
+	}
+}
+
+// handlePresenceHeartbeat keeps the current user marked as "online" in Redis.
+// Called by the frontend every ~45 s via a plain HTTPS fetch (no WebSocket needed).
+func handlePresenceHeartbeat(deps *chatDeps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+			return
+		}
+		userID, err := extractUserID(r, deps.tokenSvc)
+		if err != nil {
+			writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "unauthorized"})
+			return
+		}
+		ctx := r.Context()
+		wasOffline, _ := deps.hub.rdb.Get(ctx, "presence:"+userID).Result()
+		deps.hub.rdb.Set(ctx, "presence:"+userID, "online", 2*time.Minute)
+		// Notify friends only when transitioning from offline → online.
+		// publishPresence publishes to Redis Pub/Sub so all BFF instances deliver SSE.
+		if wasOffline != "online" {
+			go func() {
+				ctxBg := context.Background()
+				friends := getUserFriendIDs(ctxBg, deps, userID)
+				deps.hub.broadcast(ctxBg, friends, wsOutgoing{
+					Type:   WSEventPresence,
+					UserID: userID,
+					Online: true,
+				})
+				deps.hub.publishPresence(ctxBg, userID, true)
+			}()
+		}
+		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+	}
+}
+
+// handleXMPPWSProxy proxies the browser WebSocket connection to the local ejabberd
+// WebSocket endpoint (ws://localhost:5280/ws).  This lets browsers reach ejabberd
+// when the app is served from an external hostname (Tailscale, LAN, etc.) without
+// requiring the browser to open a separate cross-origin / plain-WS connection.
+//
+// Flow:  browser  ──wss──►  BFF /api/xmpp-ws  ──ws──►  ejabberd :5280/ws
+func handleXMPPWSProxy(ejabberdURL string, log *zap.Logger) http.HandlerFunc {
+	// Dialer re-used across connections.
+	dialer := websocket.DefaultDialer
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Upgrade the browser connection.
+		browserConn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Warn("xmpp-ws proxy: upgrade failed", zap.Error(err))
+			return
+		}
+		defer browserConn.Close()
+
+		// Forward the Sec-WebSocket-Protocol header (XMPP requires "xmpp").
+		reqHeader := http.Header{}
+		if proto := r.Header.Get("Sec-Websocket-Protocol"); proto != "" {
+			reqHeader.Set("Sec-Websocket-Protocol", proto)
+		}
+
+		// Dial ejabberd.
+		ejConn, _, err := dialer.Dial(ejabberdURL, reqHeader)
+		if err != nil {
+			log.Warn("xmpp-ws proxy: dial ejabberd failed", zap.Error(err), zap.String("url", ejabberdURL))
+			browserConn.WriteMessage(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.CloseInternalServerErr, "backend unavailable"))
+			return
+		}
+		defer ejConn.Close()
+
+		// Copy frames in both directions until either side closes.
+		errc := make(chan error, 2)
+
+		copyFrames := func(dst, src *websocket.Conn) {
+			for {
+				mt, msg, err := src.ReadMessage()
+				if err != nil {
+					errc <- err
+					return
+				}
+				if err := dst.WriteMessage(mt, msg); err != nil {
+					errc <- err
+					return
+				}
+			}
+		}
+
+		go copyFrames(ejConn, browserConn) // browser → ejabberd
+		go copyFrames(browserConn, ejConn) // ejabberd → browser
+
+		<-errc // wait for first error (normal close or network failure)
 	}
 }

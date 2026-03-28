@@ -4,6 +4,8 @@ import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
+import { MobileNav } from '@/components/layout/mobile-nav';
+import { Header } from '@/components/layout/header';
 import { ChatProvider } from '@/lib/chat-context';
 
 export default function DashboardLayout({
@@ -41,8 +43,12 @@ export default function DashboardLayout({
     <ChatProvider>
       <div className="flex h-screen bg-bg-primary overflow-hidden">
         <Sidebar />
-        <div className="flex flex-1 min-w-0 overflow-hidden">{children}</div>
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          <Header />
+          <div className="flex flex-1 min-w-0 overflow-hidden pb-16 sm:pb-0">{children}</div>
+        </div>
       </div>
+      <MobileNav />
     </ChatProvider>
   );
 }

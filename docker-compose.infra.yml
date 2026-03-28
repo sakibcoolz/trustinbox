@@ -1,0 +1,93 @@
+# Infrastructure-only compose file.
+# Use this when running Go services and the Next.js frontend locally.
+#
+#   docker compose -f docker-compose.infra.yml up -d
+#   sh scripts/dev.sh
+#
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: trustinbox
+      POSTGRES_PASSWORD: trustinbox_dev
+      POSTGRES_DB: trustinbox
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trustinbox"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: trustinbox
+      MINIO_ROOT_PASSWORD: trustinbox_dev
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  ejabberd:
+    image: ejabberd/ecs:24.02
+    environment:
+      EJABBERD_DOMAIN: chat.trustinbox.local
+      EJABBERD_ADMIN: admin
+      EJABBERD_ADMIN_PASSWORD: ejabberd_admin_dev
+    ports:
+      - "5222:5222"
+      - "5280:5280"
+    volumes:
+      - ./infra/ejabberd/ejabberd.yml:/home/ejabberd/conf/ejabberd.yml:ro
+      - ./infra/ejabberd/jwt_secret:/home/ejabberd/conf/jwt_secret:ro
+      - ejabberddata:/home/ejabberd
+    healthcheck:
+      test: ["CMD", "/home/ejabberd/bin/ejabberdctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - ./infra/otel/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+  ejabberddata:

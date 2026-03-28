@@ -22,6 +22,7 @@ export default function InboxPage() {
   const { notifications, markRead } = useNotifications();
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>('All');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
   const filtered = activeTab === 'All'
     ? notifications
@@ -32,6 +33,7 @@ export default function InboxPage() {
 
   const handleSelect = (id: string) => {
     setSelectedId(id);
+    setMobileShowDetail(true);
     const n = notifications.find((n) => n.id === id);
     if (n && !n.read) {
       markRead([id]);
@@ -41,7 +43,7 @@ export default function InboxPage() {
   return (
     <>
       {/* Notification list panel */}
-      <div className="w-panel h-full flex flex-col bg-bg-secondary border-r border-border-primary shrink-0">
+      <div className={`${mobileShowDetail ? 'hidden sm:flex' : 'flex'} w-full sm:w-panel h-full flex-col bg-bg-secondary border-r border-border-primary sm:shrink-0`}>
         <div className="px-4 pt-4 pb-2 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -108,9 +110,19 @@ export default function InboxPage() {
 
       {/* Detail panel */}
       {selected ? (
-        <div className="flex-1 flex flex-col bg-bg-primary min-w-0 overflow-hidden">
-          <div className="h-[60px] px-6 flex items-center justify-between border-b border-border-primary bg-bg-secondary/80 backdrop-blur-sm shrink-0">
+        <div className={`${!mobileShowDetail ? 'hidden sm:flex' : 'flex'} flex-1 flex-col bg-bg-primary min-w-0 overflow-hidden`}>
+          <div className="h-[60px] px-4 sm:px-6 flex items-center justify-between border-b border-border-primary bg-bg-secondary/80 backdrop-blur-sm shrink-0">
             <div className="flex items-center gap-3">
+              {/* Back button — mobile only */}
+              <button
+                onClick={() => setMobileShowDetail(false)}
+                className="sm:hidden btn-icon mr-1"
+                aria-label="Back to inbox"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+              </button>
               <div className="w-9 h-9 rounded-lg bg-accent-blue/15 text-accent-blue flex items-center justify-center">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
               </div>
@@ -122,7 +134,7 @@ export default function InboxPage() {
             <span className={categoryChip[selected.type] || 'chip-blue'}>{getCategory(selected)}</span>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="max-w-2xl mx-auto space-y-6">
               <h1 className="text-xl font-semibold text-text-primary">{selected.title}</h1>
               <div className="h-px bg-border-primary" />
@@ -133,7 +145,7 @@ export default function InboxPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center bg-bg-primary">
+        <div className="hidden sm:flex flex-1 items-center justify-center bg-bg-primary">
           <div className="text-center space-y-3">
             <div className="w-16 h-16 rounded-2xl bg-bg-tertiary mx-auto flex items-center justify-center">
               <svg className="w-8 h-8 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>

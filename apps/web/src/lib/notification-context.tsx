@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/lib/auth-context';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 export interface Notification {
   id: string;
@@ -15,11 +15,33 @@ export interface Notification {
   createdAt: string;
 }
 
+/** Payload pushed via SSE when a chat message is persisted server-side.
+ *  Shape matches the wsOutgoing struct in the Go gateway. */
+export interface ChatMessagePayload {
+  type:           string;   // "new_message"
+  conversationId: string;
+  messageId:      string;
+  senderId:       string;
+  senderName:     string;
+  content:        string;
+  replyToId?:     string;
+  timestamp:      string;
+  messageType:    string;
+  status:         string;
+  attachments?:   unknown[];
+}
+
 export interface Toast {
   id: string;
   type: 'info' | 'success' | 'warning' | 'error';
   title: string;
   body?: string;
+}
+
+export interface PresencePayload {
+  type:   string;
+  userId: string;
+  online: boolean;
 }
 
 interface NotificationContextType {
@@ -32,20 +54,36 @@ interface NotificationContextType {
   dismissToast: (id: string) => void;
   addToast: (toast: Omit<Toast, 'id'>) => void;
   onFriendEvent: (cb: () => void) => () => void;
+  /** Register a listener for SSE-pushed chat messages (new_message events). */
+  onChatMessage: (cb: (msg: ChatMessagePayload) => void) => () => void;
+  /** Register a listener for SSE-pushed presence updates. */
+  onPresenceUpdate: (cb: (p: PresencePayload) => void) => () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const { token, user } = useAuth();
+  const { token, user, isLoading: isAuthLoading } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const friendListenersRef = useRef<Set<() => void>>(new Set());
+  const friendListenersRef   = useRef<Set<() => void>>(new Set());
+  const chatMsgListenersRef  = useRef<Set<(msg: ChatMessagePayload) => void>>(new Set());
+  const presenceListenersRef = useRef<Set<(p: PresencePayload) => void>>(new Set());
 
   const onFriendEvent = useCallback((cb: () => void) => {
     friendListenersRef.current.add(cb);
     return () => { friendListenersRef.current.delete(cb); };
+  }, []);
+
+  const onChatMessage = useCallback((cb: (msg: ChatMessagePayload) => void) => {
+    chatMsgListenersRef.current.add(cb);
+    return () => { chatMsgListenersRef.current.delete(cb); };
+  }, []);
+
+  const onPresenceUpdate = useCallback((cb: (p: PresencePayload) => void) => {
+    presenceListenersRef.current.add(cb);
+    return () => { presenceListenersRef.current.delete(cb); };
   }, []);
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
@@ -108,49 +146,90 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   // Fetch notifications on mount + when token changes
   useEffect(() => {
+    if (isAuthLoading) return;
     if (token) fetchNotifications();
-  }, [token, fetchNotifications]);
+  }, [token, fetchNotifications, isAuthLoading]);
 
   // SSE real-time connection
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    if (!token || !user) return;
+    if (isAuthLoading || !token || !user) return;
 
-    const es = new EventSource(`${API_BASE}/api/notifications/stream?token=${token}`);
-    eventSourceRef.current = es;
+    let retryDelay = 3000;
+    let destroyed = false;
 
-    es.addEventListener('notification', (event) => {
-      try {
-        const notif: Notification = JSON.parse(event.data);
-        setNotifications((prev) => [notif, ...prev]);
-        
-        // Show toast for the notification
-        const toastType = notif.type === 'FRIEND_ACCEPTED' ? 'success' : 'info';
-        addToast({ type: toastType, title: notif.title, body: notif.body });
+    function connect() {
+      if (destroyed) return;
+      const es = new EventSource(`${API_BASE}/api/notifications/stream?token=${token}`);
+      eventSourceRef.current = es;
 
-        // Notify friend listeners so friends list can refresh
-        if (notif.type === 'FRIEND_ACCEPTED' || notif.type === 'FRIEND_REQUEST') {
-          friendListenersRef.current.forEach((cb) => cb());
+      es.addEventListener('notification', (event) => {
+        try {
+          const notif: Notification = JSON.parse(event.data);
+          setNotifications((prev) => [notif, ...prev]);
+
+          const toastType = notif.type === 'FRIEND_ACCEPTED' ? 'success' : 'info';
+          addToast({ type: toastType, title: notif.title, body: notif.body });
+
+          if (notif.type === 'FRIEND_ACCEPTED' || notif.type === 'FRIEND_REQUEST') {
+            friendListenersRef.current.forEach((cb) => cb());
+          }
+        } catch {
+          // ignore parse errors
         }
-      } catch {
-        // ignore parse errors
-      }
-    });
+      });
 
-    es.onerror = () => {
-      // EventSource will auto-reconnect
-    };
+      // Real-time chat message delivery via SSE (fallback / backup to XMPP).
+      // The chat-context deduplicates by message ID so double delivery is safe.
+      es.addEventListener('chat_message', (event) => {
+        try {
+          const msg: ChatMessagePayload = JSON.parse(event.data);
+          chatMsgListenersRef.current.forEach((cb) => cb(msg));
+        } catch {
+          // ignore parse errors
+        }
+      });
+
+      // Real-time presence updates pushed by the gateway when friends go online/offline.
+      es.addEventListener('presence_update', (event) => {
+        try {
+          const p: PresencePayload = JSON.parse(event.data);
+          presenceListenersRef.current.forEach((cb) => cb(p));
+        } catch {
+          // ignore parse errors
+        }
+      });
+
+      // Reset backoff once connected (first message received or open fires)
+      es.addEventListener('open', () => { retryDelay = 3000; });
+
+      es.onerror = () => {
+        es.close();
+        eventSourceRef.current = null;
+        if (!destroyed) {
+          // Back off up to 30 s to avoid hammering the server
+          retryTimerRef.current = setTimeout(() => connect(), retryDelay);
+          retryDelay = Math.min(retryDelay * 2, 30000);
+        }
+      };
+    }
+
+    connect();
 
     return () => {
-      es.close();
+      destroyed = true;
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      eventSourceRef.current?.close();
       eventSourceRef.current = null;
     };
-  }, [token, user, addToast]);
+  }, [token, user, addToast, isAuthLoading]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <NotificationContext.Provider
-      value={{ notifications, unreadCount, toasts, fetchNotifications, markAllRead, markRead, dismissToast, addToast, onFriendEvent }}
+      value={{ notifications, unreadCount, toasts, fetchNotifications, markAllRead, markRead, dismissToast, addToast, onFriendEvent, onChatMessage, onPresenceUpdate }}
     >
       {children}
     </NotificationContext.Provider>

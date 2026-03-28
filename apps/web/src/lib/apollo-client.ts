@@ -2,7 +2,7 @@ import { ApolloClient, InMemoryCache, createHttpLink, split } from '@apollo/clie
 import { getMainDefinition } from '@apollo/client/utilities';
 
 const httpLink = createHttpLink({
-  uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:4000/graphql',
+  uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || '/graphql',
   credentials: 'include',
 });
 

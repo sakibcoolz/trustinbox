@@ -236,6 +236,12 @@ services:
         SERVICE_DIR: gateway
     environment:
       HTTP_PORT: "4000"
+      DATABASE_URL: postgres://trustinbox:trustinbox_dev@postgres:5432/trustinbox?sslmode=disable
+      REDIS_ADDR: redis:6379
+      JWT_SECRET: dev-jwt-secret-change-in-prod
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: trustinbox
+      MINIO_SECRET_KEY: trustinbox_dev
       AUTH_SERVICE_ADDR: auth-service:50051
       USER_SERVICE_ADDR: user-service:50052
       POLICY_SERVICE_ADDR: policy-service:50053
@@ -274,6 +280,30 @@ services:
     depends_on:
       - graphql-gateway
 
+  # ─── XMPP / ejabberd ─────────────────────────────────────
+  ejabberd:
+    image: ejabberd/ecs:24.02
+    environment:
+      # The XMPP virtual host matches the domain used by all JIDs.
+      EJABBERD_DOMAIN: chat.trustinbox.local
+      # Admin account created on first boot.
+      EJABBERD_ADMIN: admin
+      EJABBERD_ADMIN_PASSWORD: ejabberd_admin_dev
+    ports:
+      - "5222:5222"   # native XMPP/TCP  (c2s)
+      - "5280:5280"   # HTTP: /ws (WebSocket), /bosh, /api (REST admin)
+    volumes:
+      - ./infra/ejabberd/ejabberd.yml:/home/ejabberd/conf/ejabberd.yml:ro
+      - ./infra/ejabberd/jwt_secret:/home/ejabberd/conf/jwt_secret:ro
+      - ejabberddata:/home/ejabberd
+    depends_on:
+      - graphql-gateway
+    healthcheck:
+      test: ["CMD", "/home/ejabberd/bin/ejabberdctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   # ─── Observability ────────────────────────────────────────
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
@@ -295,3 +325,4 @@ volumes:
   pgdata:
   redisdata:
   miniodata:
+  ejabberddata:

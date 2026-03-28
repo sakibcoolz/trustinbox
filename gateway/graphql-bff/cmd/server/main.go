@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	mathrand "math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	gojwt "github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
 	"github.com/trustinbox/cornerstone/auth/jwt"
 	"github.com/trustinbox/cornerstone/config"
@@ -71,8 +72,11 @@ func main() {
 	// Initialize MinIO client
 	minioClient := initMinioClient(log)
 
-	// WebSocket hub with Redis Pub/Sub
-	wsHub := newWSHub(rdb, log)
+	// SSE hub — created first so wsHub can reference it for presence delivery
+	sseHub := newSSEHub()
+
+	// WebSocket hub with Redis Pub/Sub (chat:broadcast + presence:events)
+	wsHub := newWSHub(rdb, db, sseHub, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go wsHub.run(ctx)
@@ -103,15 +107,15 @@ func main() {
 	})
 
 	// Auth endpoints
-	mux.HandleFunc("/api/auth/login", handleLogin(db, tokenSvc, log))
+	mux.HandleFunc("/api/auth/login", handleLogin(db, tokenSvc, cfg.JWTSecret, log))
 	mux.HandleFunc("/api/auth/register", handleRegister(db, tokenSvc, log))
 	mux.HandleFunc("/api/auth/me", handleMe(db, tokenSvc, log))
+	mux.HandleFunc("/api/auth/refresh", handleRefresh(db, tokenSvc, log))
 
 	// User endpoints
 	mux.HandleFunc("/api/users/search", handleSearchUsers(db, tokenSvc, log))
 
 	// Friend request endpoints
-	sseHub := newSSEHub()
 	mux.HandleFunc("/api/friends/request", handleFriendRequest(db, tokenSvc, log, sseHub))
 	mux.HandleFunc("/api/friends/requests", handleListFriendRequests(db, tokenSvc, log))
 	mux.HandleFunc("/api/friends/respond", handleRespondFriendRequest(db, tokenSvc, log, sseHub))
@@ -164,7 +168,7 @@ func main() {
 		}
 	})
 
-	// Message endpoints (edit/delete/reactions)
+	// Message endpoints (get/edit/delete/reactions)
 	mux.HandleFunc("/api/messages/", func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if strings.Contains(path, "/reactions") {
@@ -177,7 +181,9 @@ func main() {
 			}
 			return
 		}
-		if r.Method == http.MethodPut {
+		if r.Method == http.MethodGet {
+			handleGetMessageREST(chatD)(w, r)
+		} else if r.Method == http.MethodPut {
 			handleEditMessageREST(chatD)(w, r)
 		} else if r.Method == http.MethodDelete {
 			handleDeleteMessageREST(chatD)(w, r)
@@ -192,6 +198,25 @@ func main() {
 
 	// Presence endpoint
 	mux.HandleFunc("/api/presence", handlePresenceQuery(chatD))
+	mux.HandleFunc("/api/presence/heartbeat", handlePresenceHeartbeat(chatD))
+
+	// XMPP WebSocket proxy – the browser cannot reach ejabberd:5280 directly
+	// when the app is accessed via Tailscale or another external hostname
+	// (mixed-content block, cross-origin port, etc.).  This endpoint runs on the
+	// same origin as the BFF so the browser can connect to it without issues.
+	ejabberdWS := getEnvOrDefault("EJABBERD_WS_URL", "ws://localhost:5280/ws")
+	mux.HandleFunc("/api/xmpp-ws", handleXMPPWSProxy(ejabberdWS, log))
+
+	// ─── ejabberd internal hook endpoints ────────────────────────────────────
+	// Only callable from within the Docker network (ejabberd → gateway).
+	// Protected by EJABBERD_HOOK_SECRET header when the env var is set.
+	ejHookDeps := &ejabberdHookDeps{
+		db:             db,
+		log:            log,
+		internalSecret: getEnvOrDefault("EJABBERD_HOOK_SECRET", ""),
+	}
+	mux.HandleFunc("/internal/ejabberd/check_password", handleEjabberdCheckPassword(ejHookDeps))
+	mux.HandleFunc("/internal/ejabberd/is_user", handleEjabberdIsUser(ejHookDeps))
 
 	// GraphQL placeholder (will be replaced with gqlgen)
 	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
@@ -247,6 +272,8 @@ type loginRequest struct {
 type authResponse struct {
 	AccessToken  string       `json:"accessToken"`
 	RefreshToken string       `json:"refreshToken"`
+	XMPPToken    string       `json:"xmppToken"`
+	XMPPJid      string       `json:"xmppJid"`
 	User         userResponse `json:"user"`
 }
 
@@ -268,7 +295,7 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	json.NewEncoder(w).Encode(v)
 }
 
-func handleLogin(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
+func handleLogin(db *sql.DB, tokenSvc *jwt.TokenService, jwtSecret string, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -349,11 +376,38 @@ func handleLogin(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger) http.H
 			`SELECT virtual_public_id FROM user_identities WHERE user_id = $1 AND is_active = TRUE LIMIT 1`, userID,
 		).Scan(&virtualPublicID)
 
+		// Generate a short-lived XMPP JWT token.
+		// ejabberd's jwt auth verifies this token locally using the same HS256
+		// secret — no HTTP roundtrip is needed.
+		// The 'sub' claim is the user UUID, which becomes the XMPP localpart.
+		xmppJid := userID + "@" + xmppDomain
+		xmppClaims := gojwt.MapClaims{
+			"sub": userID,
+			"jid": xmppJid,
+			"iat": time.Now().Unix(),
+			"exp": time.Now().Add(24 * time.Hour).Unix(),
+		}
+		xmppJWTObj := gojwt.NewWithClaims(gojwt.SigningMethodHS256, xmppClaims)
+		xmppToken, xmppErr := xmppJWTObj.SignedString([]byte(jwtSecret))
+		if xmppErr != nil {
+			log.Error("failed to generate xmpp jwt", zap.Error(xmppErr))
+			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
+			return
+		}
+
+		// Persist the JID so other services can look it up.
+		_, _ = db.ExecContext(r.Context(),
+			`UPDATE users SET xmpp_jid = $1 WHERE id = $2`,
+			xmppJid, userID,
+		)
+
 		log.Info("user logged in", zap.String("user_id", userID), zap.String("username", username))
 
 		writeJSON(w, http.StatusOK, authResponse{
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
+			XMPPToken:    xmppToken,
+			XMPPJid:      xmppJid,
 			User: userResponse{
 				ID:              userID,
 				Email:           email,
@@ -379,7 +433,7 @@ func generateVirtualPublicID() string {
 	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, 8)
 	for i := range b {
-		b[i] = chars[rand.Intn(len(chars))]
+		b[i] = chars[mathrand.Intn(len(chars))]
 	}
 	return "TI-" + string(b)
 }
@@ -551,6 +605,82 @@ func handleMe(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger) http.Hand
 			FullName:        fullName,
 			Username:        username,
 			VirtualPublicID: virtualPublicID,
+		})
+	}
+}
+
+type refreshRequest struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
+func handleRefresh(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+			return
+		}
+
+		var req refreshRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.RefreshToken == "" {
+			writeJSON(w, http.StatusBadRequest, errorResponse{Error: "refreshToken is required"})
+			return
+		}
+
+		// Validate JWT signature and expiry
+		userID, err := tokenSvc.ValidateRefreshToken(req.RefreshToken)
+		if err != nil {
+			writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "invalid or expired refresh token"})
+			return
+		}
+
+		// Verify token exists in DB and is not revoked
+		hash := sha256.Sum256([]byte(req.RefreshToken))
+		tokenHash := hex.EncodeToString(hash[:])
+		var tokenID string
+		err = db.QueryRowContext(r.Context(),
+			`SELECT id FROM refresh_tokens WHERE token_hash = $1 AND user_id = $2 AND revoked = false AND expires_at > NOW()`,
+			tokenHash, userID,
+		).Scan(&tokenID)
+		if err != nil {
+			writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "refresh token not found or revoked"})
+			return
+		}
+
+		// Rotate: revoke old token
+		_, _ = db.ExecContext(r.Context(), `UPDATE refresh_tokens SET revoked = true WHERE id = $1`, tokenID)
+
+		// Issue new access token
+		accessToken, err := tokenSvc.GenerateAccessToken(userID, "USER", "")
+		if err != nil {
+			log.Error("failed to generate access token", zap.Error(err))
+			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
+			return
+		}
+
+		// Issue new refresh token (rotation)
+		newRefreshToken, err := tokenSvc.GenerateRefreshToken(userID)
+		if err != nil {
+			log.Error("failed to generate refresh token", zap.Error(err))
+			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
+			return
+		}
+
+		// Persist new refresh token
+		newHash := sha256.Sum256([]byte(newRefreshToken))
+		newTokenHash := hex.EncodeToString(newHash[:])
+		_, err = db.ExecContext(r.Context(),
+			`INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, revoked, created_at)
+			 VALUES ($1, $2, $3, $4, false, NOW())`,
+			uuid.New().String(), userID, newTokenHash, time.Now().Add(7*24*time.Hour),
+		)
+		if err != nil {
+			log.Error("failed to store new refresh token", zap.Error(err))
+		}
+
+		log.Info("token refreshed", zap.String("user_id", userID))
+		writeJSON(w, http.StatusOK, map[string]string{
+			"accessToken":  accessToken,
+			"refreshToken": newRefreshToken,
 		})
 	}
 }
@@ -734,6 +864,7 @@ func handleSSEStream(tokenSvc *jwt.TokenService, log *zap.Logger, hub *sseHub) h
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("X-Accel-Buffering", "no") // prevent nginx / Next.js proxy buffering
 		sseOrigin := r.Header.Get("Origin")
 		if sseOrigin == "" {
 			sseOrigin = "http://localhost:3000"
@@ -752,7 +883,7 @@ func handleSSEStream(tokenSvc *jwt.TokenService, log *zap.Logger, hub *sseHub) h
 		flusher.Flush()
 
 		ctx := r.Context()
-		ticker := time.NewTicker(30 * time.Second)
+		ticker := time.NewTicker(15 * time.Second) // 15s < typical 30s proxy timeout
 		defer ticker.Stop()
 
 		for {
