@@ -8,6 +8,7 @@ This document maps each major repo component to its business responsibility, its
 | --- | --- | --- |
 | `apps/web` | Customer login, inbox, friends, realtime chat, profile, career, privacy, DND, availability, settings | Active and most complete UI surface |
 | `apps/admin` | Platform dashboard, provider verification, moderation, billing, analytics | Mostly shell and placeholder screens |
+| `apps/provider` | Service provider dashboard, bot management, webhooks, analytics, campaigns, customer relations, settings | New — skeleton pages with dashboard, bots, webhooks, analytics, campaigns, customers, settings |
 
 ## Edge And Runtime Gateway
 
@@ -55,7 +56,7 @@ This document maps each major repo component to its business responsibility, its
 **Current status**
 
 - Has domain entities, repository interfaces, and auth use case logic
-- gRPC server starts, but handler registration is still TODO
+- gRPC delivery handler created; pending proto gen + main.go wiring
 - In practice, the gateway currently performs most auth flows directly
 
 ### `services/user-service`
@@ -75,7 +76,7 @@ This document maps each major repo component to its business responsibility, its
 **Current status**
 
 - Use case layer is present and coherent
-- gRPC handler is not registered yet
+- gRPC delivery handler created; pending proto gen + main.go wiring
 - Gateway currently handles profile/privacy endpoints directly against the database
 
 ### `services/policy-service`
@@ -97,7 +98,7 @@ This document maps each major repo component to its business responsibility, its
 
 - Strongest backend business logic implementation in the repo
 - Policy evaluator and tests are present
-- gRPC service wiring is still incomplete
+- gRPC delivery handler created; pending proto gen + main.go wiring
 - The architecture clearly wants this service to become the control point for all outbound communication
 
 ### `services/organization-service`
@@ -119,7 +120,7 @@ This document maps each major repo component to its business responsibility, its
 - Use case layer exists
 - Internal naming is still largely `organization`
 - Proto surface has already moved toward `ServiceProviderService`
-- gRPC handler wiring is not complete
+- gRPC delivery handler created; pending proto gen + main.go wiring
 
 ### `services/notification-service`
 
@@ -139,7 +140,7 @@ This document maps each major repo component to its business responsibility, its
 
 - Use case layer exists and already models policy + queue integration
 - Runtime ownership still sits mostly in the gateway
-- gRPC handler registration is not in place yet
+- gRPC delivery handler created; pending proto gen + main.go wiring
 
 ### `services/communication-service`
 
@@ -160,7 +161,7 @@ This document maps each major repo component to its business responsibility, its
 
 - Domain entities and use cases are in place
 - Gateway currently owns the live conversation and message APIs
-- gRPC service is not fully wired yet
+- gRPC delivery handler created; pending proto gen + main.go wiring
 
 ### `services/ai-service`
 
@@ -197,13 +198,77 @@ This document maps each major repo component to its business responsibility, its
 - Job processor types are defined
 - Delivery, reminder, and cleanup processors are still TODO implementations
 
+### `services/bot-service`
+
+**Intended responsibility**
+
+- Own AI bot lifecycle, configuration, knowledge sources, action execution, and analytics
+
+**Business use cases**
+
+- Create, update, activate, pause, and archive bots
+- Configure bot tone, working hours, escalation rules, temperature
+- Manage tool permissions (allow/deny per tool)
+- Attach knowledge sources (documents, URLs, FAQs)
+- Execute bot actions with policy + permission checks
+- Track action audit logs
+- View bot analytics
+
+**Current status**
+
+- Full domain entities, repository interfaces, and use case layer
+- Policy-gated action execution with audit logging
+- gRPC handler pending proto gen
+- Port: 50059
+
+### `services/webhook-service`
+
+**Intended responsibility**
+
+- Own webhook subscriptions, event matching, and delivery with retries
+
+**Business use cases**
+
+- Create, update, delete webhook subscriptions
+- Subscribe to specific event types
+- Generate signing secrets
+- Match platform events to subscriptions and enqueue deliveries
+- Retry failed deliveries with exponential backoff
+- List delivery history
+
+**Current status**
+
+- Full domain entities, repository interfaces, and use case layer
+- Event dispatch logic for fan-out delivery
+- gRPC handler pending proto gen
+- Port: 50060
+
+### `services/analytics-service`
+
+**Intended responsibility**
+
+- Aggregate metrics across all domains and serve analytics APIs
+
+**Business use cases**
+
+- Dashboard summary stats per service provider
+- Daily analytics breakdowns
+- Notification, callback, campaign, and bot analytics
+- Event-driven metric aggregation
+
+**Current status**
+
+- Full domain entities, repository interfaces, and use case layer
+- gRPC handler pending proto gen
+- Port: 50061
+
 ## Shared Packages
 
 ### `packages/proto`
 
 **Purpose**
 
-- Defines intended gRPC service boundaries for auth, user, policy, notification, communication, and service-provider domains
+- Defines intended gRPC service boundaries for auth, user, policy, notification, communication, service-provider, bot, webhook, analytics, and industry domains
 
 **Why it matters**
 
@@ -222,6 +287,11 @@ This document maps each major repo component to its business responsibility, its
 - JWT generation and validation
 - Logging and tracing helpers
 - gRPC context propagation middleware
+- Event bus (Redis Pub/Sub + Streams)
+- Platform metrics (OpenTelemetry counters/histograms)
+- RBAC authorization with 5 roles and 25+ permissions
+- Field-level AES-256-GCM encryption for PII
+- HMAC-SHA256 webhook payload signing
 
 ## Supporting Infrastructure
 

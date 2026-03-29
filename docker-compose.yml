@@ -226,6 +226,77 @@ services:
       postgres:
         condition: service_healthy
 
+  bot-service:
+    build:
+      context: .
+      dockerfile: infra/docker/service.Dockerfile
+      args:
+        SERVICE_NAME: bot-service
+    environment:
+      SERVICE_NAME: bot-service
+      GRPC_PORT: "50059"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: trustinbox
+      DB_PASSWORD: trustinbox_dev
+      DB_NAME: trustinbox
+      REDIS_ADDR: redis:6379
+      AI_SERVICE_ADDR: ai-service:50057
+      POLICY_SERVICE_ADDR: policy-service:50053
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "50059:50059"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  webhook-service:
+    build:
+      context: .
+      dockerfile: infra/docker/service.Dockerfile
+      args:
+        SERVICE_NAME: webhook-service
+    environment:
+      SERVICE_NAME: webhook-service
+      GRPC_PORT: "50060"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: trustinbox
+      DB_PASSWORD: trustinbox_dev
+      DB_NAME: trustinbox
+      REDIS_ADDR: redis:6379
+      WEBHOOK_SIGNING_SECRET: dev-webhook-signing-secret-change-in-prod
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "50060:50060"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: infra/docker/service.Dockerfile
+      args:
+        SERVICE_NAME: analytics-service
+    environment:
+      SERVICE_NAME: analytics-service
+      GRPC_PORT: "50061"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: trustinbox
+      DB_PASSWORD: trustinbox_dev
+      DB_NAME: trustinbox
+      REDIS_ADDR: redis:6379
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "50061:50061"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # ─── GraphQL Gateway ──────────────────────────────────────
   graphql-gateway:
     build:
@@ -249,6 +320,9 @@ services:
       NOTIFICATION_SERVICE_ADDR: notification-service:50055
       COMMUNICATION_SERVICE_ADDR: communication-service:50056
       AI_SERVICE_ADDR: ai-service:50057
+      BOT_SERVICE_ADDR: bot-service:50059
+      WEBHOOK_SERVICE_ADDR: webhook-service:50060
+      ANALYTICS_SERVICE_ADDR: analytics-service:50061
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     ports:
       - "4000:4000"
@@ -277,6 +351,17 @@ services:
       NEXT_PUBLIC_GRAPHQL_URL: http://graphql-gateway:4000/graphql
     ports:
       - "3001:3001"
+    depends_on:
+      - graphql-gateway
+
+  provider:
+    build:
+      context: ./apps/provider
+      dockerfile: ../../infra/docker/next.Dockerfile
+    environment:
+      NEXT_PUBLIC_GRAPHQL_URL: http://graphql-gateway:4000/graphql
+    ports:
+      - "3002:3002"
     depends_on:
       - graphql-gateway
 

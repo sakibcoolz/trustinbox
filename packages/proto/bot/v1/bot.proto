@@ -1,0 +1,278 @@
+syntax = "proto3";
+
+package bot.v1;
+
+option go_package = "github.com/trustinbox/proto/gen/bot/v1;botv1";
+
+import "google/protobuf/timestamp.proto";
+
+service BotService {
+  // Bot lifecycle
+  rpc CreateBot(CreateBotRequest) returns (Bot);
+  rpc GetBot(GetBotRequest) returns (Bot);
+  rpc UpdateBot(UpdateBotRequest) returns (Bot);
+  rpc ListBots(ListBotsRequest) returns (ListBotsResponse);
+  rpc DeleteBot(DeleteBotRequest) returns (DeleteBotResponse);
+
+  // Bot configuration
+  rpc GetBotConfiguration(GetBotConfigurationRequest) returns (BotConfiguration);
+  rpc UpdateBotConfiguration(UpdateBotConfigurationRequest) returns (BotConfiguration);
+
+  // Bot permissions
+  rpc SetBotPermission(SetBotPermissionRequest) returns (SetBotPermissionResponse);
+  rpc ListBotPermissions(ListBotPermissionsRequest) returns (ListBotPermissionsResponse);
+
+  // Knowledge sources
+  rpc AddKnowledgeSource(AddKnowledgeSourceRequest) returns (KnowledgeSource);
+  rpc RemoveKnowledgeSource(RemoveKnowledgeSourceRequest) returns (RemoveKnowledgeSourceResponse);
+  rpc ListKnowledgeSources(ListKnowledgeSourcesRequest) returns (ListKnowledgeSourcesResponse);
+
+  // Bot actions
+  rpc ExecuteBotAction(ExecuteBotActionRequest) returns (ExecuteBotActionResponse);
+  rpc ListBotActionLogs(ListBotActionLogsRequest) returns (ListBotActionLogsResponse);
+
+  // Bot analytics
+  rpc GetBotAnalytics(GetBotAnalyticsRequest) returns (BotAnalytics);
+}
+
+// ─── Bot ───────────────────────────────────────────────────
+
+message Bot {
+  string id = 1;
+  string service_provider_id = 2;
+  string name = 3;
+  string avatar_url = 4;
+  string purpose = 5;
+  string department = 6;
+  string industry_profile_id = 7;
+  string status = 8; // DRAFT, ACTIVE, PAUSED, ARCHIVED
+  string created_by_sp_user_id = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message CreateBotRequest {
+  string service_provider_id = 1;
+  string name = 2;
+  string purpose = 3;
+  string department = 4;
+  string industry_profile_id = 5;
+  string created_by_sp_user_id = 6;
+  string avatar_url = 7;
+}
+
+message GetBotRequest {
+  string bot_id = 1;
+  string service_provider_id = 2;
+}
+
+message UpdateBotRequest {
+  string bot_id = 1;
+  string service_provider_id = 2;
+  string name = 3;
+  string purpose = 4;
+  string department = 5;
+  string avatar_url = 6;
+  string status = 7;
+}
+
+message ListBotsRequest {
+  string service_provider_id = 1;
+  string status = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListBotsResponse {
+  repeated Bot bots = 1;
+  int32 total = 2;
+}
+
+message DeleteBotRequest {
+  string bot_id = 1;
+  string service_provider_id = 2;
+}
+
+message DeleteBotResponse {
+  bool success = 1;
+}
+
+// ─── Configuration ─────────────────────────────────────────
+
+message BotConfiguration {
+  string bot_id = 1;
+  string tone = 2;
+  string writing_style = 3;
+  repeated string supported_languages = 4;
+  string working_hours_start = 5; // HH:MM
+  string working_hours_end = 6;   // HH:MM
+  repeated int32 working_days = 7; // 0-6
+  int32 max_turns_before_escalation = 8;
+  string escalation_rules_json = 9;
+  string human_handoff_policy_json = 10;
+  string approval_policy_json = 11;
+  string fallback_actions_json = 12;
+  string compliance_restrictions_json = 13;
+  string custom_system_prompt = 14;
+  double temperature = 15;
+}
+
+message GetBotConfigurationRequest {
+  string bot_id = 1;
+  string service_provider_id = 2;
+}
+
+message UpdateBotConfigurationRequest {
+  string bot_id = 1;
+  string service_provider_id = 2;
+  BotConfiguration configuration = 3;
+}
+
+// ─── Permissions ───────────────────────────────────────────
+
+message BotPermission {
+  string id = 1;
+  string bot_id = 2;
+  string tool_name = 3;
+  bool is_allowed = 4;
+  string constraints_json = 5;
+}
+
+message SetBotPermissionRequest {
+  string bot_id = 1;
+  string service_provider_id = 2;
+  string tool_name = 3;
+  bool is_allowed = 4;
+  string constraints_json = 5;
+}
+
+message SetBotPermissionResponse {
+  bool success = 1;
+}
+
+message ListBotPermissionsRequest {
+  string bot_id = 1;
+  string service_provider_id = 2;
+}
+
+message ListBotPermissionsResponse {
+  repeated BotPermission permissions = 1;
+}
+
+// ─── Knowledge Sources ─────────────────────────────────────
+
+message KnowledgeSource {
+  string id = 1;
+  string bot_id = 2;
+  string source_type = 3; // DOCUMENT, URL, TEXT, FAQ, API
+  string name = 4;
+  string description = 5;
+  string content = 6;
+  string s3_key = 7;
+  string file_type = 8;
+  int64 file_size = 9;
+  int32 chunk_count = 10;
+  string status = 11; // PENDING, PROCESSING, ACTIVE, FAILED
+  google.protobuf.Timestamp created_at = 12;
+}
+
+message AddKnowledgeSourceRequest {
+  string bot_id = 1;
+  string service_provider_id = 2;
+  string source_type = 3;
+  string name = 4;
+  string description = 5;
+  string content = 6;
+  string s3_key = 7;
+  string file_type = 8;
+  int64 file_size = 9;
+}
+
+message RemoveKnowledgeSourceRequest {
+  string knowledge_source_id = 1;
+  string bot_id = 2;
+  string service_provider_id = 3;
+}
+
+message RemoveKnowledgeSourceResponse {
+  bool success = 1;
+}
+
+message ListKnowledgeSourcesRequest {
+  string bot_id = 1;
+  string service_provider_id = 2;
+}
+
+message ListKnowledgeSourcesResponse {
+  repeated KnowledgeSource sources = 1;
+}
+
+// ─── Actions ───────────────────────────────────────────────
+
+message ExecuteBotActionRequest {
+  string bot_id = 1;
+  string service_provider_id = 2;
+  string conversation_id = 3;
+  string user_id = 4;
+  string action_type = 5;
+  string tool_name = 6;
+  string input_json = 7;
+}
+
+message ExecuteBotActionResponse {
+  bool success = 1;
+  string output_json = 2;
+  string policy_decision = 3;
+  string policy_reason = 4;
+  bool escalated = 5;
+}
+
+message BotActionLog {
+  string id = 1;
+  string bot_id = 2;
+  string conversation_id = 3;
+  string user_id = 4;
+  string action_type = 5;
+  string tool_used = 6;
+  string input_summary = 7;
+  string output_summary = 8;
+  string policy_decision = 9;
+  int32 duration_ms = 10;
+  bool success = 11;
+  string error_message = 12;
+  google.protobuf.Timestamp created_at = 13;
+}
+
+message ListBotActionLogsRequest {
+  string bot_id = 1;
+  string service_provider_id = 2;
+  string conversation_id = 3;
+  int32 limit = 4;
+  int32 offset = 5;
+}
+
+message ListBotActionLogsResponse {
+  repeated BotActionLog logs = 1;
+  int32 total = 2;
+}
+
+// ─── Analytics ─────────────────────────────────────────────
+
+message BotAnalytics {
+  string bot_id = 1;
+  int32 total_conversations = 2;
+  int32 total_messages_sent = 3;
+  int32 total_messages_received = 4;
+  int32 total_actions_executed = 5;
+  int32 total_escalations = 6;
+  int32 avg_response_time_ms = 7;
+  double escalation_rate = 8;
+  double resolution_rate = 9;
+  double satisfaction_score = 10;
+  google.protobuf.Timestamp last_active_at = 11;
+}
+
+message GetBotAnalyticsRequest {
+  string bot_id = 1;
+  string service_provider_id = 2;
+}

@@ -5,11 +5,14 @@ use (
 	./packages/cornerstone
 	./packages/proto
 	./services/ai-service
+	./services/analytics-service
 	./services/auth-service
+	./services/bot-service
 	./services/communication-service
 	./services/notification-service
 	./services/organization-service
 	./services/policy-service
 	./services/user-service
+	./services/webhook-service
 	./services/worker-service
 )

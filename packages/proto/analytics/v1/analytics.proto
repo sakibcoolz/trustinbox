@@ -1,0 +1,159 @@
+syntax = "proto3";
+
+package analytics.v1;
+
+option go_package = "github.com/trustinbox/proto/gen/analytics/v1;analyticsv1";
+
+import "google/protobuf/timestamp.proto";
+
+service AnalyticsService {
+  // Dashboard
+  rpc GetDashboardStats(GetDashboardStatsRequest) returns (DashboardStats);
+  rpc GetDailyAnalytics(GetDailyAnalyticsRequest) returns (GetDailyAnalyticsResponse);
+
+  // Notification analytics
+  rpc GetNotificationAnalytics(GetNotificationAnalyticsRequest) returns (NotificationAnalytics);
+
+  // Callback analytics
+  rpc GetCallbackAnalytics(GetCallbackAnalyticsRequest) returns (CallbackAnalytics);
+
+  // Campaign analytics
+  rpc GetCampaignAnalytics(GetCampaignAnalyticsRequest) returns (CampaignAnalytics);
+
+  // Bot analytics
+  rpc GetBotPerformanceAnalytics(GetBotPerformanceAnalyticsRequest) returns (BotPerformanceAnalytics);
+}
+
+// ─── Dashboard ─────────────────────────────────────────────
+
+message GetDashboardStatsRequest {
+  string service_provider_id = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+}
+
+message DashboardStats {
+  int64 notifications_sent = 1;
+  int64 notifications_delivered = 2;
+  int64 notifications_read = 3;
+  int64 notifications_rejected = 4;
+  int64 callbacks_requested = 5;
+  int64 callbacks_approved = 6;
+  int64 callbacks_rejected = 7;
+  int64 messages_sent = 8;
+  int64 messages_received = 9;
+  int64 documents_shared = 10;
+  int64 campaigns_launched = 11;
+  int64 bot_actions = 12;
+  int64 bot_escalations = 13;
+  int64 spam_reports = 14;
+  int64 policy_denials = 15;
+  int64 webhook_deliveries = 16;
+  int64 webhook_failures = 17;
+  int64 active_conversations = 18;
+  double delivery_rate = 19;
+  double read_rate = 20;
+}
+
+// ─── Daily Analytics ───────────────────────────────────────
+
+message GetDailyAnalyticsRequest {
+  string service_provider_id = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+}
+
+message DailyAnalyticsEntry {
+  string date = 1; // YYYY-MM-DD
+  int64 notifications_sent = 2;
+  int64 notifications_delivered = 3;
+  int64 notifications_read = 4;
+  int64 callbacks_requested = 5;
+  int64 callbacks_approved = 6;
+  int64 messages_sent = 7;
+  int64 documents_shared = 8;
+  int64 bot_actions = 9;
+  int64 spam_reports = 10;
+  int64 policy_denials = 11;
+}
+
+message GetDailyAnalyticsResponse {
+  repeated DailyAnalyticsEntry entries = 1;
+}
+
+// ─── Notification Analytics ────────────────────────────────
+
+message GetNotificationAnalyticsRequest {
+  string service_provider_id = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+}
+
+message NotificationAnalytics {
+  int64 total_sent = 1;
+  int64 total_delivered = 2;
+  int64 total_read = 3;
+  int64 total_rejected = 4;
+  double delivery_rate = 5;
+  double read_rate = 6;
+  map<string, int64> by_category = 7;
+  map<string, int64> by_priority = 8;
+}
+
+// ─── Callback Analytics ────────────────────────────────────
+
+message GetCallbackAnalyticsRequest {
+  string service_provider_id = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+}
+
+message CallbackAnalytics {
+  int64 total_requested = 1;
+  int64 total_approved = 2;
+  int64 total_rejected = 3;
+  int64 total_expired = 4;
+  double approval_rate = 5;
+  double avg_response_time_hours = 6;
+}
+
+// ─── Campaign Analytics ────────────────────────────────────
+
+message GetCampaignAnalyticsRequest {
+  string service_provider_id = 1;
+  string campaign_id = 2;
+  google.protobuf.Timestamp from = 3;
+  google.protobuf.Timestamp to = 4;
+}
+
+message CampaignAnalytics {
+  int64 total_targets = 1;
+  int64 total_sent = 2;
+  int64 total_delivered = 3;
+  int64 total_read = 4;
+  int64 total_failed = 5;
+  int64 total_skipped = 6;
+  double delivery_rate = 7;
+  double read_rate = 8;
+}
+
+// ─── Bot Performance ───────────────────────────────────────
+
+message GetBotPerformanceAnalyticsRequest {
+  string service_provider_id = 1;
+  string bot_id = 2;
+  google.protobuf.Timestamp from = 3;
+  google.protobuf.Timestamp to = 4;
+}
+
+message BotPerformanceAnalytics {
+  int64 total_conversations = 1;
+  int64 total_messages = 2;
+  int64 total_actions = 3;
+  int64 total_escalations = 4;
+  double escalation_rate = 5;
+  double avg_response_time_ms = 6;
+  double resolution_rate = 7;
+  double satisfaction_score = 8;
+  map<string, int64> actions_by_tool = 9;
+}

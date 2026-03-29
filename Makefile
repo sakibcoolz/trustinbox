@@ -31,6 +31,9 @@ dev-web: ## Start web app in dev mode
 dev-admin: ## Start admin app in dev mode
 	cd apps/admin && npm run dev
 
+dev-provider: ## Start provider app in dev mode
+	cd apps/provider && npm run dev
+
 dev-gateway: ## Run GraphQL gateway locally
 	cd gateway/graphql-bff && go run ./cmd/server
 
@@ -41,7 +44,8 @@ dev-service: ## Run a Go service locally (usage: make dev-service SVC=policy-ser
 
 build: ## Build all Go services
 	@for svc in auth-service user-service policy-service organization-service \
-		notification-service communication-service ai-service worker-service; do \
+		notification-service communication-service ai-service worker-service \
+		bot-service webhook-service analytics-service; do \
 		echo "Building $$svc..."; \
 		cd services/$$svc && go build -o ../../bin/$$svc ./cmd/server && cd ../..; \
 	done
@@ -53,6 +57,9 @@ build-web: ## Build web frontend
 
 build-admin: ## Build admin frontend
 	cd apps/admin && npm run build
+
+build-provider: ## Build provider frontend
+	cd apps/provider && npm run build
 
 # ─── Test ──────────────────────────────────────────────────
 
@@ -71,7 +78,8 @@ test-coverage: ## Run tests with coverage
 proto: ## Generate Go code from proto files
 	@echo "Generating proto..."
 	@cd packages/proto && \
-	for dir in auth/v1 user/v1 policy/v1 notification/v1 communication/v1 organization/v1; do \
+	for dir in auth/v1 user/v1 policy/v1 notification/v1 communication/v1 organization/v1 \
+		bot/v1 webhook/v1 analytics/v1 industry/v1; do \
 		protoc --go_out=gen --go_opt=paths=source_relative \
 			--go-grpc_out=gen --go-grpc_opt=paths=source_relative \
 			$$dir/*.proto; \
@@ -113,6 +121,9 @@ install-web: ## Install web dependencies
 
 install-admin: ## Install admin dependencies
 	cd apps/admin && npm install
+
+install-provider: ## Install provider dependencies
+	cd apps/provider && npm install
 
 install-tools: ## Install dev tools
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest

@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package industry.v1;
+
+option go_package = "github.com/trustinbox/proto/gen/industry/v1;industryv1";
+
+import "google/protobuf/timestamp.proto";
+
+service IndustryProfileService {
+  rpc GetIndustryProfile(GetIndustryProfileRequest) returns (IndustryProfile);
+  rpc ListIndustryProfiles(ListIndustryProfilesRequest) returns (ListIndustryProfilesResponse);
+  rpc CreateIndustryProfile(CreateIndustryProfileRequest) returns (IndustryProfile);
+  rpc UpdateIndustryProfile(UpdateIndustryProfileRequest) returns (IndustryProfile);
+}
+
+message IndustryProfile {
+  string id = 1;
+  string industry_key = 2;
+  string display_name = 3;
+  string description = 4;
+  string default_reason_codes_json = 5;
+  string default_templates_json = 6;
+  repeated string default_categories = 7;
+  string compliance_hints_json = 8;
+  string document_types_json = 9;
+  string callback_workflows_json = 10;
+  string bot_prompt_pack_json = 11;
+  string dashboard_presets_json = 12;
+  string analytics_presets_json = 13;
+  bool is_active = 14;
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp updated_at = 16;
+}
+
+message GetIndustryProfileRequest {
+  string industry_key = 1;
+}
+
+message ListIndustryProfilesRequest {
+  bool active_only = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ListIndustryProfilesResponse {
+  repeated IndustryProfile profiles = 1;
+  int32 total = 2;
+}
+
+message CreateIndustryProfileRequest {
+  string industry_key = 1;
+  string display_name = 2;
+  string description = 3;
+  string default_reason_codes_json = 4;
+  string default_templates_json = 5;
+  repeated string default_categories = 6;
+  string compliance_hints_json = 7;
+  string document_types_json = 8;
+  string callback_workflows_json = 9;
+  string bot_prompt_pack_json = 10;
+  string dashboard_presets_json = 11;
+  string analytics_presets_json = 12;
+}
+
+message UpdateIndustryProfileRequest {
+  string industry_key = 1;
+  string display_name = 2;
+  string description = 3;
+  string default_reason_codes_json = 4;
+  string default_templates_json = 5;
+  repeated string default_categories = 6;
+  string compliance_hints_json = 7;
+  string document_types_json = 8;
+  string callback_workflows_json = 9;
+  string bot_prompt_pack_json = 10;
+  string dashboard_presets_json = 11;
+  string analytics_presets_json = 12;
+  bool is_active = 13;
+}

@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package webhook.v1;
+
+option go_package = "github.com/trustinbox/proto/gen/webhook/v1;webhookv1";
+
+import "google/protobuf/timestamp.proto";
+
+service WebhookService {
+  // Subscriptions
+  rpc CreateSubscription(CreateSubscriptionRequest) returns (WebhookSubscription);
+  rpc GetSubscription(GetSubscriptionRequest) returns (WebhookSubscription);
+  rpc UpdateSubscription(UpdateSubscriptionRequest) returns (WebhookSubscription);
+  rpc DeleteSubscription(DeleteSubscriptionRequest) returns (DeleteSubscriptionResponse);
+  rpc ListSubscriptions(ListSubscriptionsRequest) returns (ListSubscriptionsResponse);
+
+  // Test
+  rpc TestSubscription(TestSubscriptionRequest) returns (TestSubscriptionResponse);
+
+  // Deliveries
+  rpc ListDeliveries(ListDeliveriesRequest) returns (ListDeliveriesResponse);
+  rpc RetryDelivery(RetryDeliveryRequest) returns (RetryDeliveryResponse);
+}
+
+// ─── Subscriptions ─────────────────────────────────────────
+
+message WebhookSubscription {
+  string id = 1;
+  string service_provider_id = 2;
+  string url = 3;
+  string description = 4;
+  repeated string events = 5;
+  string status = 6; // ACTIVE, PAUSED, DISABLED
+  int32 failure_count = 7;
+  int32 max_retries = 8;
+  google.protobuf.Timestamp last_delivery_at = 9;
+  google.protobuf.Timestamp last_failure_at = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+message CreateSubscriptionRequest {
+  string service_provider_id = 1;
+  string url = 2;
+  string description = 3;
+  repeated string events = 4;
+  string secret = 5;
+}
+
+message GetSubscriptionRequest {
+  string subscription_id = 1;
+  string service_provider_id = 2;
+}
+
+message UpdateSubscriptionRequest {
+  string subscription_id = 1;
+  string service_provider_id = 2;
+  string url = 3;
+  string description = 4;
+  repeated string events = 5;
+  string status = 6;
+  string new_secret = 7;
+}
+
+message DeleteSubscriptionRequest {
+  string subscription_id = 1;
+  string service_provider_id = 2;
+}
+
+message DeleteSubscriptionResponse {
+  bool success = 1;
+}
+
+message ListSubscriptionsRequest {
+  string service_provider_id = 1;
+  string status = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListSubscriptionsResponse {
+  repeated WebhookSubscription subscriptions = 1;
+  int32 total = 2;
+}
+
+message TestSubscriptionRequest {
+  string subscription_id = 1;
+  string service_provider_id = 2;
+}
+
+message TestSubscriptionResponse {
+  bool success = 1;
+  int32 response_status = 2;
+  string response_body = 3;
+  int32 duration_ms = 4;
+}
+
+// ─── Deliveries ────────────────────────────────────────────
+
+message WebhookDelivery {
+  string id = 1;
+  string subscription_id = 2;
+  string event_type = 3;
+  string event_id = 4;
+  int32 response_status = 5;
+  int32 attempt_count = 6;
+  string status = 7; // PENDING, DELIVERING, DELIVERED, FAILED, EXPIRED
+  int32 duration_ms = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp completed_at = 10;
+}
+
+message ListDeliveriesRequest {
+  string subscription_id = 1;
+  string service_provider_id = 2;
+  string status = 3;
+  int32 limit = 4;
+  int32 offset = 5;
+}
+
+message ListDeliveriesResponse {
+  repeated WebhookDelivery deliveries = 1;
+  int32 total = 2;
+}
+
+message RetryDeliveryRequest {
+  string delivery_id = 1;
+  string service_provider_id = 2;
+}
+
+message RetryDeliveryResponse {
+  bool success = 1;
+}
