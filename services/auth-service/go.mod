@@ -4,7 +4,9 @@ go 1.23
 
 require (
 	github.com/google/uuid v1.6.0
+	github.com/lib/pq v1.10.9
 	github.com/trustinbox/cornerstone v0.0.0
+	github.com/trustinbox/proto v0.0.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.22.0
 	google.golang.org/grpc v1.62.1
@@ -22,3 +24,5 @@ require (
 )
 
 replace github.com/trustinbox/cornerstone => ../../packages/cornerstone
+
+replace github.com/trustinbox/proto => ../../packages/proto
