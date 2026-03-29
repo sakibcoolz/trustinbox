@@ -86,6 +86,13 @@ func (uc *OrgUseCase) SuspendOrganization(ctx context.Context, orgID, reason, ad
 	return uc.orgRepo.UpdateStatus(ctx, orgID, "SUSPENDED")
 }
 
+func (uc *OrgUseCase) UpdateOrganization(ctx context.Context, org *entity.Organization) error {
+	if err := uc.orgRepo.Update(ctx, org); err != nil {
+		return bzerr.Internal("failed to update organization", err)
+	}
+	return nil
+}
+
 func (uc *OrgUseCase) AddOrgUser(ctx context.Context, orgUser *entity.OrganizationUser) (*entity.OrganizationUser, error) {
 	orgUser.ID = uuid.New().String()
 	orgUser.Status = "ACTIVE"
@@ -93,4 +100,23 @@ func (uc *OrgUseCase) AddOrgUser(ctx context.Context, orgUser *entity.Organizati
 		return nil, bzerr.Internal("failed to add organization user", err)
 	}
 	return orgUser, nil
+}
+
+func (uc *OrgUseCase) RemoveOrgUser(ctx context.Context, id, orgID string) error {
+	if err := uc.orgUserRepo.Remove(ctx, id, orgID); err != nil {
+		return bzerr.Internal("failed to remove organization user", err)
+	}
+	return nil
+}
+
+func (uc *OrgUseCase) ListOrgUsers(ctx context.Context, orgID string, limit, offset int) ([]entity.OrganizationUser, int, error) {
+	return uc.orgUserRepo.ListByOrg(ctx, orgID, limit, offset)
+}
+
+func (uc *OrgUseCase) GetOrgUser(ctx context.Context, id string) (*entity.OrganizationUser, error) {
+	u, err := uc.orgUserRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, bzerr.NotFound("organization user", id)
+	}
+	return u, nil
 }
