@@ -169,15 +169,7 @@ func (e *PolicyEvaluator) Evaluate(ctx context.Context, req entity.EvaluationReq
 }
 
 func (e *PolicyEvaluator) isCategoryAllowed(prefs *entity.UserPreferences, category entity.Category, commType entity.CommunicationType) bool {
-	switch category {
-	case entity.CategoryPersonal:
-		return prefs.AllowPersonalNotifications
-	case entity.CategoryOrganizational:
-		return prefs.AllowOrgNotifications
-	case entity.CategoryAdvertisement:
-		return prefs.AllowAdvertisements
-	}
-	// For specific communication types
+	// Check communication-type-specific preferences first; they are more specific than category.
 	switch commType {
 	case entity.CommTypeCallbackReq:
 		return prefs.AllowCallbackRequests
@@ -185,6 +177,15 @@ func (e *PolicyEvaluator) isCategoryAllowed(prefs *entity.UserPreferences, categ
 		return prefs.AllowChat
 	case entity.CommTypeDocumentShare:
 		return prefs.AllowDocumentShares
+	}
+	// Fall back to category-level checks.
+	switch category {
+	case entity.CategoryPersonal:
+		return prefs.AllowPersonalNotifications
+	case entity.CategoryOrganizational:
+		return prefs.AllowOrgNotifications
+	case entity.CategoryAdvertisement:
+		return prefs.AllowAdvertisements
 	}
 	return true
 }

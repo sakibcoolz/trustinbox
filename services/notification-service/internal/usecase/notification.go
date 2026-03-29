@@ -117,6 +117,33 @@ func (uc *NotificationUseCase) ListNotifications(ctx context.Context, userID, ca
 	return uc.notifRepo.ListByUser(ctx, userID, category, status, limit, offset)
 }
 
+func (uc *NotificationUseCase) GetNotification(ctx context.Context, notifID, userID string) (*entity.Notification, error) {
+	notif, err := uc.notifRepo.GetByID(ctx, notifID)
+	if err != nil {
+		return nil, bzerr.NotFound("notification", notifID)
+	}
+	// Enforce ownership
+	if notif.UserID != userID {
+		return nil, bzerr.Forbidden("access denied")
+	}
+	return notif, nil
+}
+
 func (uc *NotificationUseCase) MarkAsRead(ctx context.Context, notifID, userID string) error {
 	return uc.notifRepo.MarkAsRead(ctx, notifID, userID)
+}
+
+func (uc *NotificationUseCase) ArchiveNotification(ctx context.Context, notifID, userID string) error {
+	notif, err := uc.notifRepo.GetByID(ctx, notifID)
+	if err != nil {
+		return bzerr.NotFound("notification", notifID)
+	}
+	if notif.UserID != userID {
+		return bzerr.Forbidden("access denied")
+	}
+	return uc.notifRepo.UpdateStatus(ctx, notifID, "ARCHIVED")
+}
+
+func (uc *NotificationUseCase) GetDeliveryStatus(ctx context.Context, notifID string) (*entity.NotificationDelivery, error) {
+	return uc.deliveryRepo.GetByNotificationID(ctx, notifID)
 }

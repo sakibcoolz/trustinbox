@@ -96,3 +96,30 @@ func (uc *UserUseCase) BlockOrganization(ctx context.Context, userID, orgID stri
 func (uc *UserUseCase) UnblockOrganization(ctx context.Context, userID, orgID string) error {
 	return uc.blockRepo.Unblock(ctx, userID, orgID)
 }
+
+func (uc *UserUseCase) UpdateProfile(ctx context.Context, profile *entity.UserProfile) error {
+	return uc.profileRepo.Update(ctx, profile)
+}
+
+func (uc *UserUseCase) GetPrivacyPreference(ctx context.Context, userID string) (*entity.PrivacyPreference, error) {
+	return uc.privacyRepo.Get(ctx, userID)
+}
+
+func (uc *UserUseCase) UpdateDNDRule(ctx context.Context, rule *entity.DNDRule) (*entity.DNDRule, error) {
+	if err := uc.dndRepo.Update(ctx, rule); err != nil {
+		return nil, bzerr.Internal("failed to update DND rule", err)
+	}
+	return rule, nil
+}
+
+func (uc *UserUseCase) DeleteDNDRule(ctx context.Context, id, userID string) error {
+	return uc.dndRepo.Delete(ctx, id, userID)
+}
+
+func (uc *UserUseCase) DeleteAvailabilitySlot(ctx context.Context, id, userID string) error {
+	return uc.availabilityRepo.Delete(ctx, id, userID)
+}
+
+func (uc *UserUseCase) ListBlockedOrganizations(ctx context.Context, userID string) ([]entity.BlockedOrganization, error) {
+	return uc.blockRepo.ListByUser(ctx, userID)
+}

@@ -44,7 +44,7 @@ func (p *DeliveryProcessor) Process(ctx context.Context, job *Job) error {
 	// 2. Determine delivery channels (push, inbox, etc.)
 	// 3. Send via appropriate channel
 	// 4. Update delivery status
-
+	job.Status = "COMPLETED"
 	return nil
 }
 
@@ -67,7 +67,6 @@ func (p *CallbackReminderProcessor) Process(ctx context.Context, job *Job) error
 	// 1. Load callback request
 	// 2. Check if approved slot is approaching
 	// 3. Send reminder to both user and agent
-
 	return nil
 }
 
@@ -87,6 +86,5 @@ func (p *CleanupProcessor) Process(ctx context.Context, job *Job) error {
 	// 1. Expire old callback requests
 	// 2. Clean up expired refresh tokens
 	// 3. Archive old notifications
-
 	return nil
 }

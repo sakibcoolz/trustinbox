@@ -18,12 +18,14 @@ type PolicyChecker interface {
 }
 
 type CommunicationUseCase struct {
-	callbackRepo repository.CallbackRequestRepository
-	convRepo     repository.ConversationRepository
-	msgRepo      repository.MessageRepository
-	spamRepo     repository.SpamReportRepository
-	policy       PolicyChecker
-	log          *zap.Logger
+	callbackRepo  repository.CallbackRequestRepository
+	convRepo      repository.ConversationRepository
+	msgRepo       repository.MessageRepository
+	spamRepo      repository.SpamReportRepository
+	docRepo       repository.DocumentRepository
+	docShareRepo  repository.DocumentShareRepository
+	policy        PolicyChecker
+	log           *zap.Logger
 }
 
 func NewCommunicationUseCase(
@@ -31,6 +33,8 @@ func NewCommunicationUseCase(
 	convRepo repository.ConversationRepository,
 	msgRepo repository.MessageRepository,
 	spamRepo repository.SpamReportRepository,
+	docRepo repository.DocumentRepository,
+	docShareRepo repository.DocumentShareRepository,
 	policy PolicyChecker,
 	log *zap.Logger,
 ) *CommunicationUseCase {
@@ -39,6 +43,8 @@ func NewCommunicationUseCase(
 		convRepo:     convRepo,
 		msgRepo:      msgRepo,
 		spamRepo:     spamRepo,
+		docRepo:      docRepo,
+		docShareRepo: docShareRepo,
 		policy:       policy,
 		log:          log,
 	}
@@ -138,4 +144,79 @@ func (uc *CommunicationUseCase) ListCallbackRequests(ctx context.Context, userID
 // ListConversations lists conversations for a user.
 func (uc *CommunicationUseCase) ListConversations(ctx context.Context, userID string, limit, offset int) ([]entity.Conversation, int, error) {
 	return uc.convRepo.ListByUser(ctx, userID, limit, offset)
+}
+
+// CreateConversation creates a new conversation.
+func (uc *CommunicationUseCase) CreateConversation(ctx context.Context, conv *entity.Conversation) (*entity.Conversation, error) {
+ctx, span := tracing.StartSpan(ctx, "communication-service", "CreateConversation",
+attribute.String("user_id", conv.UserID),
+attribute.String("org_id", conv.OrganizationID),
+)
+defer span.End()
+
+conv.ID = uuid.New().String()
+conv.Status = "OPEN"
+conv.CreatedAt = time.Now()
+conv.UpdatedAt = time.Now()
+
+if err := uc.convRepo.Create(ctx, conv); err != nil {
+return nil, bzerr.Internal("failed to create conversation", err)
+}
+return conv, nil
+}
+
+// GetConversation retrieves a conversation by ID.
+func (uc *CommunicationUseCase) GetConversation(ctx context.Context, id, userID string) (*entity.Conversation, error) {
+conv, err := uc.convRepo.GetByID(ctx, id)
+if err != nil {
+return nil, bzerr.NotFound("conversation", id)
+}
+if conv.UserID != userID {
+return nil, bzerr.Forbidden("not authorized to access this conversation")
+}
+return conv, nil
+}
+
+// GetCallbackRequest retrieves a callback request by ID.
+func (uc *CommunicationUseCase) GetCallbackRequest(ctx context.Context, id, userID string) (*entity.CallbackRequest, error) {
+req, err := uc.callbackRepo.GetByID(ctx, id)
+if err != nil {
+return nil, bzerr.NotFound("callback_request", id)
+}
+if req.UserID != userID {
+return nil, bzerr.Forbidden("not authorized to access this callback request")
+}
+return req, nil
+}
+
+// ListMessages lists messages for a conversation.
+func (uc *CommunicationUseCase) ListMessages(ctx context.Context, convID string, limit, offset int) ([]entity.Message, int, error) {
+return uc.msgRepo.ListByConversation(ctx, convID, limit, offset)
+}
+
+// CloseConversation closes a conversation.
+func (uc *CommunicationUseCase) CloseConversation(ctx context.Context, id, userID string) error {
+conv, err := uc.convRepo.GetByID(ctx, id)
+if err != nil {
+return bzerr.NotFound("conversation", id)
+}
+if conv.UserID != userID {
+return bzerr.Forbidden("not authorized to close this conversation")
+}
+return uc.convRepo.Close(ctx, id)
+}
+
+// ShareDocument creates a document share record.
+func (uc *CommunicationUseCase) ShareDocument(ctx context.Context, share *entity.DocumentShare) (*entity.DocumentShare, error) {
+share.ID = uuid.New().String()
+share.CreatedAt = time.Now()
+if err := uc.docShareRepo.Create(ctx, share); err != nil {
+return nil, bzerr.Internal("failed to share document", err)
+}
+return share, nil
+}
+
+// ListDocumentShares lists document shares for a user.
+func (uc *CommunicationUseCase) ListDocumentShares(ctx context.Context, userID string, limit, offset int) ([]entity.DocumentShare, int, error) {
+return uc.docShareRepo.ListByUser(ctx, userID, limit, offset)
 }
