@@ -111,7 +111,7 @@ export default function RegisterPage() {
                 required
               />
             </div>
-            <p className="text-xs text-text-muted mt-1">This is your public handle. Organizations see your virtual ID, not this.</p>
+            <p className="text-xs text-text-muted mt-1">This is your public handle. Service providers see your virtual ID, not this.</p>
           </div>
 
           <div>

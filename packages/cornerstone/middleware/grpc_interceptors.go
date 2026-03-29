@@ -15,7 +15,7 @@ const (
 	headerRequestID      = "x-request-id"
 	headerTransactionID  = "x-transaction-id"
 	headerUserID         = "x-user-id"
-	headerOrganizationID = "x-organization-id"
+	headerServiceProviderID = "x-service-provider-id"
 	headerRole           = "x-role"
 )
 
@@ -53,8 +53,8 @@ func ContextPropagationUnaryInterceptor() grpc.UnaryServerInterceptor {
 			if vals := md.Get(headerUserID); len(vals) > 0 {
 				ctx = requestctx.WithUserID(ctx, vals[0])
 			}
-			if vals := md.Get(headerOrganizationID); len(vals) > 0 {
-				ctx = requestctx.WithOrganizationID(ctx, vals[0])
+			if vals := md.Get(headerServiceProviderID); len(vals) > 0 {
+				ctx = requestctx.WithServiceProviderID(ctx, vals[0])
 			}
 			if vals := md.Get(headerRole); len(vals) > 0 {
 				ctx = requestctx.WithRole(ctx, vals[0])
@@ -90,8 +90,8 @@ func ContextPropagationUnaryClientInterceptor() grpc.UnaryClientInterceptor {
 		if id := requestctx.UserID(ctx); id != "" {
 			md.Set(headerUserID, id)
 		}
-		if id := requestctx.OrganizationID(ctx); id != "" {
-			md.Set(headerOrganizationID, id)
+		if id := requestctx.ServiceProviderID(ctx); id != "" {
+			md.Set(headerServiceProviderID, id)
 		}
 		if role := requestctx.Role(ctx); role != "" {
 			md.Set(headerRole, role)

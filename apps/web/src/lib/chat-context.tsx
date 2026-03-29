@@ -98,7 +98,7 @@ export interface Message {
   editedAt?: string;
   deletedAt?: string;
   createdAt: string;
-  status: 'sent' | 'delivered' | 'read' | string;
+  status: 'pending' | 'sent' | 'delivered' | 'read' | string;
   deliveredAt?: string;
   starred?: boolean;
   pinned?: boolean;
@@ -682,7 +682,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         attachments:    [],
         reactions:      [],
         createdAt:      new Date().toISOString(),
-        status:         'sent',
+        status:         'pending',   // ✓ pending until server ACKs
       };
       setMessages(prev => {
         if (prev.find(m => m.id === echo.id)) return prev;
@@ -737,8 +737,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             };
             setMessages(prev => prev.map(m => m.id === msgId ? realMsg : m));
           } catch {
-            // already displayed as echo — harmless
+            // already displayed as echo — harmless; still mark as sent
+            setMessages(prev => prev.map(m => m.id === msgId && m.status === 'pending' ? { ...m, status: 'sent' } : m));
           }
+        } else {
+          // Text-only message confirmed by server → upgrade pending → sent (✓)
+          setMessages(prev => prev.map(m => m.id === msgId && m.status === 'pending' ? { ...m, status: 'sent' } : m));
         }
       }).catch(() => { /* silent */ });
     } else {

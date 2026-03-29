@@ -1,10 +1,10 @@
 import Link from 'next/link';
 
 const sections = [
-  { href: '/settings/privacy', label: 'Privacy', desc: 'Control what organizations can see and do.', icon: '🔒', color: 'bg-accent-blue/10 text-accent-blue' },
+  { href: '/settings/privacy', label: 'Privacy', desc: 'Control what service providers can see and do.', icon: '🔒', color: 'bg-accent-blue/10 text-accent-blue' },
   { href: '/settings/dnd', label: 'Do Not Disturb', desc: 'Set quiet hours and DND schedules.', icon: '🌙', color: 'bg-accent-purple/10 text-accent-purple' },
-  { href: '/settings/availability', label: 'Availability', desc: 'Define when organizations can reach you.', icon: '🕐', color: 'bg-accent-green/10 text-accent-green' },
-  { href: '/settings/preferences', label: 'Category Preferences', desc: 'Control Personal, Organizational, and Ad notifications.', icon: '⚙️', color: 'bg-accent-orange/10 text-accent-orange' },
+  { href: '/settings/availability', label: 'Availability', desc: 'Define when service providers can reach you.', icon: '🕐', color: 'bg-accent-green/10 text-accent-green' },
+  { href: '/settings/preferences', label: 'Category Preferences', desc: 'Control Personal, Service Provider, and Ad notifications.', icon: '⚙️', color: 'bg-accent-orange/10 text-accent-orange' },
 ];
 
 export default function SettingsPage() {

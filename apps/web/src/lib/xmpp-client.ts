@@ -197,10 +197,11 @@ export class XMPPClient {
    * @param msgId      Optional client-generated UUID (reused for DB persistence)
    */
   sendDirectMessage(toUserID: string, body: string, conversationId: string, msgId?: string, messageType?: string): void {
-    if (!this.xmpp) return;
+    const xmpp = this.xmpp;
+    if (!xmpp) return;
     const to = `${toUserID}@${XMPP_DOMAIN}`;
     const id = msgId ?? uuidv4();
-    this.xmpp.send(
+    xmpp.send(
       xml('message', { type: 'chat', to, id },
         xml('body', {}, body),
         // XEP-0201: thread element carries the DB conversation UUID
@@ -219,8 +220,9 @@ export class XMPPClient {
 
   /** Send a delivery receipt (XEP-0184) back to the sender. */
   private sendDeliveryReceipt(to: string, receivedId: string): void {
-    if (!this.xmpp) return;
-    this.xmpp.send(xml('message', { to }, xml('received', { xmlns: 'urn:xmpp:receipts', id: receivedId })));
+    const xmpp = this.xmpp;
+    if (!xmpp) return;
+    xmpp.send(xml('message', { to }, xml('received', { xmlns: 'urn:xmpp:receipts', id: receivedId })));
   }
 
   /** Send a message to a MUC room (org conversation).
@@ -229,10 +231,11 @@ export class XMPPClient {
    * @param msgId           Optional client-generated UUID (reused for DB persistence)
    */
   sendGroupMessage(conversationId: string, body: string, msgId?: string): void {
-    if (!this.xmpp) return;
+    const xmpp = this.xmpp;
+    if (!xmpp) return;
     const to = `org-${conversationId}@${XMPP_MUC_DOMAIN}`;
     const id = msgId ?? uuidv4();
-    this.xmpp.send(
+    xmpp.send(
       xml('message', { type: 'groupchat', to, id },
         xml('body', {}, body),
         // XEP-0201: thread element carries the DB conversation UUID
@@ -243,9 +246,10 @@ export class XMPPClient {
 
   /** Join a MUC room (needed for ORG conversations). */
   joinRoom(conversationId: string, nick: string): void {
-    if (!this.xmpp) return;
+    const xmpp = this.xmpp;
+    if (!xmpp) return;
     const roomJid = `org-${conversationId}@${XMPP_MUC_DOMAIN}/${nick}`;
-    this.xmpp.send(
+    xmpp.send(
       xml('presence', { to: roomJid },
         xml('x', { xmlns: 'http://jabber.org/protocol/muc' },
           xml('history', { maxstanzas: '0' }), // MAM will supply history
@@ -256,8 +260,9 @@ export class XMPPClient {
 
   /** Send XEP-0085 composing / paused notifications. */
   sendTyping(toJid: string, type: 'chat' | 'groupchat', isTyping: boolean): void {
-    if (!this.xmpp) return;
-    this.xmpp.send(
+    const xmpp = this.xmpp;
+    if (!xmpp) return;
+    xmpp.send(
       xml('message', { type, to: toJid },
         xml(isTyping ? 'composing' : 'paused', { xmlns: 'http://jabber.org/protocol/chatstates' }),
       ),
@@ -369,9 +374,10 @@ export class XMPPClient {
 
   /** Send a presence probe to get the current presence of a peer. */
   sendPresenceProbe(toUserId: string): void {
-    if (!this.xmpp || !this.connected) return;
+    const xmpp = this.xmpp;
+    if (!xmpp || !this.connected) return;
     const to = `${toUserId}@${XMPP_DOMAIN}`;
-    this.xmpp.send(xml('presence', { type: 'probe', to }));
+    xmpp.send(xml('presence', { type: 'probe', to }));
   }
 
   private _notifyStatus(online: boolean): void {

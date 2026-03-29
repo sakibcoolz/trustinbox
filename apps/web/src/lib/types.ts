@@ -1,6 +1,6 @@
-export type NotificationCategory = 'Personal' | 'Organizational' | 'Advertisement';
+export type NotificationCategory = 'Personal' | 'ServiceProvider' | 'Advertisement';
 export type CallbackStatus = 'pending' | 'approved' | 'rejected' | 'expired';
-export type OrgVerificationStatus = 'pending' | 'verified' | 'rejected' | 'suspended';
+export type SPVerificationStatus = 'pending' | 'verified' | 'rejected' | 'suspended';
 
 export interface User {
   id: string;
@@ -14,23 +14,23 @@ export interface Notification {
   title: string;
   body: string;
   category: NotificationCategory;
-  organizationName: string;
+  serviceProviderName: string;
   read: boolean;
   createdAt: string;
 }
 
 export interface CallbackRequest {
   id: string;
-  organizationName: string;
+  serviceProviderName: string;
   reason: string;
   scheduledAt: string;
   status: CallbackStatus;
   createdAt: string;
 }
 
-export interface Organization {
+export interface ServiceProvider {
   id: string;
   name: string;
-  verificationStatus: OrgVerificationStatus;
+  verificationStatus: SPVerificationStatus;
   domain: string;
 }

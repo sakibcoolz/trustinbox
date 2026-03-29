@@ -11,6 +11,7 @@ interface User {
   fullName: string;
   username: string;
   virtualPublicId?: string;
+  avatarUrl?: string | null;
 }
 
 interface AuthContextType {
@@ -22,6 +23,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (input: { email: string; password: string; fullName: string; mobile: string; username: string }) => Promise<void>;
   logout: () => void;
+  /** Optimistically update the avatar URL in state + localStorage after upload/remove. */
+  updateAvatar: (url: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -127,6 +130,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/auth/login');
   }, [router]);
 
+  const updateAvatar = useCallback((url: string | null) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, avatarUrl: url };
+      localStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   // Returns ms until the JWT expires, or 0 if expired/invalid.
   const msUntilExpiry = (t: string | null): number => {
     if (!t) return 0;
@@ -195,7 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token, refreshAccessToken, scheduleRefresh, logout]);
 
   return (
-    <AuthContext.Provider value={{ user, token, xmppToken, xmppJid, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, xmppToken, xmppJid, isLoading, login, register, logout, updateAvatar }}>
       {children}
     </AuthContext.Provider>
   );

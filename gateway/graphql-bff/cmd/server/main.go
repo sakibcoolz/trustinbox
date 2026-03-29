@@ -196,9 +196,60 @@ func main() {
 	mux.HandleFunc("/api/upload", handleUploadFile(chatD, minioClient))
 	mux.HandleFunc("/api/files/", handleServeFile(chatD, minioClient))
 
-	// Presence endpoint
-	mux.HandleFunc("/api/presence", handlePresenceQuery(chatD))
+	// Avatar upload/remove/serve endpoints
+	// Order matters: exact paths registered before the prefix catch-all.
+	mux.HandleFunc("/api/avatar/upload", handleAvatarUpload(chatD, minioClient))
+	mux.HandleFunc("/api/avatar/me", handleAvatarRemove(chatD, minioClient))
+	mux.HandleFunc("/api/avatar/", handleAvatarServe(chatD, minioClient))
+
+	// Profile endpoints
+	mux.HandleFunc("/api/profile/stats", handleProfileStats(db, tokenSvc, log))
+	mux.HandleFunc("/api/profile/service-providers", handleProfileSPs(db, tokenSvc, log))
+	mux.HandleFunc("/api/profile/activity", handleProfileActivity(db, tokenSvc, log))
+	mux.HandleFunc("/api/profile", handleGetProfile(db, tokenSvc, log))
+	mux.HandleFunc("/api/profile/update", handleUpdateProfile(db, tokenSvc, log))
+
+	// Career endpoints
+	mux.HandleFunc("/api/career", handleGetCareer(db, tokenSvc, log))
+	mux.HandleFunc("/api/career/work", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			handleDeleteWork(db, tokenSvc, log)(w, r)
+		} else {
+			handleUpsertWork(db, tokenSvc, log)(w, r)
+		}
+	})
+	mux.HandleFunc("/api/career/education", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			handleDeleteEducation(db, tokenSvc, log)(w, r)
+		} else {
+			handleUpsertEducation(db, tokenSvc, log)(w, r)
+		}
+	})
+	mux.HandleFunc("/api/career/skills", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			handleDeleteSkill(db, tokenSvc, log)(w, r)
+		} else {
+			handleAddSkill(db, tokenSvc, log)(w, r)
+		}
+	})
+
+	// Privacy preferences
+	mux.HandleFunc("/api/privacy/preferences", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handleGetPrivacyPreferences(db, tokenSvc, log)(w, r)
+		} else if r.Method == http.MethodPatch {
+			handleUpdatePrivacyPreferences(db, tokenSvc, log)(w, r)
+		} else {
+			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+		}
+	})
+
+	// Sessions info
+	mux.HandleFunc("/api/sessions", handleSessions(db, tokenSvc, log))
+
+	// Presence endpoints (heartbeat must be registered before the prefix route)
 	mux.HandleFunc("/api/presence/heartbeat", handlePresenceHeartbeat(chatD))
+	mux.HandleFunc("/api/presence", handlePresenceQuery(chatD))
 
 	// XMPP WebSocket proxy – the browser cannot reach ejabberd:5280 directly
 	// when the app is accessed via Tailscale or another external hostname
@@ -395,10 +446,13 @@ func handleLogin(db *sql.DB, tokenSvc *jwt.TokenService, jwtSecret string, log *
 			return
 		}
 
-		// Persist the JID so other services can look it up.
+		// Persist the JID and store sha256(xmppToken) so ejabberd's
+		// check_password hook can verify the token without a DB lookup.
+		xmppTokenHash := sha256.Sum256([]byte(xmppToken))
+		xmppTokenHashHex := hex.EncodeToString(xmppTokenHash[:])
 		_, _ = db.ExecContext(r.Context(),
-			`UPDATE users SET xmpp_jid = $1 WHERE id = $2`,
-			xmppJid, userID,
+			`UPDATE users SET xmpp_jid = $1, xmpp_token_hash = $2 WHERE id = $3`,
+			xmppJid, xmppTokenHashHex, userID,
 		)
 
 		log.Info("user logged in", zap.String("user_id", userID), zap.String("username", username))

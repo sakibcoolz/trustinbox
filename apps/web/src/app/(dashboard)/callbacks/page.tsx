@@ -19,7 +19,7 @@ export default function CallbackRequestsPage() {
             </svg>
           </div>
           <p className="text-sm text-text-muted text-center">No callback requests yet</p>
-          <p className="text-xs text-text-muted text-center mt-1">Organizations will request callbacks here</p>
+          <p className="text-xs text-text-muted text-center mt-1">Service providers will request callbacks here</p>
         </div>
       </div>
 

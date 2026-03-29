@@ -10,7 +10,7 @@ const (
 	keyRequestID      contextKey = "request_id"
 	keyTransactionID  contextKey = "transaction_id"
 	keyUserID         contextKey = "user_id"
-	keyOrganizationID contextKey = "organization_id"
+	keyServiceProviderID contextKey = "service_provider_id"
 	keyRole           contextKey = "role"
 )
 
@@ -47,12 +47,12 @@ func UserID(ctx context.Context) string {
 	return ""
 }
 
-func WithOrganizationID(ctx context.Context, id string) context.Context {
-	return context.WithValue(ctx, keyOrganizationID, id)
+func WithServiceProviderID(ctx context.Context, id string) context.Context {
+	return context.WithValue(ctx, keyServiceProviderID, id)
 }
 
-func OrganizationID(ctx context.Context) string {
-	if v, ok := ctx.Value(keyOrganizationID).(string); ok {
+func ServiceProviderID(ctx context.Context) string {
+	if v, ok := ctx.Value(keyServiceProviderID).(string); ok {
 		return v
 	}
 	return ""

@@ -68,15 +68,15 @@ func (c *ejabberdClient) post(ctx context.Context, endpoint string, body interfa
 	return nil
 }
 
-// OrgRoomName returns the canonical MUC room name for an org conversation.
-// Format: org-<conversationID>
-func OrgRoomName(conversationID string) string {
-	return "org-" + conversationID
+// ServiceRoomName returns the canonical MUC room name for a service provider conversation.
+// Format: svc-<conversationID>
+func ServiceRoomName(conversationID string) string {
+	return "svc-" + conversationID
 }
 
-// OrgRoomJID returns the full JID of the MUC room.
-func OrgRoomJID(conversationID string) string {
-	return OrgRoomName(conversationID) + "@" + xmppMUCDomain
+// ServiceRoomJID returns the full JID of the MUC room.
+func ServiceRoomJID(conversationID string) string {
+	return ServiceRoomName(conversationID) + "@" + xmppMUCDomain
 }
 
 // UserJID returns the full bare JID for a user.
@@ -84,11 +84,11 @@ func UserJID(userID string) string {
 	return userID + "@" + xmppDomain
 }
 
-// CreateOrgRoom creates a persistent MUC room for an org conversation.
-// Called when a new ORG-type conversation is initialised.
-func (c *ejabberdClient) CreateOrgRoom(ctx context.Context, conversationID string) error {
+// CreateServiceRoom creates a persistent MUC room for a service provider conversation.
+// Called when a new service provider conversation is initialised.
+func (c *ejabberdClient) CreateServiceRoom(ctx context.Context, conversationID string) error {
 	body := map[string]string{
-		"name":    OrgRoomName(conversationID),
+		"name":    ServiceRoomName(conversationID),
 		"service": xmppMUCDomain,
 		"host":    xmppDomain,
 	}
@@ -110,7 +110,7 @@ func (c *ejabberdClient) InviteToRoom(ctx context.Context, conversationID, userI
 	body := map[string]string{
 		"user":  UserJID(userID),
 		"nick":  nick,
-		"room":  OrgRoomJID(conversationID),
+		"room":  ServiceRoomJID(conversationID),
 		"nodes": "urn:xmpp:mucsub:nodes:messages,urn:xmpp:mucsub:nodes:presences",
 	}
 	if err := c.post(ctx, "/subscribe_room", body); err != nil {
@@ -132,7 +132,7 @@ func (c *ejabberdClient) InviteToRoom(ctx context.Context, conversationID, userI
 func (c *ejabberdClient) KickFromRoom(ctx context.Context, conversationID, userID string) error {
 	body := map[string]string{
 		"user": UserJID(userID),
-		"room": OrgRoomJID(conversationID),
+		"room": ServiceRoomJID(conversationID),
 	}
 	if err := c.post(ctx, "/unsubscribe_room", body); err != nil {
 		c.log.Error("ejabberd: failed to kick from room",
@@ -150,7 +150,7 @@ func (c *ejabberdClient) KickFromRoom(ctx context.Context, conversationID, userI
 func (c *ejabberdClient) SendSystemMessage(ctx context.Context, conversationID, body string) error {
 	payload := map[string]string{
 		"from": "admin@" + xmppDomain,
-		"to":   OrgRoomJID(conversationID),
+		"to":   ServiceRoomJID(conversationID),
 		"stanza": fmt.Sprintf(
 			`<message type="groupchat"><body>%s</body></message>`,
 			body,
@@ -169,7 +169,7 @@ func (c *ejabberdClient) SendSystemMessage(ctx context.Context, conversationID, 
 // DestroyRoom permanently destroys a MUC room (soft-delete conversations).
 func (c *ejabberdClient) DestroyRoom(ctx context.Context, conversationID string) error {
 	body := map[string]string{
-		"name":    OrgRoomName(conversationID),
+		"name":    ServiceRoomName(conversationID),
 		"service": xmppMUCDomain,
 	}
 	if err := c.post(ctx, "/destroy_room", body); err != nil {

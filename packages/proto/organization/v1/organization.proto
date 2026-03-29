@@ -6,22 +6,22 @@ option go_package = "github.com/trustinbox/proto/gen/organization/v1;organizatio
 
 import "google/protobuf/timestamp.proto";
 
-service OrganizationService {
-  rpc CreateOrganization(CreateOrganizationRequest) returns (Organization);
-  rpc GetOrganization(GetOrganizationRequest) returns (Organization);
-  rpc ListOrganizations(ListOrganizationsRequest) returns (ListOrganizationsResponse);
-  rpc UpdateOrganization(UpdateOrganizationRequest) returns (Organization);
-  rpc VerifyOrganization(VerifyOrganizationRequest) returns (VerifyOrganizationResponse);
-  rpc SuspendOrganization(SuspendOrganizationRequest) returns (SuspendOrganizationResponse);
+service ServiceProviderService {
+  rpc CreateServiceProvider(CreateServiceProviderRequest) returns (ServiceProvider);
+  rpc GetServiceProvider(GetServiceProviderRequest) returns (ServiceProvider);
+  rpc ListServiceProviders(ListServiceProvidersRequest) returns (ListServiceProvidersResponse);
+  rpc UpdateServiceProvider(UpdateServiceProviderRequest) returns (ServiceProvider);
+  rpc VerifyServiceProvider(VerifyServiceProviderRequest) returns (VerifyServiceProviderResponse);
+  rpc SuspendServiceProvider(SuspendServiceProviderRequest) returns (SuspendServiceProviderResponse);
 
-  // Organization users
-  rpc AddOrganizationUser(AddOrganizationUserRequest) returns (OrganizationUser);
-  rpc RemoveOrganizationUser(RemoveOrganizationUserRequest) returns (RemoveOrganizationUserResponse);
-  rpc ListOrganizationUsers(ListOrganizationUsersRequest) returns (ListOrganizationUsersResponse);
-  rpc GetOrganizationUser(GetOrganizationUserRequest) returns (OrganizationUser);
+  // Service provider users
+  rpc AddServiceProviderUser(AddServiceProviderUserRequest) returns (ServiceProviderUser);
+  rpc RemoveServiceProviderUser(RemoveServiceProviderUserRequest) returns (RemoveServiceProviderUserResponse);
+  rpc ListServiceProviderUsers(ListServiceProviderUsersRequest) returns (ListServiceProviderUsersResponse);
+  rpc GetServiceProviderUser(GetServiceProviderUserRequest) returns (ServiceProviderUser);
 }
 
-message CreateOrganizationRequest {
+message CreateServiceProviderRequest {
   string name = 1;
   string legal_name = 2;
   string industry = 3;
@@ -30,24 +30,24 @@ message CreateOrganizationRequest {
   string admin_user_id = 6;
 }
 
-message GetOrganizationRequest {
-  string organization_id = 1;
+message GetServiceProviderRequest {
+  string service_provider_id = 1;
 }
 
-message ListOrganizationsRequest {
+message ListServiceProvidersRequest {
   string search = 1;
   string verification_status = 2;
   int32 limit = 3;
   int32 offset = 4;
 }
 
-message ListOrganizationsResponse {
-  repeated Organization organizations = 1;
+message ListServiceProvidersResponse {
+  repeated ServiceProvider service_providers = 1;
   int32 total = 2;
 }
 
-message UpdateOrganizationRequest {
-  string organization_id = 1;
+message UpdateServiceProviderRequest {
+  string service_provider_id = 1;
   string name = 2;
   string legal_name = 3;
   string industry = 4;
@@ -55,7 +55,7 @@ message UpdateOrganizationRequest {
   string website = 6;
 }
 
-message Organization {
+message ServiceProvider {
   string id = 1;
   string name = 2;
   string legal_name = 3;
@@ -68,62 +68,62 @@ message Organization {
   google.protobuf.Timestamp updated_at = 10;
 }
 
-message VerifyOrganizationRequest {
-  string organization_id = 1;
+message VerifyServiceProviderRequest {
+  string service_provider_id = 1;
   string decision = 2; // APPROVED, REJECTED
   string reason = 3;
   string admin_user_id = 4;
 }
 
-message VerifyOrganizationResponse {
+message VerifyServiceProviderResponse {
   bool success = 1;
 }
 
-message SuspendOrganizationRequest {
-  string organization_id = 1;
+message SuspendServiceProviderRequest {
+  string service_provider_id = 1;
   string reason = 2;
   string admin_user_id = 3;
 }
 
-message SuspendOrganizationResponse {
+message SuspendServiceProviderResponse {
   bool success = 1;
 }
 
-message AddOrganizationUserRequest {
-  string organization_id = 1;
+message AddServiceProviderUserRequest {
+  string service_provider_id = 1;
   string user_id = 2;
-  string role = 3; // ORG_ADMIN, AGENT, ANALYST
+  string role = 3; // SP_ADMIN, AGENT, ANALYST
 }
 
-message OrganizationUser {
+message ServiceProviderUser {
   string id = 1;
-  string organization_id = 2;
+  string service_provider_id = 2;
   string user_id = 3;
   string role = 4;
   string status = 5;
   google.protobuf.Timestamp created_at = 6;
 }
 
-message RemoveOrganizationUserRequest {
-  string organization_user_id = 1;
-  string organization_id = 2;
+message RemoveServiceProviderUserRequest {
+  string service_provider_user_id = 1;
+  string service_provider_id = 2;
 }
 
-message RemoveOrganizationUserResponse {
+message RemoveServiceProviderUserResponse {
   bool success = 1;
 }
 
-message ListOrganizationUsersRequest {
-  string organization_id = 1;
+message ListServiceProviderUsersRequest {
+  string service_provider_id = 1;
   int32 limit = 2;
   int32 offset = 3;
 }
 
-message ListOrganizationUsersResponse {
-  repeated OrganizationUser users = 1;
+message ListServiceProviderUsersResponse {
+  repeated ServiceProviderUser users = 1;
   int32 total = 2;
 }
 
-message GetOrganizationUserRequest {
-  string organization_user_id = 1;
+message GetServiceProviderUserRequest {
+  string service_provider_user_id = 1;
 }
