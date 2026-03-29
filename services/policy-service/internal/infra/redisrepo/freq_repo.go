@@ -34,11 +34,14 @@ func (r *frequencyRepo) GetAdCountForUser(ctx context.Context, userID, orgID str
 
 func (r *frequencyRepo) IncrementAdCount(ctx context.Context, userID, orgID string) error {
 	key := adCountKey(userID, orgID)
-	if err := r.client.Incr(ctx, key).Err(); err != nil {
-		return err
-	}
 	now := time.Now()
 	nextMidnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
-	ttl := time.Until(nextMidnight)
-	return r.client.Expire(ctx, key, ttl).Err()
+
+	// Pipeline INCR + EXPIREAT atomically so the key never persists without a TTL.
+	_, err := r.client.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		pipe.Incr(ctx, key)
+		pipe.ExpireAt(ctx, key, nextMidnight)
+		return nil
+	})
+	return err
 }

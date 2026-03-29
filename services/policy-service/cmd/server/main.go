@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
@@ -40,6 +41,9 @@ func main() {
 		log.Fatal("failed to open postgres connection", zap.Error(err))
 	}
 	defer db.Close()
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(5 * time.Minute)
 	if err := db.Ping(); err != nil {
 		log.Fatal("failed to ping postgres", zap.Error(err))
 	}

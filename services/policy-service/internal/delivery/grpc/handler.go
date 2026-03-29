@@ -80,7 +80,7 @@ func (h *PolicyGRPCHandler) CheckCallbackPermission(ctx context.Context, req *po
 
 // GetNextAvailableSlot returns the next available slot for communication.
 func (h *PolicyGRPCHandler) GetNextAvailableSlot(_ context.Context, _ *policyv1.GetNextAvailableSlotRequest) (*policyv1.GetNextAvailableSlotResponse, error) {
-	return nil, status.Error(codes.NotFound, "no available slot found")
+	return nil, status.Error(codes.Unimplemented, "GetNextAvailableSlot is not yet implemented")
 }
 
 func mapProtoCategory(c policyv1.CommunicationCategory) entity.Category {
