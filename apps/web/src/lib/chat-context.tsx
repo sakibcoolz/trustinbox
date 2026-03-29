@@ -157,6 +157,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const typingTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const activeConvRef = useRef<Conversation | null>(null);
   const conversationsRef = useRef<Conversation[]>([]);
+  const messagesRef = useRef<Message[]>([]);
   const hasConnectedOnce = useRef(false);
 
   // Keep refs in sync with state
@@ -167,6 +168,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     conversationsRef.current = conversations;
   }, [conversations]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // ==================== API Helpers ====================
 
@@ -370,6 +375,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       messageType:    payload.messageType || 'TEXT',
       content:        payload.content,
       replyToId:      payload.replyToId,
+      replyPreview:   payload.replyToId
+        ? (() => {
+            const rm = messagesRef.current.find(m => m.id === payload.replyToId);
+            return rm ? { id: payload.replyToId, content: rm.content, senderName: rm.senderName } : undefined;
+          })()
+        : undefined,
       attachments:    (payload.attachments as Attachment[] | undefined) ?? [],
       reactions:      [],
       createdAt:      payload.timestamp,
@@ -679,6 +690,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         messageType:    mType,
         content,
         replyToId,
+        replyPreview:   replyToId
+          ? (() => {
+              const rm = messagesRef.current.find(m => m.id === replyToId);
+              return rm ? { id: replyToId, content: rm.content, senderName: rm.senderName } : undefined;
+            })()
+          : undefined,
         attachments:    [],
         reactions:      [],
         createdAt:      new Date().toISOString(),
@@ -802,6 +819,24 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [authHeaders]);
 
   const addReaction = useCallback(async (messageId: string, emoji: string) => {
+    // Optimistic update
+    setMessages(prev => prev.map(m => {
+      if (m.id !== messageId) return m;
+      const reactions = [...(m.reactions || [])];
+      const idx = reactions.findIndex(r => r.emoji === emoji);
+      if (idx >= 0) {
+        if (!reactions[idx].users.includes(user?.id || '')) {
+          reactions[idx] = {
+            ...reactions[idx],
+            users: [...reactions[idx].users, user?.id || ''],
+            count: reactions[idx].count + 1,
+          };
+        }
+      } else {
+        reactions.push({ emoji, users: [user?.id || ''], count: 1 });
+      }
+      return { ...m, reactions };
+    }));
     try {
       await fetch(`${API_BASE}/api/messages/${messageId}/reactions`, {
         method: 'POST',
@@ -809,17 +844,31 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ emoji }),
       });
     } catch { /* silent */ }
-  }, [authHeaders]);
+  }, [authHeaders, user]);
 
   const removeReaction = useCallback(async (messageId: string, emoji: string) => {
+    // Optimistic update
+    setMessages(prev => prev.map(m => {
+      if (m.id !== messageId) return m;
+      const reactions = [...(m.reactions || [])];
+      const idx = reactions.findIndex(r => r.emoji === emoji);
+      if (idx >= 0) {
+        const newUsers = reactions[idx].users.filter(u => u !== user?.id);
+        if (newUsers.length === 0) {
+          reactions.splice(idx, 1);
+        } else {
+          reactions[idx] = { ...reactions[idx], users: newUsers, count: newUsers.length };
+        }
+      }
+      return { ...m, reactions };
+    }));
     try {
-      await fetch(`${API_BASE}/api/messages/${messageId}/reactions`, {
+      await fetch(`${API_BASE}/api/messages/${messageId}/reactions?emoji=${encodeURIComponent(emoji)}`, {
         method: 'DELETE',
         headers: authHeaders(),
-        body: JSON.stringify({ emoji }),
       });
     } catch { /* silent */ }
-  }, [authHeaders]);
+  }, [authHeaders, user]);
 
   const markAsRead = useCallback(() => {
     if (!activeConvRef.current || !token) return;
