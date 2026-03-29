@@ -2,9 +2,38 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './auth-context';
+import { useNotifications, ChatMessagePayload, PresencePayload } from './notification-context';
+import { xmppClient, XMPPMessage, XMPPPresence, XMPPTyping, XMPPDeliveryReceipt, XMPP_DOMAIN, XMPP_MUC_DOMAIN, uuidv4 } from './xmpp-client';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
+
+// ==================== Sound notification ====================
+
+/** Plays a short soft chime using the Web Audio API.
+ *  Safe to call in any context – silently no-ops when unavailable (SSR, old browsers). */
+function playMessageSound(): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const AudioCtx: typeof AudioContext = (window as any).AudioContext ?? (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx  = new AudioCtx();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+    // Close the context once the sound finishes to avoid resource leaks
+    osc.onended = () => { ctx.close().catch(() => {}); };
+  } catch {
+    // ignore – AudioContext unavailable
+  }
+}
 
 // ==================== Types ====================
 
@@ -15,6 +44,7 @@ export interface Participant {
   online: boolean;
   role: string;
   lastReadAt?: string;
+  lastSeenAt?: string;
 }
 
 export interface Conversation {
@@ -59,7 +89,7 @@ export interface Message {
   senderId: string;
   senderName: string;
   senderType: string;
-  messageType: string;
+  messageType: string;   // TEXT | VOICE | IMAGE | FILE
   content?: string;
   replyToId?: string;
   replyPreview?: ReplyPreview;
@@ -68,7 +98,11 @@ export interface Message {
   editedAt?: string;
   deletedAt?: string;
   createdAt: string;
-  status: string;
+  status: 'sent' | 'delivered' | 'read' | string;
+  deliveredAt?: string;
+  starred?: boolean;
+  pinned?: boolean;
+  forwardedFrom?: { senderName: string; conversationName?: string };
 }
 
 export interface TypingUser {
@@ -81,12 +115,14 @@ interface ChatContextType {
   activeConversation: Conversation | null;
   messages: Message[];
   typingUsers: TypingUser[];
+  typingConversationIds: Set<string>;
   isConnected: boolean;
+  isReconnecting: boolean;
   isLoadingConversations: boolean;
   isLoadingMessages: boolean;
 
   setActiveConversation: (conv: Conversation | null) => void;
-  sendMessage: (content: string, replyToId?: string, attachmentIds?: string[]) => void;
+  sendMessage: (content: string, replyToId?: string, attachmentIds?: string[], messageType?: string) => void;
   editMessage: (messageId: string, content: string) => void;
   deleteMessage: (messageId: string) => void;
   addReaction: (messageId: string, emoji: string) => void;
@@ -97,30 +133,40 @@ interface ChatContextType {
   uploadFile: (file: File) => Promise<Attachment | null>;
   loadMoreMessages: () => void;
   refreshConversations: () => void;
+  forwardMessage: (messageId: string, targetConvId: string) => Promise<void>;
+  starMessage: (messageId: string) => void;
+  pinMessage: (messageId: string) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-  const { user, token } = useAuth();
+  const { user, token, xmppToken, xmppJid, isLoading: isAuthLoading } = useAuth();
+  const { onChatMessage, onPresenceUpdate } = useNotifications();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversationState] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+  const [typingConversationIds, setTypingConversationIds] = useState<Set<string>>(new Set());
   const [isConnected, setIsConnected] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
   const typingTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const activeConvRef = useRef<Conversation | null>(null);
+  const conversationsRef = useRef<Conversation[]>([]);
+  const hasConnectedOnce = useRef(false);
 
-  // Keep ref in sync with state
+  // Keep refs in sync with state
   useEffect(() => {
     activeConvRef.current = activeConversation;
   }, [activeConversation]);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   // ==================== API Helpers ====================
 
@@ -134,7 +180,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // ==================== Fetch Conversations ====================
 
   const fetchConversations = useCallback(async () => {
-    if (!token || !user) return;
+    if (!token || !user) {
+      setIsLoadingConversations(false);
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/api/conversations`, {
         headers: authHeaders(),
@@ -170,48 +219,252 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token, authHeaders]);
 
-  // ==================== WebSocket Connection ====================
+  // ==================== Fetch a single conversation (for new-conv discovery) ==
 
-  // Use a ref for the WS event dispatcher so the onmessage closure never goes stale
-  const handleWSEventRef = useRef<(data: any) => void>(() => {});
+  const fetchConversationByID = useCallback(async (convId: string): Promise<Conversation | null> => {
+    if (!token || !user) return null;
+    try {
+      const res = await fetch(`${API_BASE}/api/conversations/${convId}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) return null;
+      const data: Conversation = await res.json();
+      return enrichConversation(data, user.id);
+    } catch {
+      return null;
+    }
+  }, [token, user, authHeaders]);
 
-  const connectWebSocket = useCallback(() => {
-    if (!token || !user) return;
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+  // ==================== Fetch a single message (attachment hydration) ==
 
-    const ws = new WebSocket(`${WS_BASE}/api/ws?token=${token}`);
-    wsRef.current = ws;
+  const fetchMessageByID = useCallback(async (messageId: string): Promise<Message | null> => {
+    if (!token) return null;
+    try {
+      const res = await fetch(`${API_BASE}/api/messages/${messageId}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) return null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const d: any = await res.json();
+      const msg: Message = {
+        id:             d.id,
+        conversationId: d.conversationId,
+        senderId:       d.senderId,
+        senderName:     d.senderName,
+        senderType:     'USER',
+        messageType:    d.messageType,
+        content:        d.content ?? undefined,
+        replyToId:      d.replyToId ?? undefined,
+        attachments:    (d.attachments ?? []).map((a: any) => ({
+          id:           a.id,
+          fileName:     a.fileName,
+          fileType:     a.fileType,
+          fileSize:     a.fileSize,
+          url:          a.url,
+          thumbnailUrl: a.thumbnailUrl,
+        })),
+        reactions:      d.reactions ?? [],
+        createdAt:      d.createdAt,
+        status:         d.status ?? 'sent',
+        starred:        d.starred,
+        pinned:         d.pinned,
+        editedAt:       d.editedAt ?? undefined,
+        deletedAt:      d.deletedAt ?? undefined,
+      };
+      return msg;
+    } catch {
+      return null;
+    }
+  }, [token, authHeaders]);
 
-    ws.onopen = () => {
-      setIsConnected(true);
-      if (reconnectTimer.current) {
-        clearTimeout(reconnectTimer.current);
-        reconnectTimer.current = null;
+  // ==================== XMPP event handlers ====================
+
+  const handleNewXMPPMessage = useCallback((msg: XMPPMessage) => {
+    const chatMsg: Message = {
+      id:             msg.id,
+      conversationId: msg.conversationId,
+      senderId:       msg.from.split('@')[0],
+      senderName:     msg.from.split('@')[0],
+      senderType:     'USER',
+      messageType:    msg.messageType || 'TEXT',
+      content:        msg.body,
+      attachments:    [],
+      reactions:      [],
+      createdAt:      msg.timestamp.toISOString(),
+      status:         'sent',
+    };
+
+    // Play sound for messages from other users
+    if (chatMsg.senderId !== user?.id) {
+      playMessageSound();
+    }
+
+    if (activeConvRef.current?.id === msg.conversationId) {
+      setMessages(prev => {
+        if (prev.find(m => m.id === chatMsg.id)) return prev;
+        return [...prev, chatMsg];
+      });
+
+      // If the stanza carries a non-text type (IMAGE, FILE, VIDEO, VOICE),
+      // XMPP doesn't carry attachment URLs — fetch the full message from
+      // REST to hydrate the attachments for the receiver.
+      if (chatMsg.messageType !== 'TEXT') {
+        const hydrateDelayMs = 800; // give the sender's REST POST time to link attachments
+        setTimeout(() => {
+          fetchMessageByID(msg.id).then(full => {
+            if (!full) return;
+            setMessages(prev => prev.map(m => m.id === full.id ? full : m));
+          });
+        }, hydrateDelayMs);
       }
-    };
+    }
 
-    ws.onclose = () => {
-      setIsConnected(false);
-      wsRef.current = null;
-      // Auto-reconnect after 3s
-      reconnectTimer.current = setTimeout(() => {
-        connectWebSocket();
-      }, 3000);
-    };
-
-    ws.onerror = () => {
-      ws.close();
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        handleWSEventRef.current(data);
-      } catch {
-        // ignore malformed messages
+    setConversations(prev => {
+      const found = prev.find(c => c.id === msg.conversationId);
+      if (!found) {
+        // Unknown conversation — fetch and prepend it so recipient sees it immediately.
+        // Async fetch is safe here; React batches the subsequent setConversations update.
+        fetchConversationByID(msg.conversationId).then(conv => {
+          if (conv) {
+            setConversations(list => {
+              if (list.find(c => c.id === conv.id)) return list; // already added by SSE path
+              return [{ ...conv, lastMessagePreview: msg.body, lastMessageAt: msg.timestamp.toISOString(), unreadCount: chatMsg.senderId !== user?.id ? 1 : 0 }, ...list];
+            });
+          }
+        });
+        return prev;
       }
+      const updated = prev.map(c => {
+        if (c.id === msg.conversationId) {
+          return {
+            ...c,
+            lastMessageAt:      msg.timestamp.toISOString(),
+            lastMessagePreview: msg.body,
+            unreadCount: activeConvRef.current?.id === msg.conversationId
+              ? c.unreadCount
+              : c.unreadCount + (chatMsg.senderId !== user?.id ? 1 : 0),
+          };
+        }
+        return c;
+      });
+      return updated.sort((a, b) =>
+        new Date(b.lastMessageAt || b.createdAt).getTime() -
+        new Date(a.lastMessageAt || a.createdAt).getTime()
+      );
+    });
+
+    setTypingUsers(prev => prev.filter(t => t.userId !== chatMsg.senderId));
+  }, [user, fetchConversationByID, fetchMessageByID]);
+
+  // ==================== SSE chat_message handler ====================
+  // Handles messages delivered via the SSE fallback channel (when XMPP is
+  // down, or for the sender's other open tabs). Deduplicates by message ID.
+
+  const handleSSEChatMessage = useCallback((payload: ChatMessagePayload) => {
+    const msg: Message = {
+      id:             payload.messageId,
+      conversationId: payload.conversationId,
+      senderId:       payload.senderId,
+      senderName:     payload.senderName,
+      senderType:     'USER',
+      messageType:    payload.messageType || 'TEXT',
+      content:        payload.content,
+      replyToId:      payload.replyToId,
+      attachments:    (payload.attachments as Attachment[] | undefined) ?? [],
+      reactions:      [],
+      createdAt:      payload.timestamp,
+      status:         payload.status || 'sent',
     };
-  }, [token, user]);
+
+    // Sound only for messages from other users
+    if (msg.senderId !== user?.id) {
+      playMessageSound();
+    }
+
+    // If this is the active conversation, add message (dedup)
+    if (activeConvRef.current?.id === msg.conversationId) {
+      setMessages(prev => {
+        if (prev.find(m => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+    }
+
+    setConversations(prev => {
+      const found = prev.find(c => c.id === msg.conversationId);
+      if (!found) {
+        // New conversation unknown to this client — fetch and prepend
+        fetchConversationByID(msg.conversationId).then(conv => {
+          if (conv) {
+            setConversations(list => {
+              if (list.find(c => c.id === conv.id)) return list;
+              return [{ ...conv, lastMessagePreview: msg.content || '', lastMessageAt: msg.createdAt, unreadCount: msg.senderId !== user?.id ? 1 : 0 }, ...list];
+            });
+          }
+        });
+        return prev;
+      }
+      const updated = prev.map(c => {
+        if (c.id === msg.conversationId) {
+          return {
+            ...c,
+            lastMessageAt:      msg.createdAt,
+            lastMessagePreview: msg.content,
+            unreadCount: activeConvRef.current?.id === msg.conversationId
+              ? c.unreadCount
+              : c.unreadCount + (msg.senderId !== user?.id ? 1 : 0),
+          };
+        }
+        return c;
+      });
+      return updated.sort((a, b) =>
+        new Date(b.lastMessageAt || b.createdAt).getTime() -
+        new Date(a.lastMessageAt || a.createdAt).getTime()
+      );
+    });
+  }, [user, fetchConversationByID]);
+
+  const handleXMPPPresence = useCallback((p: XMPPPresence) => {
+    const fromUserId = p.from.split('@')[0];
+    const online = p.status !== 'offline';
+    const lastSeenAt = !online ? new Date().toISOString() : undefined;
+    setConversations(prev => prev.map(c => ({
+      ...c,
+      participants: c.participants.map(pt =>
+        pt.userId === fromUserId
+          ? { ...pt, online, ...(lastSeenAt ? { lastSeenAt } : {}) }
+          : pt
+      ),
+      otherUser: c.otherUser?.userId === fromUserId
+        ? { ...c.otherUser, online, ...(lastSeenAt ? { lastSeenAt } : {}) }
+        : c.otherUser,
+    })));
+  }, []);
+
+  const handleXMPPTyping = useCallback((t: XMPPTyping) => {
+    const fromUserId = t.from.split('@')[0];
+    // Update typing indicator in conversation list
+    setTypingConversationIds(prev => {
+      const next = new Set(prev);
+      if (t.isTyping) next.add(t.conversationId); else next.delete(t.conversationId);
+      return next;
+    });
+    if (activeConvRef.current?.id !== t.conversationId) return;
+    if (t.isTyping) {
+      setTypingUsers(prev => {
+        if (prev.find(u => u.userId === fromUserId)) return prev;
+        return [...prev, { userId: fromUserId, senderName: fromUserId }];
+      });
+      const key = `${t.conversationId}:${fromUserId}`;
+      if (typingTimers.current.has(key)) clearTimeout(typingTimers.current.get(key)!);
+      typingTimers.current.set(key, setTimeout(() => {
+        setTypingUsers(prev => prev.filter(u => u.userId !== fromUserId));
+        setTypingConversationIds(prev => { const n = new Set(prev); n.delete(t.conversationId); return n; });
+        typingTimers.current.delete(key);
+      }, 5000));
+    } else {
+      setTypingUsers(prev => prev.filter(u => u.userId !== fromUserId));
+    }
+  }, []);
 
   const handleNewMessage = useCallback((event: any) => {
     const msg: Message = {
@@ -379,76 +632,131 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const handleDeliveryReceipt = useCallback((r: XMPPDeliveryReceipt) => {
+    setMessages(prev => prev.map(m =>
+      m.id === r.messageId && m.status === 'sent'
+        ? { ...m, status: 'delivered', deliveredAt: new Date().toISOString() }
+        : m
+    ));
+  }, []);
+
   // Keep the WS event dispatcher ref always current (avoids stale closures)
-  handleWSEventRef.current = (event: any) => {
+  // This is now only used for REST-driven updates (read receipts, edits, deletions).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleWSEvent = (event: any) => {
     switch (event.type) {
-      case 'new_message':
-        handleNewMessage(event);
-        break;
-      case 'typing':
-        handleTypingEvent(event, true);
-        break;
-      case 'stop_typing':
-        handleTypingEvent(event, false);
-        break;
-      case 'message_read':
-        handleMessageRead(event);
-        break;
-      case 'message_edited':
-        handleMessageEdited(event);
-        break;
-      case 'message_deleted':
-        handleMessageDeleted(event);
-        break;
+      case 'message_read':    handleMessageRead(event);    break;
+      case 'message_edited':  handleMessageEdited(event);  break;
+      case 'message_deleted': handleMessageDeleted(event); break;
       case 'reaction_added':
-      case 'reaction_removed':
-        handleReactionEvent(event);
-        break;
-      case 'presence_update':
-        handlePresenceUpdate(event);
-        break;
+      case 'reaction_removed': handleReactionEvent(event); break;
+      case 'presence_update': handlePresenceUpdate(event); break;
     }
   };
 
   // ==================== Actions ====================
 
-  const wsSend = useCallback((data: any) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(data));
-    }
-  }, []);
+  const sendMessage = useCallback(async (content: string, replyToId?: string, attachmentIds?: string[], messageType?: string) => {
+    const conv = activeConvRef.current;
+    if (!conv) return;
+    const mType = messageType || 'TEXT';
 
-  const sendMessage = useCallback(async (content: string, replyToId?: string, attachmentIds?: string[]) => {
-    if (!activeConvRef.current) return;
-    const convId = activeConvRef.current.id;
+    if (xmppClient.isConnected) {
+      const msgId = uuidv4();
 
-    // Try WebSocket first
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsSend({
-        type: 'send_message',
-        conversationId: convId,
+      if (conv.type === 'DIRECT' && conv.otherUser) {
+        xmppClient.sendDirectMessage(conv.otherUser.userId, content, conv.id, msgId, mType);
+      } else {
+        xmppClient.sendGroupMessage(conv.id, content, msgId);
+      }
+
+      const echo: Message = {
+        id:             msgId,
+        conversationId: conv.id,
+        senderId:       user?.id ?? '',
+        senderName:     user?.id ?? '',
+        senderType:     'USER',
+        messageType:    mType,
         content,
         replyToId,
-        attachmentIds,
+        attachments:    [],
+        reactions:      [],
+        createdAt:      new Date().toISOString(),
+        status:         'sent',
+      };
+      setMessages(prev => {
+        if (prev.find(m => m.id === echo.id)) return prev;
+        return [...prev, echo];
       });
+
+      setConversations(prev => {
+        const updated = prev.map(c => {
+          if (c.id === conv.id) {
+            return { ...c, lastMessageAt: echo.createdAt, lastMessagePreview: content };
+          }
+          return c;
+        });
+        return updated.sort((a, b) =>
+          new Date(b.lastMessageAt || b.createdAt).getTime() -
+          new Date(a.lastMessageAt || a.createdAt).getTime()
+        );
+      });
+
+      fetch(`${API_BASE}/api/conversations/${conv.id}/messages`, {
+        method:  'POST',
+        headers: authHeaders(),
+        body:    JSON.stringify({ messageId: msgId, content, replyToId, attachmentIds, messageType: mType }),
+      }).then(async res => {
+        if (!res.ok) return;
+        // If there are attachments, replace the optimistic echo with the real
+        // message from the server (which contains hydrated attachment URLs).
+        if (attachmentIds && attachmentIds.length > 0) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const real: any = await res.json();
+            const realMsg: Message = {
+              id:             real.id ?? msgId,
+              conversationId: real.conversationId ?? conv.id,
+              senderId:       real.senderId ?? user?.id ?? '',
+              senderName:     real.senderName ?? user?.id ?? '',
+              senderType:     'USER',
+              messageType:    real.messageType ?? mType,
+              content:        real.content ?? content,
+              replyToId:      real.replyToId ?? replyToId,
+              attachments:    (real.attachments ?? []).map((a: any) => ({
+                id:           a.id,
+                fileName:     a.fileName,
+                fileType:     a.fileType,
+                fileSize:     a.fileSize,
+                url:          a.url,
+                thumbnailUrl: a.thumbnailUrl,
+              })),
+              reactions:      [],
+              createdAt:      real.createdAt ?? echo.createdAt,
+              status:         real.status ?? 'sent',
+            };
+            setMessages(prev => prev.map(m => m.id === msgId ? realMsg : m));
+          } catch {
+            // already displayed as echo — harmless
+          }
+        }
+      }).catch(() => { /* silent */ });
     } else {
-      // Fallback to REST API when WS is not connected
       try {
-        const res = await fetch(`${API_BASE}/api/conversations/${convId}/messages`, {
+        const res = await fetch(`${API_BASE}/api/conversations/${conv.id}/messages`, {
           method: 'POST',
           headers: authHeaders(),
-          body: JSON.stringify({ content, replyToId, attachmentIds }),
+          body: JSON.stringify({ content, replyToId, attachmentIds, messageType: mType }),
         });
         if (!res.ok) throw new Error('send failed');
         const msg = await res.json();
-        // Add message to local state (deduplicate in case WS also delivers)
         setMessages(prev => {
           if (prev.find(m => m.id === msg.id)) return prev;
           return [...prev, msg];
         });
         setConversations(prev => {
           const updated = prev.map(c => {
-            if (c.id === convId) {
+            if (c.id === conv.id) {
               return { ...c, lastMessageAt: msg.createdAt, lastMessagePreview: content };
             }
             return c;
@@ -459,26 +767,55 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           );
         });
       } catch {
-        // silent — message not sent
+        // silent
       }
     }
-  }, [wsSend, authHeaders]);
+  }, [authHeaders, user]);
 
-  const editMessage = useCallback((messageId: string, content: string) => {
-    wsSend({ type: 'edit_message', messageId, content });
-  }, [wsSend]);
+  const editMessage = useCallback(async (messageId: string, content: string) => {
+    try {
+      await fetch(`${API_BASE}/api/messages/${messageId}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ content }),
+      });
+      setMessages(prev => prev.map(m =>
+        m.id === messageId ? { ...m, content, editedAt: new Date().toISOString() } : m
+      ));
+    } catch { /* silent */ }
+  }, [authHeaders]);
 
-  const deleteMessage = useCallback((messageId: string) => {
-    wsSend({ type: 'delete_message', messageId });
-  }, [wsSend]);
+  const deleteMessage = useCallback(async (messageId: string) => {
+    try {
+      await fetch(`${API_BASE}/api/messages/${messageId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      setMessages(prev => prev.map(m =>
+        m.id === messageId ? { ...m, content: undefined, deletedAt: new Date().toISOString() } : m
+      ));
+    } catch { /* silent */ }
+  }, [authHeaders]);
 
-  const addReaction = useCallback((messageId: string, emoji: string) => {
-    wsSend({ type: 'add_reaction', messageId, emoji });
-  }, [wsSend]);
+  const addReaction = useCallback(async (messageId: string, emoji: string) => {
+    try {
+      await fetch(`${API_BASE}/api/messages/${messageId}/reactions`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ emoji }),
+      });
+    } catch { /* silent */ }
+  }, [authHeaders]);
 
-  const removeReaction = useCallback((messageId: string, emoji: string) => {
-    wsSend({ type: 'remove_reaction', messageId, emoji });
-  }, [wsSend]);
+  const removeReaction = useCallback(async (messageId: string, emoji: string) => {
+    try {
+      await fetch(`${API_BASE}/api/messages/${messageId}/reactions`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+        body: JSON.stringify({ emoji }),
+      });
+    } catch { /* silent */ }
+  }, [authHeaders]);
 
   const markAsRead = useCallback(() => {
     if (!activeConvRef.current || !token) return;
@@ -497,23 +834,33 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const sendTyping = useCallback((isTyping: boolean) => {
-    if (!activeConvRef.current) return;
+    const conv = activeConvRef.current;
+    if (!conv || !xmppClient.isConnected) return;
     if (isTyping && !typingRef.current) {
       typingRef.current = true;
-      wsSend({ type: 'typing', conversationId: activeConvRef.current.id });
-      // Auto-stop after 3s
+      if (conv.type === 'DIRECT' && conv.otherUser) {
+        xmppClient.sendTyping(`${conv.otherUser.userId}@${XMPP_DOMAIN}`, 'chat', true);
+      } else {
+        xmppClient.sendTyping(`org-${conv.id}@${XMPP_MUC_DOMAIN}`, 'groupchat', true);
+      }
       typingTimeout.current = setTimeout(() => {
         typingRef.current = false;
-        wsSend({ type: 'stop_typing', conversationId: activeConvRef.current?.id });
+        if (conv.type === 'DIRECT' && conv.otherUser) {
+          xmppClient.sendTyping(`${conv.otherUser.userId}@${XMPP_DOMAIN}`, 'chat', false);
+        } else {
+          xmppClient.sendTyping(`org-${conv.id}@${XMPP_MUC_DOMAIN}`, 'groupchat', false);
+        }
       }, 3000);
     } else if (!isTyping && typingRef.current) {
       typingRef.current = false;
-      if (typingTimeout.current) {
-        clearTimeout(typingTimeout.current);
+      if (typingTimeout.current) clearTimeout(typingTimeout.current);
+      if (conv.type === 'DIRECT' && conv.otherUser) {
+        xmppClient.sendTyping(`${conv.otherUser.userId}@${XMPP_DOMAIN}`, 'chat', false);
+      } else {
+        xmppClient.sendTyping(`org-${conv.id}@${XMPP_MUC_DOMAIN}`, 'groupchat', false);
       }
-      wsSend({ type: 'stop_typing', conversationId: activeConvRef.current.id });
     }
-  }, [wsSend]);
+  }, []);
 
   const createConversation = useCallback(async (participantId: string, message?: string): Promise<Conversation | null> => {
     if (!token || !user) return null;
@@ -557,6 +904,52 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token]);
 
+  const forwardMessage = useCallback(async (messageId: string, targetConvId: string) => {
+    const msg = messages.find(m => m.id === messageId);
+    if (!msg || !msg.content) return;
+    const targetConv = conversations.find(c => c.id === targetConvId);
+    if (!targetConv) return;
+    const fwd: Message = {
+      id:             uuidv4(),
+      conversationId: targetConvId,
+      senderId:       user?.id ?? '',
+      senderName:     user?.id ?? '',
+      senderType:     'USER',
+      messageType:    'TEXT',
+      content:        msg.content,
+      attachments:    [],
+      reactions:      [],
+      createdAt:      new Date().toISOString(),
+      status:         'sent',
+      forwardedFrom:  { senderName: msg.senderName },
+    };
+    if (xmppClient.isConnected && targetConv.type === 'DIRECT' && targetConv.otherUser) {
+      xmppClient.sendDirectMessage(targetConv.otherUser.userId, msg.content, targetConvId, fwd.id);
+    }
+    try {
+      await fetch(`${API_BASE}/api/conversations/${targetConvId}/messages`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ messageId: fwd.id, content: msg.content, forwardedFrom: { senderName: msg.senderName } }),
+      });
+    } catch { /* silent */ }
+    if (activeConvRef.current?.id === targetConvId) {
+      setMessages(prev => [...prev, fwd]);
+    }
+  }, [messages, conversations, user, authHeaders]);
+
+  const starMessage = useCallback((messageId: string) => {
+    setMessages(prev => prev.map(m =>
+      m.id === messageId ? { ...m, starred: !m.starred } : m
+    ));
+  }, []);
+
+  const pinMessage = useCallback((messageId: string) => {
+    setMessages(prev => prev.map(m =>
+      m.id === messageId ? { ...m, pinned: !m.pinned } : m
+    ));
+  }, []);
+
   const loadMoreMessages = useCallback(async () => {
     if (!activeConvRef.current || messages.length === 0) return;
     const oldest = messages[0];
@@ -591,22 +984,119 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   // ==================== Effects ====================
 
-  // Fetch conversations on mount
+  // Fetch conversations once auth is resolved
   useEffect(() => {
+    if (isAuthLoading) return;
     fetchConversations();
-  }, [fetchConversations]);
+  }, [fetchConversations, isAuthLoading]);
 
-  // Connect WebSocket
+  // Subscribe to SSE-delivered chat messages (fallback / backup to XMPP).
+  // This fires for every message persisted via REST, ensuring delivery even
+  // when the recipient's XMPP connection is temporarily down.
   useEffect(() => {
-    connectWebSocket();
-    return () => {
-      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
+    return onChatMessage(handleSSEChatMessage);
+  }, [onChatMessage, handleSSEChatMessage]);
+
+  // ── Presence: heartbeat + SSE listener + initial poll ─────────────────────
+  // Instead of a raw WebSocket to port 4000 (which is blocked by firewalls /
+  // Tailscale), we use two standard HTTP mechanisms:
+  //   1. POST /api/presence/heartbeat every 45 s  →  keeps THIS user "online" in Redis
+  //   2. onPresenceUpdate (SSE)                   →  notified when peers go online/offline
+  //   3. GET /api/presence?ids=…                  →  initial snapshot after conversations load
+
+  // 1. Heartbeat
+  useEffect(() => {
+    if (!token) return;
+    const doHeartbeat = () =>
+      fetch(`${API_BASE}/api/presence/heartbeat`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    doHeartbeat(); // immediate on mount
+    const timer = setInterval(doHeartbeat, 45_000);
+    return () => clearInterval(timer);
+  }, [token]);
+
+  // 2. SSE presence events
+  useEffect(() => {
+    return onPresenceUpdate((p: PresencePayload) => handlePresenceUpdate(p));
+  }, [onPresenceUpdate, handlePresenceUpdate]);
+
+  // 3. Initial presence snapshot once conversations are loaded
+  useEffect(() => {
+    if (!token || conversations.length === 0) return;
+    const peerIds = conversations
+      .filter(c => c.type === 'DIRECT' && c.otherUser?.userId)
+      .map(c => c.otherUser!.userId);
+    if (peerIds.length === 0) return;
+    fetch(`${API_BASE}/api/presence?ids=${peerIds.join(',')}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: Record<string, { online: boolean; lastSeen: string }> | null) => {
+        if (!data) return;
+        Object.entries(data).forEach(([userId, info]) => {
+          handlePresenceUpdate({ type: 'presence_update', userId, online: info.online });
+        });
+      })
+      .catch(() => {});
+  // Run once after initial conversations load (isLoadingConversations flips false)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingConversations]);
+
+  // Connect WebSocket for non-chat streams (notifications, SSE) –
+  // real-time chat messages now come via ejabberd / XMPP-WS.
+  useEffect(() => {
+    if (!xmppJid || !xmppToken) return;
+
+    const onMessage  = (msg: XMPPMessage)    => handleNewXMPPMessage(msg);
+    const onPresence = (p:   XMPPPresence)   => handleXMPPPresence(p);
+    const onTyping   = (t:   XMPPTyping)     => handleXMPPTyping(t);
+    const onStatus   = (online: boolean) => {
+      setIsConnected(online);
+      if (online) {
+        if (hasConnectedOnce.current) setIsReconnecting(false);
+        hasConnectedOnce.current = true;
+        // Probe presence for all DIRECT conversation peers to get live status
+        conversationsRef.current
+          .filter(c => c.type === 'DIRECT' && c.otherUser?.userId)
+          .forEach(c => xmppClient.sendPresenceProbe(c.otherUser!.userId));
+      } else if (hasConnectedOnce.current) {
+        setIsReconnecting(true);
       }
     };
-  }, [connectWebSocket]);
+
+    const onReceipt = (r: XMPPDeliveryReceipt) => handleDeliveryReceipt(r);
+
+    xmppClient.onMessage(onMessage);
+    xmppClient.onPresence(onPresence);
+    xmppClient.onTyping(onTyping);
+    xmppClient.onStatusChange(onStatus);
+    xmppClient.onDeliveryReceipt(onReceipt);
+
+    xmppClient.connect(xmppJid, xmppToken).catch(err => {
+      console.error('[chat] xmpp connect failed', err);
+      // If ejabberd rejects our credentials the XMPP token is expired/invalid.
+      // Clear only the XMPP token – the user's REST session is still valid.
+      // They will get a fresh XMPP token automatically on next login.
+      // Do NOT call logout() here: that would boot them out of the whole app
+      // just because the 24-hour XMPP JWT expired.
+      const msg = String(err?.message ?? err);
+      if (msg.includes('not-authorized') || msg.includes('not authorized')) {
+        localStorage.removeItem('xmppToken');
+        localStorage.removeItem('xmppJid');
+      }
+    });
+
+    return () => {
+      xmppClient.offMessage(onMessage);
+      xmppClient.offPresence(onPresence);
+      xmppClient.offTyping(onTyping);
+      xmppClient.offStatusChange(onStatus);
+      xmppClient.offDeliveryReceipt(onReceipt);
+      xmppClient.disconnect();
+    };
+  }, [xmppJid, xmppToken, handleNewXMPPMessage, handleXMPPPresence, handleXMPPTyping, handleDeliveryReceipt]);
 
   return (
     <ChatContext.Provider value={{
@@ -614,7 +1104,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       activeConversation,
       messages,
       typingUsers,
+      typingConversationIds,
       isConnected,
+      isReconnecting,
       isLoadingConversations,
       isLoadingMessages,
       setActiveConversation,
@@ -629,6 +1121,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       uploadFile,
       loadMoreMessages,
       refreshConversations: fetchConversations,
+      forwardMessage,
+      starMessage,
+      pinMessage,
     }}>
       {children}
     </ChatContext.Provider>

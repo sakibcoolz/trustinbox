@@ -73,9 +73,11 @@ type reactionResponse struct {
 }
 
 type sendMessageRequest struct {
+	MessageID     string   `json:"messageId,omitempty"` // optional client-supplied UUID (XMPP stanza deduplication)
 	Content       string   `json:"content"`
 	ReplyToID     string   `json:"replyToId,omitempty"`
 	AttachmentIDs []string `json:"attachmentIds,omitempty"`
+	MessageType   string   `json:"messageType,omitempty"` // TEXT | IMAGE | VIDEO | VOICE | FILE
 }
 
 type editMessageRequest struct {
@@ -478,12 +480,21 @@ func handleSendMessageREST(deps *chatDeps) http.HandlerFunc {
 		}
 
 		senderName := getUserDisplayName(ctx, deps, userID)
+		// Honour the client-supplied type (IMAGE, VIDEO, VOICE, FILE…)
+		// Fall back to FILE when attachments are present but no explicit type given.
 		msgType := "TEXT"
-		if len(req.AttachmentIDs) > 0 {
+		if req.MessageType != "" {
+			msgType = req.MessageType
+		} else if len(req.AttachmentIDs) > 0 {
 			msgType = "FILE"
 		}
 
 		messageID := uuid.New().String()
+		// Accept a client-supplied ID so that the XMPP stanza ID and DB record
+		// share the same UUID, enabling correct deduplication after page reload.
+		if req.MessageID != "" {
+			messageID = req.MessageID
+		}
 		var replyToID interface{} = nil
 		if req.ReplyToID != "" {
 			replyToID = req.ReplyToID
@@ -522,7 +533,7 @@ func handleSendMessageREST(deps *chatDeps) http.HandlerFunc {
 			attachments = getMessageAttachments(ctx, deps, messageID)
 		}
 
-		// Broadcast via WebSocket
+		// Broadcast via WebSocket (legacy real-time channel kept for compatibility)
 		event := wsOutgoing{
 			Type:           WSEventNewMessage,
 			ConversationID: convID,
@@ -537,6 +548,14 @@ func handleSendMessageREST(deps *chatDeps) http.HandlerFunc {
 			Status:         "sent",
 		}
 		deps.hub.broadcast(ctx, participants, event)
+
+		// Push chat_message SSE event to every participant (including sender's other tabs).
+		// This is the reliable delivery channel when the recipient's XMPP connection is
+		// down or when they don't yet have the conversation loaded in their UI.
+		// The frontend deduplicates by message ID, so double delivery is harmless.
+		for _, pid := range participants {
+			deps.sseHub.send(pid, "chat_message", event)
+		}
 
 		// Build response
 		resp := messageResponse{
@@ -556,6 +575,79 @@ func handleSendMessageREST(deps *chatDeps) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusCreated, resp)
+	}
+}
+
+// handleGetMessageREST handles GET /api/messages/{id}
+// Returns the full message with its attachments. Used by the receiver to
+// hydrate attachment metadata after receiving an XMPP stanza (which carries
+// no attachment URLs).
+func handleGetMessageREST(deps *chatDeps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+			return
+		}
+
+		userID, err := extractUserID(r, deps.tokenSvc)
+		if err != nil {
+			writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "unauthorized"})
+			return
+		}
+
+		msgID := extractPathParam(r.URL.Path, "/api/messages/", "")
+		if msgID == "" {
+			writeJSON(w, http.StatusBadRequest, errorResponse{Error: "message id required"})
+			return
+		}
+
+		ctx := r.Context()
+
+		var m messageResponse
+		var content, replyToID, editedAt, deletedAt sql.NullString
+		err = deps.db.QueryRowContext(ctx,
+			`SELECT m.id, m.conversation_id, COALESCE(m.sender_ref_id::text, ''),
+			        m.message_type, m.content, m.reply_to_id, m.edited_at, m.deleted_at, m.created_at,
+			        COALESCE(p.full_name, u.username, '') as sender_name
+			 FROM messages m
+			 LEFT JOIN users u ON u.id = m.sender_ref_id
+			 LEFT JOIN user_profiles p ON p.user_id = m.sender_ref_id
+			 WHERE m.id = $1 AND m.deleted_at IS NULL`, msgID,
+		).Scan(&m.ID, &m.ConversationID, &m.SenderID, &m.MessageType,
+			&content, &replyToID, &editedAt, &deletedAt, &m.CreatedAt, &m.SenderName)
+		if err != nil {
+			writeJSON(w, http.StatusNotFound, errorResponse{Error: "message not found"})
+			return
+		}
+
+		// Verify the requesting user is a participant in the conversation
+		var isParticipant bool
+		deps.db.QueryRowContext(ctx,
+			`SELECT EXISTS(SELECT 1 FROM conversation_participants WHERE conversation_id = $1 AND user_id = $2)`,
+			m.ConversationID, userID,
+		).Scan(&isParticipant)
+		if !isParticipant {
+			writeJSON(w, http.StatusForbidden, errorResponse{Error: "not a participant"})
+			return
+		}
+
+		if content.Valid {
+			m.Content = &content.String
+		}
+		if replyToID.Valid {
+			m.ReplyToID = &replyToID.String
+		}
+		if editedAt.Valid {
+			m.EditedAt = &editedAt.String
+		}
+
+		m.Attachments = getMessageAttachments(ctx, deps, m.ID)
+		if m.Attachments == nil {
+			m.Attachments = []attachmentResponse{}
+		}
+		m.Status = "sent"
+
+		writeJSON(w, http.StatusOK, m)
 	}
 }
 

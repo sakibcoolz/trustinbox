@@ -13,7 +13,7 @@ interface ConversationListProps {
 export type { Conversation } from '@/lib/chat-context';
 
 export function ConversationList({ activeId, onSelect }: ConversationListProps) {
-  const { conversations, isLoadingConversations } = useChat();
+  const { conversations, isLoadingConversations, typingConversationIds } = useChat();
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>('All');
 
@@ -26,7 +26,7 @@ export function ConversationList({ activeId, onSelect }: ConversationListProps) 
   });
 
   return (
-    <div className="w-panel h-full flex flex-col bg-bg-secondary border-r border-border-primary shrink-0">
+    <div className="w-full sm:w-panel h-full flex flex-col bg-bg-secondary border-r border-border-primary shrink-0">
       {/* Header */}
       <div className="px-4 pt-4 pb-2 space-y-3">
         <div className="flex items-center justify-between">
@@ -92,6 +92,7 @@ export function ConversationList({ activeId, onSelect }: ConversationListProps) 
               conversation={conv}
               isActive={activeId === conv.id}
               onClick={() => onSelect(conv)}
+              isTyping={typingConversationIds.has(conv.id)}
             />
           ))
         )}
@@ -104,10 +105,12 @@ function ConversationItem({
   conversation,
   isActive,
   onClick,
+  isTyping,
 }: {
   conversation: Conversation;
   isActive: boolean;
   onClick: () => void;
+  isTyping: boolean;
 }) {
   const displayName = conversation.name || conversation.otherUser?.fullName || 'Unknown';
   const initials = displayName
@@ -164,9 +167,18 @@ function ConversationItem({
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <p className={`text-xs truncate ${conversation.unreadCount > 0 ? 'text-text-secondary' : 'text-text-muted'}`}>
-            {conversation.lastMessagePreview || 'No messages yet'}
-          </p>
+          {isTyping ? (
+            <div className="flex items-center gap-0.5 text-accent-blue">
+              <span className="text-xs">typing</span>
+              <span className="w-1 h-1 bg-accent-blue rounded-full animate-bounce ml-0.5" style={{ animationDelay: '0ms' }} />
+              <span className="w-1 h-1 bg-accent-blue rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1 h-1 bg-accent-blue rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          ) : (
+            <p className={`text-xs truncate ${conversation.unreadCount > 0 ? 'text-text-secondary' : 'text-text-muted'}`}>
+              {conversation.lastMessagePreview || 'No messages yet'}
+            </p>
+          )}
           {conversation.unreadCount > 0 && (
             <span className="badge-count ml-2 shrink-0">{conversation.unreadCount}</span>
           )}

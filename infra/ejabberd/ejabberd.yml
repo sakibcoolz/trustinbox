@@ -1,0 +1,178 @@
+###
+# ejabberd configuration for TrustInbox
+# XMPP transport layer: handles real-time messaging, presence, MUC rooms.
+# Auth is delegated to the GraphQL gateway (mod_auth_http).
+# Admin API is accessible within the Docker network for room management.
+###
+
+hosts:
+  - "chat.trustinbox.local"
+
+loglevel: info
+
+# ─── Authentication ───────────────────────────────────────────────────────────
+# JWT auth: the GraphQL gateway signs a short-lived JWT (HS256) on login using
+# the same JWT_SECRET env var.  The client authenticates to ejabberd by placing
+# that JWT in the SASL PLAIN password field.  ejabberd verifies the signature
+# locally – no HTTP roundtrip required.
+#
+# Required JWT claims:
+#   sub  = user UUID  (= XMPP localpart, e.g. "d9e4…@chat.trustinbox.local")
+#   exp  = expiry unix timestamp
+#
+# In production, rotate the key to an RS256 key pair shared via secrets manager.
+auth_method: jwt
+jwt_key: "/home/ejabberd/conf/jwt_secret"   # JWK file; kty=oct auto-selects HS256; MUST match JWT_SECRET in gateway env
+
+# ─── Listeners ────────────────────────────────────────────────────────────────
+listen:
+  # Standard XMPP client port (native TCP, optional – mainly for server-side tools)
+  -
+    port: 5222
+    ip: "::"
+    module: ejabberd_c2s
+    starttls_required: false   # enable TLS in production
+
+  # HTTP port: WebSocket (browsers), BOSH (fallback), admin REST API
+  -
+    port: 5280
+    ip: "::"
+    module: ejabberd_http
+    request_handlers:
+      /ws: ejabberd_http_ws     # XMPP-over-WebSocket  (XEP-0156)
+      /bosh: mod_bosh           # BOSH fallback         (XEP-0124)
+      /api: mod_http_api        # Admin REST API
+
+# ─── Modules ──────────────────────────────────────────────────────────────────
+modules:
+  mod_adhoc: {}
+  mod_announce:
+    access: announce
+  mod_bosh: {}
+  mod_caps: {}
+
+  # Send message copies to all active resources (mobile + desktop)
+  mod_carboncopy: {}
+
+  mod_client_state: {}
+  mod_configure: {}
+  mod_disco: {}
+  mod_last: {}
+
+  # Store messages for users who are offline; delivered on reconnect (XEP-0160)
+  mod_offline:
+    access_max_user_messages: max_user_offline_messages
+
+  # Message Archive Management (XEP-0313) – stores all messages server side.
+  # Clients can request history without touching the REST API.
+  mod_mam:
+    default: always
+    request_activates_archiving: true
+
+  # Multi-User Chat (XEP-0045) – used for org channels.
+  # rooms live at  <name>@conference.chat.trustinbox.local
+  mod_muc:
+    host: "conference.@HOST@"
+    access: muc
+    access_create: muc_create
+    access_persistent: muc_create
+    history_size: 50
+    max_room_id: 500000
+    default_room_options:
+      persistent: true
+      public: false
+      members_only: true
+      allow_subscription: true   # XEP-0437 room notifications
+      mam: true                  # archive room messages too
+
+  mod_ping: {}
+
+  mod_roster:
+    versioning: true
+
+  # Stream management / resumption (XEP-0198) – mobile-friendly reconnect
+  mod_stream_mgmt:
+    resend_on_timeout: if_offline
+
+  mod_vcard: {}
+
+  mod_version:
+    show_os: false
+
+  # Admin REST API – used by the GraphQL gateway to:
+  #   - create MUC rooms when a conversation is started
+  #   - invite/kick participants
+  #   - send system messages
+  mod_http_api: {}
+
+# ─── ACLs ─────────────────────────────────────────────────────────────────────
+acl:
+  local:
+    user_regexp: ""
+
+  # Docker bridge networks (gateway calls the admin API from here)
+  loopback:
+    ip:
+      - 127.0.0.0/8
+      - ::1/128
+      - 172.0.0.0/8
+      - 10.0.0.0/8
+      - 192.168.0.0/16
+
+  admin:
+    user:
+      - "admin@chat.trustinbox.local"
+
+# ─── Access rules ─────────────────────────────────────────────────────────────
+access_rules:
+  local:
+    allow: local
+  c2s:
+    deny: blocked
+    allow: all
+  announce:
+    allow: admin
+  configure:
+    allow: admin
+  muc:
+    allow: all
+  muc_create:
+    allow: local
+  register:
+    allow: all
+  trusted_network:
+    allow: loopback
+
+# ─── Admin API permissions ────────────────────────────────────────────────────
+# Only internal Docker network hosts may call the admin API.
+api_permissions:
+  "admin commands":
+    who:
+      ip: "172.0.0.0/8"
+      ip: "10.0.0.0/8"
+      ip: "192.168.0.0/16"
+      ip: "127.0.0.1/8"
+    what:
+      - create_room
+      - destroy_room
+      - subscribe_room
+      - unsubscribe_room
+      - get_room_occupants
+      - send_stanza
+      - set_vcard
+      - connected_users
+      - user_sessions_info
+
+# ─── Shapers ──────────────────────────────────────────────────────────────────
+shaper:
+  normal: 3000
+  fast: 100000
+
+shaper_rules:
+  max_user_sessions: 20
+  max_user_offline_messages:
+    5000: admin
+    500:  all
+  c2s_shaper:
+    none:   admin
+    normal: all

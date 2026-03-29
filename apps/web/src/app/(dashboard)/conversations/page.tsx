@@ -35,11 +35,20 @@ function ConversationsContent() {
 
   return (
     <>
-      <ConversationList
-        activeId={activeConversation?.id || null}
-        onSelect={setActiveConversation}
-      />
-      <ChatArea conversation={activeConversation} />
+      {/* List panel: hidden on mobile when a conversation is active */}
+      <div className={`${activeConversation ? 'hidden sm:flex' : 'flex'} w-full sm:w-panel h-full flex-col sm:shrink-0`}>
+        <ConversationList
+          activeId={activeConversation?.id || null}
+          onSelect={setActiveConversation}
+        />
+      </div>
+      {/* Chat area: hidden on mobile when no conversation selected */}
+      <div className={`${!activeConversation ? 'hidden sm:flex' : 'flex'} flex-1 min-w-0`}>
+        <ChatArea
+          conversation={activeConversation}
+          onBack={() => setActiveConversation(null)}
+        />
+      </div>
     </>
   );
 }

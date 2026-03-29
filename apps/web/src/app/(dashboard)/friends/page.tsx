@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useNotifications } from '@/lib/notification-context';
 import { useChat } from '@/lib/chat-context';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 export interface FriendUser {
   id: string;
@@ -56,6 +56,12 @@ export default function FriendsPage() {
   const [search, setSearch] = useState('');
   const [findSearch, setFindSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileShowDetail, setMobileShowDetail] = useState(false);
+
+  const selectFriend = (id: string) => {
+    setSelectedId(id);
+    setMobileShowDetail(true);
+  };
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
@@ -264,7 +270,7 @@ export default function FriendsPage() {
       });
       if (res.ok) {
         addToast({ type: 'info', title: 'Friend removed' });
-        if (selectedId === friendId) setSelectedId(null);
+        if (selectedId === friendId) { setSelectedId(null); setMobileShowDetail(false); }
         fetchFriends();
       }
     } catch {
@@ -277,7 +283,7 @@ export default function FriendsPage() {
   return (
     <>
       {/* List panel */}
-      <div className="w-panel h-full flex flex-col bg-bg-secondary border-r border-border-primary shrink-0">
+      <div className={`${mobileShowDetail ? 'hidden sm:flex' : 'flex'} w-full sm:w-panel h-full flex-col bg-bg-secondary border-r border-border-primary sm:shrink-0`}>
         {/* Header */}
         <div className="px-4 pt-4 pb-2 space-y-3">
           <h2 className="text-lg font-semibold text-text-primary">People</h2>
@@ -327,7 +333,7 @@ export default function FriendsPage() {
                   {filteredFriends.filter((f) => f.user.online).map((friend) => (
                     <div
                       key={friend.id}
-                      onClick={() => setSelectedId(friend.id)}
+                      onClick={() => selectFriend(friend.id)}
                       className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-150 border-l-2 ${
                         selectedId === friend.id ? 'bg-bg-active border-l-accent-blue' : 'border-l-transparent hover:bg-bg-hover'
                       }`}
@@ -352,7 +358,7 @@ export default function FriendsPage() {
                   {filteredFriends.filter((f) => !f.user.online).map((friend) => (
                     <div
                       key={friend.id}
-                      onClick={() => setSelectedId(friend.id)}
+                      onClick={() => selectFriend(friend.id)}
                       className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-150 border-l-2 ${
                         selectedId === friend.id ? 'bg-bg-active border-l-accent-blue' : 'border-l-transparent hover:bg-bg-hover'
                       }`}
@@ -537,10 +543,20 @@ export default function FriendsPage() {
 
       {/* Detail panel */}
       {selectedFriend ? (
-        <div className="flex-1 flex flex-col bg-bg-primary min-w-0 overflow-hidden">
+        <div className={`${!mobileShowDetail ? 'hidden sm:flex' : 'flex'} flex-1 flex-col bg-bg-primary min-w-0 overflow-hidden`}>
           {/* Header */}
-          <div className="h-[60px] px-6 flex items-center justify-between border-b border-border-primary bg-bg-secondary/80 backdrop-blur-sm shrink-0">
+          <div className="h-[60px] px-4 sm:px-6 flex items-center justify-between border-b border-border-primary bg-bg-secondary/80 backdrop-blur-sm shrink-0">
             <div className="flex items-center gap-3">
+              {/* Back button — mobile only */}
+              <button
+                onClick={() => setMobileShowDetail(false)}
+                className="sm:hidden btn-icon -ml-1 mr-1 shrink-0"
+                aria-label="Back to friends"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+              </button>
               <UserAvatar name={selectedFriend.user.fullName} online={selectedFriend.user.online} />
               <div>
                 <h3 className="text-sm font-semibold text-text-primary">{selectedFriend.user.fullName}</h3>
@@ -601,7 +617,7 @@ export default function FriendsPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center bg-bg-primary">
+        <div className="hidden sm:flex flex-1 items-center justify-center bg-bg-primary">
           <div className="text-center space-y-3">
             <div className="w-16 h-16 rounded-2xl bg-bg-tertiary mx-auto flex items-center justify-center">
               <svg className="w-8 h-8 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
