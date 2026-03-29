@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net"
@@ -22,6 +23,7 @@ import (
 
 	grpchandler "github.com/trustinbox/policy-service/internal/delivery/grpc"
 	infrapostgres "github.com/trustinbox/policy-service/internal/infra/postgres"
+	infraredis "github.com/trustinbox/policy-service/internal/infra/redisrepo"
 	"github.com/trustinbox/policy-service/internal/usecase"
 )
 
@@ -50,12 +52,15 @@ func main() {
 	}
 	redisClient := redis.NewClient(redisOpts)
 	defer redisClient.Close()
+	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+		log.Fatal("failed to ping redis", zap.Error(err))
+	}
 	log.Info("connected to redis")
 
 	// Wire up repositories and use cases
 	userPrefRepo := infrapostgres.NewUserPreferenceRepository(db)
 	orgRepo := infrapostgres.NewOrganizationRepository(db)
-	freqRepo := infrapostgres.NewFrequencyRepository(redisClient)
+	freqRepo := infraredis.NewFrequencyRepository(redisClient)
 
 	evaluator := usecase.NewPolicyEvaluator(userPrefRepo, orgRepo, freqRepo, log)
 	handler := grpchandler.NewPolicyGRPCHandler(evaluator, log)
