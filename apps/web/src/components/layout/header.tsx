@@ -11,7 +11,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/conversations': 'Chats',
   '/callbacks': 'Callback Requests',
   '/friends': 'People',
-  '/organizations': 'Organizations',
+  '/service-providers': 'Service Providers',
   '/documents': 'Files',
   '/settings': 'Settings',
 };

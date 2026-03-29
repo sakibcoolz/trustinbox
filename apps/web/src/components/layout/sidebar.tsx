@@ -49,8 +49,8 @@ const navItems = [
     ),
   },
   {
-    href: '/organizations',
-    label: 'Orgs',
+    href: '/service-providers',
+    label: 'Services',
     badgeKey: undefined,
     icon: (
       <svg className="w-[22px] h-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>

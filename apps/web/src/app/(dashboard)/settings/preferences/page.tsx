@@ -2,8 +2,8 @@ import Link from 'next/link';
 
 const categories = [
   { name: 'Personal', desc: 'Direct messages and personal notifications.', status: 'Active', chip: 'chip-green', icon: '💬', bg: 'bg-accent-blue/10' },
-  { name: 'Organizational', desc: 'Transactional and business communications.', status: 'Active', chip: 'chip-green', icon: '🏢', bg: 'bg-accent-purple/10' },
-  { name: 'Advertisement', desc: 'Promotional content from verified organizations.', status: 'Opt-in', chip: 'chip-orange', icon: '📢', bg: 'bg-accent-orange/10' },
+  { name: 'Service Provider', desc: 'Transactional and business communications.', status: 'Active', chip: 'chip-green', icon: '🏢', bg: 'bg-accent-purple/10' },
+  { name: 'Advertisement', desc: 'Promotional content from verified service providers.', status: 'Opt-in', chip: 'chip-orange', icon: '📢', bg: 'bg-accent-orange/10' },
 ];
 
 export default function PreferencesSettingsPage() {

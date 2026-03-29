@@ -10,7 +10,7 @@ export default function AvailabilitySettingsPage() {
           </Link>
           <div className="flex-1">
             <h1 className="text-xl font-bold text-text-primary">Availability</h1>
-            <p className="text-2xs text-text-muted">Define when organizations can reach you.</p>
+            <p className="text-2xs text-text-muted">Define when service providers can reach you.</p>
           </div>
           <button className="btn-primary text-sm">Add Slot</button>
         </div>

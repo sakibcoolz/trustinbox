@@ -24,21 +24,21 @@ export default function PrivacySettingsPage() {
           </Link>
           <div>
             <h1 className="text-xl font-bold text-text-primary">Privacy</h1>
-            <p className="text-2xs text-text-muted">Control what organizations can see about you.</p>
+            <p className="text-2xs text-text-muted">Control what service providers can see about you.</p>
           </div>
         </div>
 
         <div className="card space-y-0 divide-y divide-border-primary">
           <div className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
-            <div><p className="text-sm font-medium text-text-primary">Show Phone Number</p><p className="text-2xs text-text-muted mt-0.5">Never reveal your actual number to organizations.</p></div>
+            <div><p className="text-sm font-medium text-text-primary">Show Phone Number</p><p className="text-2xs text-text-muted mt-0.5">Never reveal your actual number to service providers.</p></div>
             <span className="chip-red text-2xs">Always Hidden</span>
           </div>
           <div className="flex items-center justify-between py-4">
-            <div><p className="text-sm font-medium text-text-primary">Allow Advertisements</p><p className="text-2xs text-text-muted mt-0.5">Receive promotional content from verified organizations.</p></div>
+            <div><p className="text-sm font-medium text-text-primary">Allow Advertisements</p><p className="text-2xs text-text-muted mt-0.5">Receive promotional content from verified service providers.</p></div>
             <Toggle on={ads} onToggle={() => setAds(!ads)} />
           </div>
           <div className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
-            <div><p className="text-sm font-medium text-text-primary">Require Callback Approval</p><p className="text-2xs text-text-muted mt-0.5">Organizations must request approval before calling you.</p></div>
+            <div><p className="text-sm font-medium text-text-primary">Require Callback Approval</p><p className="text-2xs text-text-muted mt-0.5">Service providers must request approval before calling you.</p></div>
             <Toggle on={callbackApproval} onToggle={() => setCallbackApproval(!callbackApproval)} />
           </div>
         </div>

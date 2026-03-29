@@ -72,7 +72,7 @@ export default function LandingPage() {
           {/* Feature pills */}
           <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
             <span className="chip-blue text-2xs">End-to-End Encrypted</span>
-            <span className="chip-green text-2xs">Verified Organizations</span>
+            <span className="chip-green text-2xs">Verified Service Providers</span>
             <span className="chip-purple text-2xs">Policy Engine</span>
             <span className="chip-default text-2xs">RBAC</span>
           </div>

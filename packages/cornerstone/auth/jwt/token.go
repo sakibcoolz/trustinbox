@@ -8,9 +8,9 @@ import (
 )
 
 type Claims struct {
-	UserID         string `json:"user_id"`
-	Role           string `json:"role"`
-	OrganizationID string `json:"organization_id,omitempty"`
+	UserID            string `json:"user_id"`
+	Role              string `json:"role"`
+	ServiceProviderID string `json:"service_provider_id,omitempty"`
 	gojwt.RegisteredClaims
 }
 
@@ -30,11 +30,11 @@ func NewTokenService(signingKey string, accessExpiry, refreshExpiry time.Duratio
 	}
 }
 
-func (s *TokenService) GenerateAccessToken(userID, role, orgID string) (string, error) {
+func (s *TokenService) GenerateAccessToken(userID, role, spID string) (string, error) {
 	claims := Claims{
-		UserID:         userID,
-		Role:           role,
-		OrganizationID: orgID,
+		UserID:            userID,
+		Role:              role,
+		ServiceProviderID: spID,
 		RegisteredClaims: gojwt.RegisteredClaims{
 			Issuer:    s.issuer,
 			Subject:   userID,

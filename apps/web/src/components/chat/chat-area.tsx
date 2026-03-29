@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Star, Pin, Share2, Smile, Check, CheckCheck, X, ArrowLeft } from 'lucide-react';
+import { Star, Pin, Share2, Smile, Check, CheckCheck, Clock, X, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useChat, Message, Conversation, Reaction } from '@/lib/chat-context';
 import { VoiceMessagePlayer } from './voice-recorder';
@@ -303,9 +303,23 @@ export function ChatArea({ conversation, onBack }: ChatAreaProps) {
                 <div className={`relative ${isDeleted ? 'opacity-50' : ''}`}>
                   <div className={isOwn ? 'bubble-own' : 'bubble-other'}>
                     {isDeleted ? (
-                      <p className="italic text-text-muted text-xs">This message was deleted</p>
+                      <>
+                        <p className="italic text-text-muted text-xs">This message was deleted</p>
+                        {/* Meta row – deleted messages still show time */}
+                        <div className="flex items-center justify-end gap-1 mt-1.5">
+                          <span className="text-[10px] opacity-50">{formatMessageTime(msg.createdAt)}</span>
+                        </div>
+                      </>
                     ) : isVoice && voiceAtt?.url ? (
-                      <VoiceMessagePlayer url={voiceAtt.url} durationSecs={voiceAtt.fileSize} />
+                      <>
+                        <VoiceMessagePlayer url={voiceAtt.url} durationSecs={voiceAtt.fileSize} />
+                        {/* Meta row inside voice bubble */}
+                        <div className="flex items-center justify-end gap-1 mt-1.5">
+                          {isEdited && <span className="text-[10px] opacity-65 italic">edited</span>}
+                          <span className={`text-[10px] ${isOwn ? 'opacity-65' : 'text-text-muted'}`}>{formatMessageTime(msg.createdAt)}</span>
+                          {isOwn && <DeliveryTick status={msg.status} />}
+                        </div>
+                      </>
                     ) : (
                       <>
                         {msg.content && (
@@ -325,6 +339,12 @@ export function ChatArea({ conversation, onBack }: ChatAreaProps) {
                         {!msg.content && mediaAtts.length === 0 && (
                           <p className="italic text-text-muted text-xs">Empty message</p>
                         )}
+                        {/* Meta row – time + delivery ticks, inside every bubble */}
+                        <div className="flex items-center justify-end gap-1 mt-1.5">
+                          {isEdited && <span className="text-[10px] opacity-65 italic">edited</span>}
+                          <span className={`text-[10px] ${isOwn ? 'opacity-65' : 'text-text-muted'}`}>{formatMessageTime(msg.createdAt)}</span>
+                          {isOwn && <DeliveryTick status={msg.status} />}
+                        </div>
                       </>
                     )}
                   </div>
@@ -376,14 +396,7 @@ export function ChatArea({ conversation, onBack }: ChatAreaProps) {
                   </div>
                 )}
 
-                {/* Time + delivery ticks */}
-                {isLastInGroup && (
-                  <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                    <span className="text-2xs text-text-muted">{formatMessageTime(msg.createdAt)}</span>
-                    {isEdited && !isDeleted && <span className="text-2xs text-text-muted italic">edited</span>}
-                    {isOwn && !isDeleted && <DeliveryTick status={msg.status} />}
-                  </div>
-                )}
+
               </div>
             </div>
           );
@@ -496,10 +509,38 @@ export function ChatArea({ conversation, onBack }: ChatAreaProps) {
 }
 
 // ── Delivery tick ────────────────────────────────────────────────────────────
-function DeliveryTick({ status }: { status: string }) {
-  if (status === 'read') return <span title="Read" className="text-accent-blue flex items-center"><CheckCheck size={14} /></span>;
-  if (status === 'delivered') return <span title="Delivered" className="text-text-muted flex items-center"><CheckCheck size={14} /></span>;
-  return <span title="Sent" className="text-text-muted flex items-center"><Check size={14} /></span>;
+// Renders WhatsApp-style message status ticks inside own-message bubbles.
+// pending   = clock  (message queued, not yet ACKed by server)
+// sent      = ✓      (single grey – server received)
+// delivered = ✓✓     (double grey – reached recipient device)
+// read      = ✓✓     (double sky-blue – recipient opened the chat)
+function DeliveryTick({ status }: { status?: string }) {
+  switch (status) {
+    case 'pending':
+      return (
+        <span title="Sending…" className="flex items-center opacity-55">
+          <Clock size={11} strokeWidth={2} />
+        </span>
+      );
+    case 'read':
+      return (
+        <span title="Read" className="flex items-center text-sky-200">
+          <CheckCheck size={13} strokeWidth={2.5} />
+        </span>
+      );
+    case 'delivered':
+      return (
+        <span title="Delivered" className="flex items-center opacity-80">
+          <CheckCheck size={13} strokeWidth={2} />
+        </span>
+      );
+    default: // 'sent'
+      return (
+        <span title="Sent" className="flex items-center opacity-60">
+          <Check size={13} strokeWidth={2} />
+        </span>
+      );
+  }
 }
 
 // ── Context menu row ─────────────────────────────────────────────────────────

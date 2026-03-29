@@ -8,7 +8,7 @@ scalar JSON
 
 enum NotificationCategory {
   PERSONAL
-  ORGANIZATIONAL
+  SERVICE_PROVIDER
   ADVERTISEMENT
 }
 
@@ -53,7 +53,7 @@ type User {
 
 type PrivacyPreference {
   allowPersonalNotifications: Boolean!
-  allowOrgNotifications: Boolean!
+  allowSPNotifications: Boolean!
   allowAdvertisements: Boolean!
   allowCallbackRequests: Boolean!
   allowChat: Boolean!
@@ -80,7 +80,7 @@ type AvailabilitySlot {
   isActive: Boolean!
 }
 
-type Organization {
+type ServiceProvider {
   id: ID!
   slug: String!
   name: String!
@@ -100,7 +100,7 @@ type Notification {
   priority: String!
   status: String!
   metadata: JSON
-  organization: Organization
+  serviceProvider: ServiceProvider
   createdAt: DateTime!
 }
 
@@ -111,7 +111,7 @@ type NotificationConnection {
 
 type CallbackRequest {
   id: ID!
-  organization: Organization!
+  serviceProvider: ServiceProvider!
   reason: String!
   details: String
   status: CallbackRequestStatus!
@@ -129,7 +129,7 @@ type CallbackRequestConnection {
 type Conversation {
   id: ID!
   status: ConversationStatus!
-  organization: Organization!
+  serviceProvider: ServiceProvider!
   messages(limit: Int, offset: Int): MessageConnection!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -161,14 +161,14 @@ type DocumentShare {
   fileName: String!
   fileType: String!
   shareContext: String!
-  organization: Organization!
+  serviceProvider: ServiceProvider!
   createdAt: DateTime!
   openedAt: DateTime
 }
 
 type DashboardSummary {
   unreadPersonal: Int!
-  unreadOrganizational: Int!
+  unreadServiceProvider: Int!
   unreadAdvertisements: Int!
   pendingCallbackRequests: Int!
   totalConversations: Int!
@@ -217,18 +217,18 @@ type Query {
 
   conversation(id: ID!): Conversation!
 
-  # Organizations
-  organizations(
+  # Service Providers
+  serviceProviders(
     search: String
     limit: Int
     offset: Int
-  ): [Organization!]!
+  ): [ServiceProvider!]!
 
-  organization(id: ID!): Organization!
+  serviceProvider(id: ID!): ServiceProvider!
 
   # Policy
   checkCommunicationPolicy(
-    organizationId: ID!
+    serviceProviderId: ID!
     category: NotificationCategory!
     channel: String!
   ): PolicyCheckResult!
@@ -240,7 +240,7 @@ type Query {
 
 input UpdatePrivacyPreferenceInput {
   allowPersonalNotifications: Boolean
-  allowOrgNotifications: Boolean
+  allowSPNotifications: Boolean
   allowAdvertisements: Boolean
   allowCallbackRequests: Boolean
   allowChat: Boolean
@@ -305,7 +305,7 @@ input CreateCallbackRequestInput {
 }
 
 input ReportSpamInput {
-  organizationId: ID!
+  serviceProviderId: ID!
   notificationId: ID
   callbackRequestId: ID
   reason: String!
@@ -332,16 +332,16 @@ type Mutation {
   # Messages
   sendMessage(input: SendMessageInput!): Message!
 
-  # Organization actions
-  blockOrganization(organizationId: ID!): Boolean!
-  unblockOrganization(organizationId: ID!): Boolean!
+  # Service Provider actions
+  blockServiceProvider(serviceProviderId: ID!): Boolean!
+  unblockServiceProvider(serviceProviderId: ID!): Boolean!
   reportSpam(input: ReportSpamInput!): Boolean!
 
   # Notifications (read)
   markNotificationAsRead(id: ID!): Boolean!
   archiveNotification(id: ID!): Boolean!
 
-  # Org portal mutations
+  # Service Provider portal mutations
   sendNotification(input: SendNotificationInput!): Notification!
   createCallbackRequest(input: CreateCallbackRequestInput!): CallbackRequest!
 }
