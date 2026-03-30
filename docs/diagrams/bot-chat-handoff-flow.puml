@@ -1,0 +1,71 @@
+@startuml bot-chat-handoff-flow
+title Customer Chat with Bot + Human Handoff
+
+actor "Customer" as user
+participant "Web App\n(Next.js)" as app
+participant "GraphQL Gateway" as gw
+participant "Communication Service" as cs
+participant "Bot Service" as bot
+participant "Policy Service" as ps
+database "PostgreSQL" as db
+queue "Redis Streams" as queue
+actor "Human Agent" as agent
+
+== Conversation Start ==
+user -> app : Open chat with SP
+app -> gw : startConversation(spId)
+gw -> cs : CreateConversation(req) [gRPC]
+cs -> ps : EvaluatePolicy(req) [gRPC]
+ps --> cs : Decision: ALLOW
+cs -> db : INSERT conversation\n(status=active, type=bot)
+cs -> bot : InitBotSession(conversationId, spId) [gRPC]
+bot -> db : SELECT bot_configuration\nWHERE sp_id AND is_active
+bot -> db : INSERT bot_session\n(conversation_id, status=active)
+bot --> cs : BotSessionCreated
+cs --> gw : ConversationCreated\n{conversationId, botEnabled: true}
+gw --> app : { conversation: {...} }
+
+== Bot Interaction ==
+user -> app : "What are your business hours?"
+app -> gw : sendMessage(conversationId, body)
+gw -> cs : SendMessage(req) [gRPC]
+cs -> db : INSERT message (sender=customer)
+cs -> bot : ProcessMessage(conversationId, body) [gRPC]
+
+bot -> db : SELECT bot knowledge_sources
+bot -> bot : AI inference\n(system_prompt + context + user_query)
+bot -> db : INSERT bot_action_log\n(type=response, input, output)
+bot --> cs : BotResponse\n{reply: "Our hours are 9 AM–6 PM..."}
+
+cs -> db : INSERT message (sender=bot)
+cs --> gw : MessageSent
+gw --> app : [subscription] newMessage\n{from: "bot", body: "Our hours are..."}
+
+== Escalation Trigger ==
+user -> app : "I need to speak to a person"
+app -> gw : sendMessage(conversationId, body)
+gw -> cs : SendMessage(req) [gRPC]
+cs -> db : INSERT message (sender=customer)
+cs -> bot : ProcessMessage(conversationId, body) [gRPC]
+
+bot -> bot : Detect escalation intent\n(keyword/confidence threshold)
+bot -> db : UPDATE bot_session\nstatus=escalated, reason
+bot -> queue : XADD bot.escalated\n{conversationId, reason}
+bot --> cs : EscalationRequested
+
+== Human Handoff ==
+cs -> db : UPDATE conversation\ntype=human, assigned_agent_id
+cs -> queue : XADD agent.assigned\n{conversationId, agentId}
+cs --> gw : AgentAssigned
+gw --> app : [subscription] agentJoined\n{agentName}
+app --> user : "You're now connected with an agent"
+
+note over agent : Agent receives notification\nvia Provider App
+
+agent -> gw : sendMessage(conversationId, body)
+gw -> cs : SendMessage(req) [gRPC]
+cs -> db : INSERT message (sender=agent)
+cs --> gw : MessageSent
+gw --> app : [subscription] newMessage\n{from: "agent", body: "Hi, how can I help?"}
+
+@enduml

@@ -1,0 +1,60 @@
+@startuml document-upload-share-flow
+title Document Upload and Secure Share
+
+actor "SP Agent" as agent
+participant "Provider App\n(Next.js)" as app
+participant "GraphQL Gateway" as gw
+participant "Document Service" as ds
+participant "Communication Service" as cs
+participant "Policy Service" as ps
+database "PostgreSQL" as db
+database "MinIO (S3)" as s3
+queue "Redis Streams" as queue
+actor "Customer" as user
+participant "Web App\n(Next.js)" as webapp
+
+== Document Upload ==
+agent -> app : Upload document\n(PDF/image + metadata)
+app -> gw : POST /api/upload\nmultipart/form-data
+gw -> ds : UploadDocument(req) [gRPC]\n{file, filename, mimeType, spId}
+
+ds -> ds : Validate file type & size
+ds -> ds : Generate UUID filename
+ds -> s3 : PutObject(bucket, key, file)\nwith server-side encryption
+s3 --> ds : Upload confirmed
+ds -> db : INSERT document\n(id, sp_id, filename, s3_key,\nmime_type, size, status=uploaded)
+ds --> gw : DocumentUploaded\n{documentId, filename}
+gw --> app : { document: { id, filename, status } }
+
+== Secure Share ==
+agent -> app : Share document with customer
+app -> gw : POST /api/documents/{id}/share\n{userId, conversationId}
+gw -> cs : ShareDocument(req) [gRPC]
+
+cs -> ps : EvaluatePolicy(req) [gRPC]\n{type=document_share, userId, spId}
+ps --> cs : Decision: ALLOW
+
+cs -> db : INSERT document_share\n(document_id, user_id, shared_by,\nexpires_at=+7d)
+cs -> db : INSERT message\n(conversation_id, type=document,\nattachment_id=document_id)
+cs -> queue : XADD document.shared\n{documentId, userId}
+cs --> gw : DocumentShared
+gw --> app : { success: true }
+
+== Secure Download ==
+note over user : Customer receives notification\nabout shared document
+
+user -> webapp : View shared document
+webapp -> gw : GET /api/documents/{id}/download
+gw -> ds : GetDocumentURL(id, userId) [gRPC]
+
+ds -> db : SELECT document_share\nWHERE document_id AND user_id
+ds -> ds : Verify not expired
+ds -> s3 : GeneratePresignedURL(key)\nexpiry=15min
+s3 --> ds : Signed URL
+ds -> db : UPDATE document_share\nfirst_opened_at=NOW()
+ds -> queue : XADD document.opened\n{documentId, userId}
+ds --> gw : { url: "https://s3.../signed-url" }
+gw --> webapp : { downloadUrl }
+webapp --> user : Redirect to signed URL\n(auto-expires in 15 min)
+
+@enduml

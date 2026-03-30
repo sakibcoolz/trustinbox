@@ -1,0 +1,60 @@
+@startuml campaign-launch-flow
+title Campaign Launch with Policy Checks
+
+actor "SP Admin" as admin
+participant "Provider App\n(Next.js)" as app
+participant "GraphQL Gateway" as gw
+participant "Notification Service" as ns
+participant "Policy Service" as ps
+participant "Worker Service" as worker
+database "PostgreSQL" as db
+queue "Redis Streams" as queue
+participant "User Device" as device
+
+== Campaign Creation ==
+admin -> app : Create campaign\n{name, template, target_audience}
+app -> gw : POST /api/campaigns\n{name, template, targetUserIds[], category}
+gw -> ns : CreateCampaign(req) [gRPC]
+ns -> ns : Validate campaign fields
+ns -> db : SELECT org verification status
+ns -> db : INSERT campaign\n(status=draft, total_targets=N)
+ns --> gw : CampaignCreated
+gw --> app : { campaign: { id, status: "draft" } }
+
+== Campaign Launch ==
+admin -> app : Launch campaign
+app -> gw : POST /api/campaigns/{id}/launch
+gw -> ns : LaunchCampaign(id) [gRPC]
+ns -> db : SELECT campaign + target users
+ns -> db : UPDATE campaign status=launching
+ns -> queue : XADD campaign.launched\n{campaignId, targetCount}
+
+== Fan-Out with Per-User Policy Check ==
+queue -> worker : XREADGROUP campaign.launched
+worker -> db : SELECT campaign_targets[]
+
+loop For each target user
+  worker -> ps : EvaluatePolicy(req) [gRPC]\n{userId, orgId, category, type=campaign}
+
+  alt Policy: ALLOW
+    ps --> worker : Decision: ALLOW
+    worker -> db : INSERT notification\n(campaign_id, user_id, status=pending)
+    worker -> device : Push notification to user
+    worker -> db : UPDATE notification status=delivered
+    worker -> db : UPDATE campaign_targets\nstatus=delivered
+
+  else Policy: DENY
+    ps --> worker : Decision: DENY (reason)
+    worker -> db : INSERT policy_decision_logs
+    worker -> db : UPDATE campaign_targets\nstatus=policy_denied, reason
+  end
+end
+
+== Campaign Completion ==
+worker -> db : UPDATE campaign\nstatus=completed,\ndelivered_count, denied_count
+worker -> queue : XADD campaign.completed\n{campaignId, stats}
+ns -> db : SELECT campaign stats
+
+note over admin, app : SP Admin views campaign report\nwith delivery/deny breakdown
+
+@enduml

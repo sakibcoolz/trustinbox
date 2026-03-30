@@ -338,25 +338,25 @@
 
 ## Phase 10: Documentation & Diagrams
 
-- [ ] **10.1 PlantUML Sequence Diagrams**
-  - [ ] Provider → notification delivery flow
-  - [ ] Campaign launch with policy checks
-  - [ ] Customer chat with bot + human handoff
-  - [ ] Document upload and secure share
-  - [ ] AI bot action execution
-  - [ ] Webhook delivery flow
+- [x] **10.1 PlantUML Sequence Diagrams**
+  - [x] Provider → notification delivery flow
+  - [x] Campaign launch with policy checks
+  - [x] Customer chat with bot + human handoff
+  - [x] Document upload and secure share
+  - [x] AI bot action execution
+  - [x] Webhook delivery flow
 
 - [x] **10.2 Architecture Documentation**
   - [x] Service catalog updated (`docs/services/service-catalog.md`)
-  - [ ] Update `docs/architecture/overview.md` with new services
-  - [ ] Add `docs/architecture/event-architecture.md`
-  - [ ] Add `docs/architecture/security-model.md`
-  - [ ] Add `docs/api/openapi.yaml`
-  - [ ] Add `docs/api/webhook-catalog.md`
-  - [ ] Update ADRs with new decisions
+  - [x] Update `docs/architecture/overview.md` with new services
+  - [x] Add `docs/architecture/event-architecture.md`
+  - [x] Add `docs/architecture/security-model.md`
+  - [x] Add `docs/api/openapi.yaml`
+  - [x] Add `docs/api/webhook-catalog.md`
+  - [x] Update ADRs with new decisions
 
-- [ ] **10.3 Business Documentation**
-  - [ ] `docs/business/industry-profiles.md`
+- [x] **10.3 Business Documentation**
+  - [x] `docs/business/industry-profiles.md`
 
 ---
 

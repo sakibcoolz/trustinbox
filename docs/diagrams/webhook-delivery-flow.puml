@@ -1,0 +1,61 @@
+@startuml webhook-delivery-flow
+title Webhook Delivery Flow
+
+participant "Any Service" as src
+queue "Redis Streams" as queue
+participant "Webhook Service" as ws
+database "PostgreSQL" as db
+participant "External Endpoint" as ext
+
+== Event Published ==
+src -> queue : XADD {event_type}\n{payload, tenant_id, trace_id}
+
+== Webhook Matching ==
+queue -> ws : XREADGROUP event
+ws -> db : SELECT webhook_subscriptions\nWHERE event_types @> {event_type}\nAND is_active = true\nAND tenant_id matches
+
+alt Matching subscriptions found
+  loop For each subscription
+    == Payload Construction ==
+    ws -> ws : Build webhook payload\n{\n  id: uuid,\n  event_type: "notification.delivered",\n  timestamp: ISO8601,\n  data: {event_payload},\n  subscription_id: uuid\n}
+
+    == HMAC Signing ==
+    ws -> ws : Sign payload (HMAC-SHA256)\ntimestamp.payload → HMAC(secret)\nHeader: X-Webhook-Signature\n"t=<ts>,v1=<hex_signature>"
+
+    == HTTP Delivery ==
+    ws -> db : INSERT webhook_delivery\n(status=pending, attempt=1)
+
+    ws -> ext : POST {callback_url}\nContent-Type: application/json\nX-Webhook-Signature: t=...,v1=...\nX-Webhook-ID: {delivery_id}
+
+    alt HTTP 2xx
+      ext --> ws : 200 OK
+      ws -> db : UPDATE webhook_delivery\nstatus=delivered,\nresponse_code=200,\ndelivered_at=NOW()
+      ws -> queue : XADD webhook.delivery.succeeded\n{deliveryId, subscriptionId}
+
+    else HTTP 4xx/5xx or Timeout
+      ext --> ws : 500 / Timeout
+      ws -> db : UPDATE webhook_delivery\nstatus=failed,\nresponse_code, error_message,\nnext_retry_at
+
+      == Exponential Backoff Retry ==
+      note over ws : Retry schedule:\nAttempt 1: immediate\nAttempt 2: +1 min\nAttempt 3: +5 min\nAttempt 4: +30 min\nAttempt 5: +2 hours
+
+      alt Retries remaining (max 5)
+        ws -> queue : XADD webhook.retry\n{deliveryId, attempt: N+1,\nscheduled_at}
+        queue -> ws : XREADGROUP (at scheduled time)
+        ws -> ext : POST {callback_url}\n(same payload, new signature)
+
+      else Max retries exceeded
+        ws -> db : UPDATE webhook_delivery\nstatus=permanently_failed
+        ws -> queue : XADD webhook.delivery.failed\n{deliveryId, subscriptionId}
+        ws -> db : UPDATE webhook_subscription\nconsecutive_failures++
+
+        note over ws : After 10 consecutive failures:\nsubscription auto-disabled
+      end
+    end
+  end
+
+else No matching subscriptions
+  note over ws : Event consumed, no webhooks to deliver
+end
+
+@enduml

@@ -1,0 +1,69 @@
+@startuml bot-action-execution-flow
+title AI Bot Action Execution
+
+actor "Customer" as user
+participant "Web App\n(Next.js)" as app
+participant "GraphQL Gateway" as gw
+participant "Communication Service" as cs
+participant "Bot Service" as bot
+participant "Policy Service" as ps
+database "PostgreSQL" as db
+queue "Redis Streams" as queue
+
+== Customer Triggers Action ==
+user -> app : "Book an appointment for Thursday"
+app -> gw : sendMessage(conversationId, body)
+gw -> cs : SendMessage(req) [gRPC]
+cs -> db : INSERT message (sender=customer)
+cs -> bot : ProcessMessage(conversationId, body) [gRPC]
+
+== Intent Recognition ==
+bot -> db : SELECT bot_configuration\n{system_prompt, tools, permissions}
+bot -> bot : AI inference: parse intent\n→ action=book_appointment\n→ params={day: "Thursday"}
+
+== Permission Check ==
+bot -> db : SELECT bot_permissions\nWHERE bot_id AND action_type
+bot -> bot : Verify bot has\n"appointment.create" permission
+
+alt Permission Granted
+  == Policy Gate ==
+  bot -> ps : EvaluatePolicy(req) [gRPC]\n{type=bot_action, action=book_appointment,\nuserId, spId}
+
+  alt Policy: ALLOW
+    ps --> bot : Decision: ALLOW
+
+    == Action Execution ==
+    bot -> bot : Execute tool:\nbookAppointment(userId, day)
+    bot -> db : INSERT bot_action_log\n(type=book_appointment,\nstatus=success, input, output)
+    bot -> queue : XADD bot.action.executed\n{botId, action, status=success}
+
+    bot --> cs : BotResponse\n{reply: "Appointment booked for Thursday at 2 PM",\nactionResult: {appointmentId}}
+    cs -> db : INSERT message (sender=bot)
+    cs --> gw : MessageSent
+    gw --> app : [subscription] newMessage\n{body: "Appointment booked for Thursday at 2 PM"}
+
+  else Policy: DENY
+    ps --> bot : Decision: DENY (reason)
+    bot -> db : INSERT bot_action_log\n(type=book_appointment,\nstatus=policy_denied, reason)
+    bot --> cs : BotResponse\n{reply: "I'm unable to book right now.\nPlease contact support."}
+    cs -> db : INSERT message (sender=bot)
+    cs --> gw : MessageSent
+    gw --> app : [subscription] newMessage
+  end
+
+else Permission Denied
+  bot -> db : INSERT bot_action_log\n(type=book_appointment,\nstatus=permission_denied)
+  bot --> cs : BotResponse\n{reply: "I don't have permission\nto book appointments.\nLet me connect you with an agent."}
+  cs -> db : INSERT message (sender=bot)
+
+  == Escalation on Permission Failure ==
+  bot -> db : UPDATE bot_session\nstatus=escalated,\nreason=permission_denied
+  bot -> queue : XADD bot.escalated\n{conversationId, reason}
+  cs --> gw : EscalationRequested
+  gw --> app : [subscription] agentRequested
+end
+
+== Analytics ==
+note over bot, db : Bot analytics aggregated:\n- actions/day\n- success rate\n- escalation rate\n- avg response time
+
+@enduml

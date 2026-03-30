@@ -1,0 +1,60 @@
+@startuml provider-notification-flow
+title Provider → Notification Delivery Flow
+
+actor "Service Provider" as sp
+participant "Provider App\n(Next.js)" as app
+participant "GraphQL Gateway" as gw
+participant "Notification Service" as ns
+participant "Policy Service" as ps
+participant "Worker Service" as worker
+database "PostgreSQL" as db
+queue "Redis Streams" as queue
+participant "User Device" as device
+
+== Notification Creation ==
+sp -> app : Compose notification
+app -> gw : POST /api/notifications\n{userId, title, body, category}
+gw -> ns : CreateNotification(req) [gRPC]
+ns -> ns : Validate request fields
+
+== Policy Evaluation ==
+ns -> ps : EvaluatePolicy(req) [gRPC]
+ps -> db : SELECT user preferences
+ps -> db : SELECT org verification status
+ps -> db : Check user blocked_orgs
+ps -> db : Check category enabled (PERSONAL/ORG/AD)
+ps -> db : Check DND rules + overnight window
+ps -> db : Check frequency caps (3/org/day for ads)
+ps -> db : Check spam_score < threshold (8.0)
+
+alt Policy: ALLOW
+  ps --> ns : Decision: ALLOW
+  ns -> db : INSERT notification\n(status=pending, category, tenant_id)
+  ns -> queue : XADD notification.created\n{notificationId, userId, tenantId}
+  ns --> gw : NotificationCreated
+  gw --> app : { notification: { id, status: "pending" } }
+  app --> sp : ✓ Notification queued
+
+  == Async Delivery ==
+  queue -> worker : XREADGROUP notification.created
+  worker -> db : SELECT notification details
+  worker -> device : Push notification\n(FCM/APNs/WebPush)
+  worker -> db : UPDATE notification\nstatus=delivered, delivered_at=NOW()
+  worker -> queue : XADD notification.delivered\n{notificationId}
+
+else Policy: DENY
+  ps --> ns : Decision: DENY\n{reason: "dnd_active" | "category_disabled"\n| "frequency_cap" | "org_blocked"\n| "spam_threshold" | "org_unverified"}
+  ns -> db : INSERT policy_decision_logs\n{decision, reason, user_id, org_id}
+  ns --> gw : PolicyDenied(reason)
+  gw --> app : { error: "policy_denied", reason }
+  app --> sp : ✗ Delivery denied: {reason}
+end
+
+== User Interaction ==
+device --> app : User opens notification
+app -> gw : markNotificationRead(id)
+gw -> ns : MarkRead(id) [gRPC]
+ns -> db : UPDATE notification\nstatus=read, read_at=NOW()
+ns -> queue : XADD notification.read\n{notificationId}
+
+@enduml
