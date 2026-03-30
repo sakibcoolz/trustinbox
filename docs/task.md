@@ -116,10 +116,10 @@
   - [x] Event consumer goroutine (aggregate events into analytics_daily)
   - [x] gRPC delivery handler (pending proto gen)
 
-- [ ] **3.4 Document Service Enhancement**
-  - [ ] Presigned URL generation for secure downloads
-  - [ ] Document classification support
-  - [ ] Version tracking
+- [x] **3.4 Document Service Enhancement**
+  - [x] Presigned URL generation for secure downloads
+  - [x] Document classification support
+  - [x] Version tracking
 
 - [ ] **3.5 Industry Profile Service**
   - [x] Proto definition (`packages/proto/industry/v1/industry.proto`)
