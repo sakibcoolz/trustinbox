@@ -160,33 +160,33 @@
 
 ## Phase 5: API Layer Expansion
 
-- [ ] **5.1 GraphQL Schema Enhancement**
-  - [ ] Bot types and mutations
-  - [ ] Industry profile queries
-  - [ ] Webhook subscription CRUD mutations
-  - [ ] API key management mutations
-  - [ ] Campaign CRUD with policy preview
-  - [ ] Analytics queries
-  - [ ] Provider-specific real-time subscriptions
+- [x] **5.1 GraphQL Schema Enhancement**
+  - [x] Bot types and mutations
+  - [x] Industry profile queries
+  - [x] Webhook subscription CRUD mutations
+  - [x] API key management mutations
+  - [x] Campaign CRUD with policy preview
+  - [x] Analytics queries
+  - [x] Provider-specific real-time subscriptions
 
 - [x] **5.2 Proto Definitions**
   - [x] `packages/proto/bot/v1/bot.proto` (14 RPCs)
   - [x] `packages/proto/webhook/v1/webhook.proto` (8 RPCs)
   - [x] `packages/proto/analytics/v1/analytics.proto` (5 RPCs)
   - [x] `packages/proto/industry/v1/industry.proto` (4 RPCs)
-  - [ ] Run `make proto` to generate Go code
+  - [x] Run `make proto` to generate Go code
 
-- [ ] **5.3 REST/OpenAPI for Provider Integrations**
-  - [ ] `/api/v1/notifications` endpoints
-  - [ ] `/api/v1/callbacks` endpoints
-  - [ ] `/api/v1/messages` endpoints
-  - [ ] `/api/v1/documents` endpoints
-  - [ ] `/api/v1/campaigns` endpoints
-  - [ ] `/api/v1/webhooks` endpoints
-  - [ ] `/api/v1/bots` endpoints
-  - [ ] OpenAPI 3.1 spec (`docs/api/openapi.yaml`)
-  - [ ] API key authentication middleware
-  - [ ] Rate limiting (token bucket per API key)
+- [x] **5.3 REST/OpenAPI for Provider Integrations**
+  - [x] `/api/v1/notifications` endpoints
+  - [x] `/api/v1/callbacks` endpoints
+  - [x] `/api/v1/messages` endpoints
+  - [x] `/api/v1/documents` endpoints
+  - [x] `/api/v1/campaigns` endpoints
+  - [x] `/api/v1/webhooks` endpoints
+  - [x] `/api/v1/bots` endpoints
+  - [x] OpenAPI 3.1 spec (`docs/api/openapi.yaml`)
+  - [x] API key authentication middleware
+  - [x] Rate limiting (token bucket per API key)
 
 ---
 

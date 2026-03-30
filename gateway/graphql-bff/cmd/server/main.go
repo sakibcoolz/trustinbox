@@ -286,6 +286,29 @@ func main() {
 		w.Write([]byte(`{"message":"GraphQL endpoint. Auth endpoints available at /api/auth/*"}`))
 	})
 
+	// ─── Provider API (v1) — API-key authenticated, rate-limited ─────
+	rl := newRateLimiter(50, 100) // 50 req/s sustained, 100 burst
+	providerMux := http.NewServeMux()
+	providerMux.HandleFunc("/api/v1/notifications", handleProviderNotifications(svc, log))
+	providerMux.HandleFunc("/api/v1/notifications/", handleProviderNotifications(svc, log))
+	providerMux.HandleFunc("/api/v1/callbacks", handleProviderCallbacks(svc, log))
+	providerMux.HandleFunc("/api/v1/callbacks/", handleProviderCallbacks(svc, log))
+	providerMux.HandleFunc("/api/v1/messages", handleProviderMessages(svc, log))
+	providerMux.HandleFunc("/api/v1/messages/", handleProviderMessages(svc, log))
+	providerMux.HandleFunc("/api/v1/documents", handleProviderDocuments(svc, log))
+	providerMux.HandleFunc("/api/v1/documents/", handleProviderDocuments(svc, log))
+	providerMux.HandleFunc("/api/v1/campaigns", handleProviderCampaigns(svc, log))
+	providerMux.HandleFunc("/api/v1/campaigns/", handleProviderCampaigns(svc, log))
+	providerMux.HandleFunc("/api/v1/webhooks", handleProviderWebhooks(svc, log))
+	providerMux.HandleFunc("/api/v1/webhooks/", handleProviderWebhooks(svc, log))
+	providerMux.HandleFunc("/api/v1/bots", handleProviderBots(svc, log))
+	providerMux.HandleFunc("/api/v1/bots/", handleProviderBots(svc, log))
+	providerMux.HandleFunc("/api/v1/analytics", handleProviderAnalytics(svc, log))
+	providerMux.HandleFunc("/api/v1/analytics/", handleProviderAnalytics(svc, log))
+
+	providerHandler := apiKeyAuth(db, log, rateLimitMiddleware(rl, log, providerMux))
+	mux.Handle("/api/v1/", providerHandler)
+
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.HTTPPort),
 		Handler: handler,

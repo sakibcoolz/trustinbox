@@ -313,6 +313,667 @@ input ReportSpamInput {
 }
 
 # ============================================================
+# BOT ENUMS
+# ============================================================
+
+enum BotStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum KnowledgeSourceType {
+  DOCUMENT
+  URL
+  TEXT
+  FAQ
+  API
+}
+
+enum KnowledgeSourceStatus {
+  PENDING
+  PROCESSING
+  ACTIVE_SOURCE
+  FAILED
+}
+
+enum WebhookSubscriptionStatus {
+  ACTIVE_SUBSCRIPTION
+  PAUSED_SUBSCRIPTION
+  DISABLED
+}
+
+enum WebhookDeliveryStatus {
+  PENDING_DELIVERY
+  DELIVERING
+  DELIVERED
+  FAILED_DELIVERY
+  EXPIRED
+}
+
+enum CampaignStatus {
+  DRAFT_CAMPAIGN
+  SCHEDULED
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+# ============================================================
+# BOT TYPES
+# ============================================================
+
+type Bot {
+  id: ID!
+  serviceProviderId: ID!
+  name: String!
+  avatarUrl: String
+  purpose: String!
+  department: String
+  industryProfileId: ID
+  status: BotStatus!
+  createdBySpUserId: ID!
+  configuration: BotConfiguration
+  permissions: [BotPermission!]!
+  knowledgeSources: [KnowledgeSource!]!
+  analytics: BotAnalytics
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type BotConnection {
+  nodes: [Bot!]!
+  totalCount: Int!
+}
+
+type BotConfiguration {
+  botId: ID!
+  tone: String
+  writingStyle: String
+  supportedLanguages: [String!]!
+  workingHoursStart: String
+  workingHoursEnd: String
+  workingDays: [Int!]!
+  maxTurnsBeforeEscalation: Int
+  escalationRulesJson: String
+  humanHandoffPolicyJson: String
+  approvalPolicyJson: String
+  fallbackActionsJson: String
+  complianceRestrictionsJson: String
+  customSystemPrompt: String
+  temperature: Float
+}
+
+type BotPermission {
+  id: ID!
+  botId: ID!
+  toolName: String!
+  isAllowed: Boolean!
+  constraintsJson: String
+}
+
+type KnowledgeSource {
+  id: ID!
+  botId: ID!
+  sourceType: KnowledgeSourceType!
+  name: String!
+  description: String
+  content: String
+  s3Key: String
+  fileType: String
+  fileSize: Int
+  chunkCount: Int
+  status: KnowledgeSourceStatus!
+  createdAt: DateTime!
+}
+
+type BotActionLog {
+  id: ID!
+  botId: ID!
+  conversationId: ID
+  userId: ID
+  actionType: String!
+  toolUsed: String
+  inputSummary: String
+  outputSummary: String
+  policyDecision: String
+  durationMs: Int
+  success: Boolean!
+  errorMessage: String
+  createdAt: DateTime!
+}
+
+type BotActionLogConnection {
+  nodes: [BotActionLog!]!
+  totalCount: Int!
+}
+
+type BotAnalytics {
+  botId: ID!
+  totalConversations: Int!
+  totalMessagesSent: Int!
+  totalMessagesReceived: Int!
+  totalActionsExecuted: Int!
+  totalEscalations: Int!
+  avgResponseTimeMs: Int!
+  escalationRate: Float!
+  resolutionRate: Float!
+  satisfactionScore: Float!
+  lastActiveAt: DateTime
+}
+
+type ExecuteBotActionResult {
+  success: Boolean!
+  outputJson: String
+  policyDecision: String
+  policyReason: String
+  escalated: Boolean!
+}
+
+# ============================================================
+# INDUSTRY PROFILE TYPES
+# ============================================================
+
+type IndustryProfile {
+  id: ID!
+  industryKey: String!
+  displayName: String!
+  description: String
+  defaultCategories: [String!]!
+  complianceHintsJson: String
+  documentTypesJson: String
+  callbackWorkflowsJson: String
+  botPromptPackJson: String
+  dashboardPresetsJson: String
+  analyticsPresetsJson: String
+  isActive: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type IndustryProfileConnection {
+  nodes: [IndustryProfile!]!
+  totalCount: Int!
+}
+
+# ============================================================
+# WEBHOOK TYPES
+# ============================================================
+
+type WebhookSubscription {
+  id: ID!
+  serviceProviderId: ID!
+  url: String!
+  description: String
+  events: [String!]!
+  status: WebhookSubscriptionStatus!
+  failureCount: Int!
+  maxRetries: Int!
+  lastDeliveryAt: DateTime
+  lastFailureAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type WebhookSubscriptionConnection {
+  nodes: [WebhookSubscription!]!
+  totalCount: Int!
+}
+
+type WebhookDelivery {
+  id: ID!
+  subscriptionId: ID!
+  eventType: String!
+  eventId: String!
+  responseStatus: Int
+  attemptCount: Int!
+  status: WebhookDeliveryStatus!
+  durationMs: Int
+  createdAt: DateTime!
+  completedAt: DateTime
+}
+
+type WebhookDeliveryConnection {
+  nodes: [WebhookDelivery!]!
+  totalCount: Int!
+}
+
+type TestWebhookResult {
+  success: Boolean!
+  responseStatus: Int
+  responseBody: String
+  durationMs: Int
+}
+
+# ============================================================
+# API KEY TYPES
+# ============================================================
+
+type APIKey {
+  id: ID!
+  serviceProviderId: ID!
+  name: String!
+  prefix: String!
+  scopes: [String!]!
+  expiresAt: DateTime
+  lastUsedAt: DateTime
+  createdAt: DateTime!
+}
+
+type APIKeyWithSecret {
+  apiKey: APIKey!
+  secret: String!
+}
+
+type APIKeyConnection {
+  nodes: [APIKey!]!
+  totalCount: Int!
+}
+
+# ============================================================
+# CAMPAIGN TYPES
+# ============================================================
+
+type Campaign {
+  id: ID!
+  serviceProviderId: ID!
+  name: String!
+  description: String
+  category: NotificationCategory!
+  status: CampaignStatus!
+  targetCount: Int!
+  sentCount: Int!
+  deliveredCount: Int!
+  readCount: Int!
+  failedCount: Int!
+  scheduledAt: DateTime
+  startedAt: DateTime
+  completedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type CampaignConnection {
+  nodes: [Campaign!]!
+  totalCount: Int!
+}
+
+type CampaignPolicyPreview {
+  totalTargets: Int!
+  allowedCount: Int!
+  blockedCount: Int!
+  blockedReasons: [PolicyBlockReason!]!
+}
+
+type PolicyBlockReason {
+  decisionCode: String!
+  reason: String!
+  count: Int!
+}
+
+# ============================================================
+# ANALYTICS TYPES
+# ============================================================
+
+type DashboardAnalytics {
+  notificationsSent: Int!
+  notificationsDelivered: Int!
+  notificationsRead: Int!
+  notificationsRejected: Int!
+  callbacksRequested: Int!
+  callbacksApproved: Int!
+  callbacksRejected: Int!
+  messagesSent: Int!
+  messagesReceived: Int!
+  documentsShared: Int!
+  campaignsLaunched: Int!
+  botActions: Int!
+  botEscalations: Int!
+  spamReports: Int!
+  policyDenials: Int!
+  webhookDeliveries: Int!
+  webhookFailures: Int!
+  activeConversations: Int!
+  deliveryRate: Float!
+  readRate: Float!
+}
+
+type DailyAnalyticsEntry {
+  date: String!
+  notificationsSent: Int!
+  notificationsDelivered: Int!
+  notificationsRead: Int!
+  callbacksRequested: Int!
+  callbacksApproved: Int!
+  messagesSent: Int!
+  documentsShared: Int!
+  botActions: Int!
+  spamReports: Int!
+  policyDenials: Int!
+}
+
+type NotificationAnalytics {
+  totalSent: Int!
+  totalDelivered: Int!
+  totalRead: Int!
+  totalRejected: Int!
+  deliveryRate: Float!
+  readRate: Float!
+}
+
+type CallbackAnalytics {
+  totalRequested: Int!
+  totalApproved: Int!
+  totalRejected: Int!
+  totalExpired: Int!
+  approvalRate: Float!
+  avgResponseTimeHours: Float!
+}
+
+type CampaignAnalytics {
+  totalTargets: Int!
+  totalSent: Int!
+  totalDelivered: Int!
+  totalRead: Int!
+  totalFailed: Int!
+  totalSkipped: Int!
+  deliveryRate: Float!
+  readRate: Float!
+}
+
+type BotPerformanceAnalytics {
+  totalConversations: Int!
+  totalMessages: Int!
+  totalActions: Int!
+  totalEscalations: Int!
+  escalationRate: Float!
+  avgResponseTimeMs: Float!
+  resolutionRate: Float!
+  satisfactionScore: Float!
+}
+
+# ============================================================
+# BOT INPUTS
+# ============================================================
+
+input CreateBotInput {
+  serviceProviderId: ID!
+  name: String!
+  purpose: String!
+  department: String
+  industryProfileId: ID
+  avatarUrl: String
+}
+
+input UpdateBotInput {
+  botId: ID!
+  serviceProviderId: ID!
+  name: String
+  purpose: String
+  department: String
+  avatarUrl: String
+  status: BotStatus
+}
+
+input UpdateBotConfigurationInput {
+  botId: ID!
+  serviceProviderId: ID!
+  tone: String
+  writingStyle: String
+  supportedLanguages: [String!]
+  workingHoursStart: String
+  workingHoursEnd: String
+  workingDays: [Int!]
+  maxTurnsBeforeEscalation: Int
+  escalationRulesJson: String
+  humanHandoffPolicyJson: String
+  approvalPolicyJson: String
+  fallbackActionsJson: String
+  complianceRestrictionsJson: String
+  customSystemPrompt: String
+  temperature: Float
+}
+
+input SetBotPermissionInput {
+  botId: ID!
+  serviceProviderId: ID!
+  toolName: String!
+  isAllowed: Boolean!
+  constraintsJson: String
+}
+
+input AddKnowledgeSourceInput {
+  botId: ID!
+  serviceProviderId: ID!
+  sourceType: KnowledgeSourceType!
+  name: String!
+  description: String
+  content: String
+  s3Key: String
+  fileType: String
+  fileSize: Int
+}
+
+input ExecuteBotActionInput {
+  botId: ID!
+  serviceProviderId: ID!
+  conversationId: ID!
+  userId: ID!
+  actionType: String!
+  toolName: String
+  inputJson: String
+}
+
+# ============================================================
+# WEBHOOK INPUTS
+# ============================================================
+
+input CreateWebhookSubscriptionInput {
+  serviceProviderId: ID!
+  url: String!
+  description: String
+  events: [String!]!
+  secret: String
+}
+
+input UpdateWebhookSubscriptionInput {
+  subscriptionId: ID!
+  serviceProviderId: ID!
+  url: String
+  description: String
+  events: [String!]
+  status: WebhookSubscriptionStatus
+  newSecret: String
+}
+
+# ============================================================
+# API KEY INPUTS
+# ============================================================
+
+input CreateAPIKeyInput {
+  serviceProviderId: ID!
+  name: String!
+  scopes: [String!]!
+  expiresInDays: Int
+}
+
+input RevokeAPIKeyInput {
+  apiKeyId: ID!
+  serviceProviderId: ID!
+}
+
+# ============================================================
+# CAMPAIGN INPUTS
+# ============================================================
+
+input CreateCampaignInput {
+  serviceProviderId: ID!
+  name: String!
+  description: String
+  category: NotificationCategory!
+  scheduledAt: DateTime
+}
+
+input UpdateCampaignInput {
+  campaignId: ID!
+  serviceProviderId: ID!
+  name: String
+  description: String
+  scheduledAt: DateTime
+}
+
+input PreviewCampaignPolicyInput {
+  serviceProviderId: ID!
+  category: NotificationCategory!
+  targetUserIds: [ID!]!
+}
+
+# ============================================================
+# QUERIES
+# ============================================================
+
+type Query {
+  # User
+  me: User!
+  dashboardSummary: DashboardSummary!
+
+  # Notifications
+  notifications(
+    category: NotificationCategory
+    status: String
+    limit: Int
+    offset: Int
+  ): NotificationConnection!
+
+  notification(id: ID!): Notification!
+
+  # Callback Requests
+  callbackRequests(
+    status: CallbackRequestStatus
+    limit: Int
+    offset: Int
+  ): CallbackRequestConnection!
+
+  callbackRequest(id: ID!): CallbackRequest!
+
+  # Conversations
+  conversations(
+    limit: Int
+    offset: Int
+  ): ConversationConnection!
+
+  conversation(id: ID!): Conversation!
+
+  # Service Providers
+  serviceProviders(
+    search: String
+    limit: Int
+    offset: Int
+  ): [ServiceProvider!]!
+
+  serviceProvider(id: ID!): ServiceProvider!
+
+  # Policy
+  checkCommunicationPolicy(
+    serviceProviderId: ID!
+    category: NotificationCategory!
+    channel: String!
+  ): PolicyCheckResult!
+
+  # Bots
+  bot(id: ID!, serviceProviderId: ID!): Bot!
+  bots(
+    serviceProviderId: ID!
+    status: BotStatus
+    limit: Int
+    offset: Int
+  ): BotConnection!
+  botConfiguration(botId: ID!, serviceProviderId: ID!): BotConfiguration!
+  botPermissions(botId: ID!, serviceProviderId: ID!): [BotPermission!]!
+  botKnowledgeSources(botId: ID!, serviceProviderId: ID!): [KnowledgeSource!]!
+  botActionLogs(
+    botId: ID!
+    serviceProviderId: ID!
+    conversationId: ID
+    limit: Int
+    offset: Int
+  ): BotActionLogConnection!
+  botAnalytics(botId: ID!, serviceProviderId: ID!): BotAnalytics!
+
+  # Industry Profiles
+  industryProfile(industryKey: String!): IndustryProfile!
+  industryProfiles(
+    activeOnly: Boolean
+    limit: Int
+    offset: Int
+  ): IndustryProfileConnection!
+
+  # Webhook Subscriptions
+  webhookSubscription(id: ID!, serviceProviderId: ID!): WebhookSubscription!
+  webhookSubscriptions(
+    serviceProviderId: ID!
+    status: WebhookSubscriptionStatus
+    limit: Int
+    offset: Int
+  ): WebhookSubscriptionConnection!
+  webhookDeliveries(
+    subscriptionId: ID!
+    serviceProviderId: ID!
+    status: WebhookDeliveryStatus
+    limit: Int
+    offset: Int
+  ): WebhookDeliveryConnection!
+
+  # API Keys
+  apiKeys(serviceProviderId: ID!): APIKeyConnection!
+
+  # Campaigns
+  campaign(id: ID!, serviceProviderId: ID!): Campaign!
+  campaigns(
+    serviceProviderId: ID!
+    status: CampaignStatus
+    limit: Int
+    offset: Int
+  ): CampaignConnection!
+  previewCampaignPolicy(input: PreviewCampaignPolicyInput!): CampaignPolicyPreview!
+
+  # Analytics
+  dashboardAnalytics(
+    serviceProviderId: ID!
+    from: DateTime!
+    to: DateTime!
+  ): DashboardAnalytics!
+  dailyAnalytics(
+    serviceProviderId: ID!
+    from: DateTime!
+    to: DateTime!
+  ): [DailyAnalyticsEntry!]!
+  notificationAnalytics(
+    serviceProviderId: ID!
+    from: DateTime!
+    to: DateTime!
+  ): NotificationAnalytics!
+  callbackAnalytics(
+    serviceProviderId: ID!
+    from: DateTime!
+    to: DateTime!
+  ): CallbackAnalytics!
+  campaignAnalytics(
+    serviceProviderId: ID!
+    campaignId: ID!
+    from: DateTime
+    to: DateTime
+  ): CampaignAnalytics!
+  botPerformanceAnalytics(
+    serviceProviderId: ID!
+    botId: ID!
+    from: DateTime
+    to: DateTime
+  ): BotPerformanceAnalytics!
+}
+
+# ============================================================
 # MUTATIONS
 # ============================================================
 
@@ -344,6 +1005,33 @@ type Mutation {
   # Service Provider portal mutations
   sendNotification(input: SendNotificationInput!): Notification!
   createCallbackRequest(input: CreateCallbackRequestInput!): CallbackRequest!
+
+  # Bots
+  createBot(input: CreateBotInput!): Bot!
+  updateBot(input: UpdateBotInput!): Bot!
+  deleteBot(botId: ID!, serviceProviderId: ID!): Boolean!
+  updateBotConfiguration(input: UpdateBotConfigurationInput!): BotConfiguration!
+  setBotPermission(input: SetBotPermissionInput!): Boolean!
+  addKnowledgeSource(input: AddKnowledgeSourceInput!): KnowledgeSource!
+  removeKnowledgeSource(knowledgeSourceId: ID!, botId: ID!, serviceProviderId: ID!): Boolean!
+  executeBotAction(input: ExecuteBotActionInput!): ExecuteBotActionResult!
+
+  # Webhook Subscriptions
+  createWebhookSubscription(input: CreateWebhookSubscriptionInput!): WebhookSubscription!
+  updateWebhookSubscription(input: UpdateWebhookSubscriptionInput!): WebhookSubscription!
+  deleteWebhookSubscription(subscriptionId: ID!, serviceProviderId: ID!): Boolean!
+  testWebhookSubscription(subscriptionId: ID!, serviceProviderId: ID!): TestWebhookResult!
+  retryWebhookDelivery(deliveryId: ID!, serviceProviderId: ID!): Boolean!
+
+  # API Keys
+  createAPIKey(input: CreateAPIKeyInput!): APIKeyWithSecret!
+  revokeAPIKey(input: RevokeAPIKeyInput!): Boolean!
+
+  # Campaigns
+  createCampaign(input: CreateCampaignInput!): Campaign!
+  updateCampaign(input: UpdateCampaignInput!): Campaign!
+  cancelCampaign(campaignId: ID!, serviceProviderId: ID!): Boolean!
+  launchCampaign(campaignId: ID!, serviceProviderId: ID!): Campaign!
 }
 
 # ============================================================
@@ -351,7 +1039,16 @@ type Mutation {
 # ============================================================
 
 type Subscription {
+  # User subscriptions
   notificationReceived: Notification!
   callbackRequestUpdated(id: ID!): CallbackRequest!
   messageReceived(conversationId: ID!): Message!
+
+  # Provider-specific real-time subscriptions
+  providerNotificationDelivered(serviceProviderId: ID!): Notification!
+  providerCallbackRequestCreated(serviceProviderId: ID!): CallbackRequest!
+  providerMessageReceived(serviceProviderId: ID!): Message!
+  providerWebhookDeliveryCompleted(serviceProviderId: ID!): WebhookDelivery!
+  providerBotActionExecuted(serviceProviderId: ID!): BotActionLog!
+  providerCampaignProgressUpdated(serviceProviderId: ID!): Campaign!
 }
