@@ -11,7 +11,6 @@ import (
 	"github.com/trustinbox/auth-service/internal/domain/repository"
 	"github.com/trustinbox/cornerstone/auth/jwt"
 	bzerr "github.com/trustinbox/cornerstone/errors"
-	"github.com/trustinbox/cornerstone/events"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -20,7 +19,6 @@ type AuthUseCase struct {
 	userRepo  repository.UserRepository
 	tokenRepo repository.TokenRepository
 	tokenSvc  *jwt.TokenService
-	publisher events.EventPublisher
 	log       *zap.Logger
 }
 
@@ -28,17 +26,12 @@ func NewAuthUseCase(
 	userRepo repository.UserRepository,
 	tokenRepo repository.TokenRepository,
 	tokenSvc *jwt.TokenService,
-	publisher events.EventPublisher,
 	log *zap.Logger,
 ) *AuthUseCase {
-	if publisher == nil {
-		publisher = events.NoopPublisher{}
-	}
 	return &AuthUseCase{
 		userRepo:  userRepo,
 		tokenRepo: tokenRepo,
 		tokenSvc:  tokenSvc,
-		publisher: publisher,
 		log:       log,
 	}
 }
@@ -85,21 +78,12 @@ func (uc *AuthUseCase) Login(ctx context.Context, email, password string) (*Logi
 		return nil, bzerr.Internal("failed to store refresh token", err)
 	}
 
-	result := &LoginResult{
+	return &LoginResult{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		UserID:       user.ID,
 		ExpiresAt:    time.Now().Add(15 * time.Minute).Unix(),
-	}
-
-	evt := events.NewEvent(events.UserLoggedIn, "auth-service", map[string]string{
-		"email": user.Email,
-	}).WithUser(user.ID)
-	if err := uc.publisher.Publish(ctx, evt); err != nil {
-		uc.log.Error("failed to publish login event", zap.Error(err))
-	}
-
-	return result, nil
+	}, nil
 }
 
 type RegisterInput struct {
@@ -146,21 +130,12 @@ func (uc *AuthUseCase) Register(ctx context.Context, input RegisterInput) (*Regi
 		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
 	})
 
-	regResult := &RegisterResult{
+	return &RegisterResult{
 		UserID:          userID,
 		VirtualPublicID: "TI-" + userID[:8],
 		AccessToken:     accessToken,
 		RefreshToken:    refreshToken,
-	}
-
-	evt := events.NewEvent(events.UserRegistered, "auth-service", map[string]string{
-		"email": input.Email,
-	}).WithUser(userID)
-	if err := uc.publisher.Publish(ctx, evt); err != nil {
-		uc.log.Error("failed to publish register event", zap.Error(err))
-	}
-
-	return regResult, nil
+	}, nil
 }
 
 func hashToken(token string) string {

@@ -8,7 +8,6 @@ import (
 	"github.com/trustinbox/communication-service/internal/domain/entity"
 	"github.com/trustinbox/communication-service/internal/domain/repository"
 	bzerr "github.com/trustinbox/cornerstone/errors"
-	"github.com/trustinbox/cornerstone/events"
 	"github.com/trustinbox/cornerstone/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
@@ -24,7 +23,6 @@ type CommunicationUseCase struct {
 	msgRepo      repository.MessageRepository
 	spamRepo     repository.SpamReportRepository
 	policy       PolicyChecker
-	publisher    events.EventPublisher
 	log          *zap.Logger
 }
 
@@ -34,19 +32,14 @@ func NewCommunicationUseCase(
 	msgRepo repository.MessageRepository,
 	spamRepo repository.SpamReportRepository,
 	policy PolicyChecker,
-	publisher events.EventPublisher,
 	log *zap.Logger,
 ) *CommunicationUseCase {
-	if publisher == nil {
-		publisher = events.NoopPublisher{}
-	}
 	return &CommunicationUseCase{
 		callbackRepo: callbackRepo,
 		convRepo:     convRepo,
 		msgRepo:      msgRepo,
 		spamRepo:     spamRepo,
 		policy:       policy,
-		publisher:    publisher,
 		log:          log,
 	}
 }
@@ -76,14 +69,6 @@ func (uc *CommunicationUseCase) CreateCallbackRequest(ctx context.Context, req *
 		return nil, bzerr.Internal("failed to create callback request", err)
 	}
 
-	evt := events.NewEvent(events.CallbackRequestCreated, "communication-service", map[string]string{
-		"callback_id": req.ID,
-		"status":      req.Status,
-	}).WithUser(req.UserID).WithOrg(req.OrganizationID)
-	if err := uc.publisher.Publish(ctx, evt); err != nil {
-		uc.log.Error("failed to publish callback created event", zap.Error(err))
-	}
-
 	return req, nil
 }
 
@@ -105,17 +90,7 @@ func (uc *CommunicationUseCase) ApproveCallbackRequest(ctx context.Context, requ
 		return bzerr.InvalidInput("callback request is not in PENDING status")
 	}
 
-	if err := uc.callbackRepo.Approve(ctx, requestID, slotStart, slotEnd); err != nil {
-		return err
-	}
-
-	evt := events.NewEvent(events.CallbackRequestApproved, "communication-service", map[string]string{
-		"callback_id": requestID,
-	}).WithUser(userID)
-	if err := uc.publisher.Publish(ctx, evt); err != nil {
-		uc.log.Error("failed to publish callback approved event", zap.Error(err))
-	}
-	return nil
+	return uc.callbackRepo.Approve(ctx, requestID, slotStart, slotEnd)
 }
 
 // RejectCallbackRequest rejects a callback request.
@@ -128,18 +103,7 @@ func (uc *CommunicationUseCase) RejectCallbackRequest(ctx context.Context, reque
 		return bzerr.Forbidden("not authorized to reject this callback request")
 	}
 
-	if err := uc.callbackRepo.Reject(ctx, requestID, reason); err != nil {
-		return err
-	}
-
-	evt := events.NewEvent(events.CallbackRequestRejected, "communication-service", map[string]string{
-		"callback_id": requestID,
-		"reason":      reason,
-	}).WithUser(userID)
-	if err := uc.publisher.Publish(ctx, evt); err != nil {
-		uc.log.Error("failed to publish callback rejected event", zap.Error(err))
-	}
-	return nil
+	return uc.callbackRepo.Reject(ctx, requestID, reason)
 }
 
 // SendMessage sends a message in a conversation.
@@ -156,14 +120,6 @@ func (uc *CommunicationUseCase) SendMessage(ctx context.Context, msg *entity.Mes
 		return nil, bzerr.Internal("failed to send message", err)
 	}
 
-	evt := events.NewEvent(events.MessageSent, "communication-service", map[string]string{
-		"message_id":      msg.ID,
-		"conversation_id": msg.ConversationID,
-	}).WithUser(msg.SenderRefID)
-	if err := uc.publisher.Publish(ctx, evt); err != nil {
-		uc.log.Error("failed to publish message sent event", zap.Error(err))
-	}
-
 	return msg, nil
 }
 
@@ -171,17 +127,7 @@ func (uc *CommunicationUseCase) SendMessage(ctx context.Context, msg *entity.Mes
 func (uc *CommunicationUseCase) ReportSpam(ctx context.Context, report *entity.SpamReport) error {
 	report.ID = uuid.New().String()
 	report.Status = "OPEN"
-	if err := uc.spamRepo.Create(ctx, report); err != nil {
-		return err
-	}
-
-	evt := events.NewEvent(events.SpamReported, "communication-service", map[string]string{
-		"report_id": report.ID,
-	}).WithUser(report.UserID).WithOrg(report.OrganizationID)
-	if err := uc.publisher.Publish(ctx, evt); err != nil {
-		uc.log.Error("failed to publish spam reported event", zap.Error(err))
-	}
-	return nil
+	return uc.spamRepo.Create(ctx, report)
 }
 
 // ListCallbackRequests lists callback requests for a user.

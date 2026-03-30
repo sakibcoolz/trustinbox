@@ -1,15 +1,12 @@
 package main
 
 import (
-	"context"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/trustinbox/cornerstone/config"
-	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
-	"github.com/trustinbox/worker-service/internal/worker"
 )
 
 func main() {
@@ -19,31 +16,15 @@ func main() {
 
 	log.Info("starting worker service")
 
-	// Initialize job processors
-	deliveryProc := worker.NewDeliveryProcessor(log)
-	callbackProc := worker.NewCallbackReminderProcessor(log)
-	cleanupProc := worker.NewCleanupProcessor(log)
+	// TODO: Initialize queue consumer
+	// TODO: Initialize job processors
+	// TODO: Start consuming messages
 
-	// Initialize event router
-	router := events.NewEventRouter(256, log)
-
-	// Initialize and register event consumer
-	consumer := worker.NewEventConsumer(deliveryProc, callbackProc, cleanupProc, log)
-	consumer.Register(router)
-
-	// Start event router
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go router.Start(ctx)
-
-	log.Info("worker service ready, consuming events")
+	log.Info("worker service ready, waiting for jobs")
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	log.Info("shutting down worker service")
-	cancel()
-	router.Stop()
 }
