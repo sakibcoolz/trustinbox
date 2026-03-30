@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { ArrowLeft, Shield, Bell, PhoneCall, FileText, Clock, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -43,7 +43,8 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors[status] || 'bg-border-secondary text-text-muted'}`}>{status}</span>;
 }
 
-export default function CustomerDetailPage({ params }: { params: { virtualId: string } }) {
+export default function CustomerDetailPage({ params }: { params: Promise<{ virtualId: string }> }) {
+  const { virtualId } = use(params);
   const [tab, setTab] = useState<'overview' | 'notifications' | 'callbacks'>('overview');
   const tabs = [
     { key: 'overview', label: 'Overview', icon: Shield },
@@ -59,7 +60,7 @@ export default function CustomerDetailPage({ params }: { params: { virtualId: st
         </Link>
         <div>
           <h1 className="text-2xl font-semibold">Customer Detail</h1>
-          <p className="text-text-secondary text-sm mt-0.5">Virtual ID: {params.virtualId}</p>
+          <p className="text-text-secondary text-sm mt-0.5">Virtual ID: {virtualId}</p>
         </div>
       </div>
 

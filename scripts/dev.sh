@@ -48,7 +48,7 @@ source "$ROOT/.env"
 set +a
 
 # ── 5. Kill any stale processes on our ports ────────────────────────────────
-PORTS="50051 50052 50053 50054 50055 50056 50057 50058 50059 50060 50061 50062 50063 4000 3000"
+PORTS="50051 50052 50053 50054 50055 50056 50057 50058 50059 50060 50061 50062 50063 4000 3000 6060"
 for port in $PORTS; do
   fuser -k "$port/tcp" 2>/dev/null || true
 done
@@ -119,9 +119,14 @@ echo "[graphql-gateway]      → :4000"
 (cd "$ROOT/apps/web" && GATEWAY_URL="$GATEWAY_URL" npm run dev) &
 echo "[frontend]             → :3000"
 
+# ── 10. Start Provider portal ────────────────────────────────────────────────
+(cd "$ROOT/apps/provider" && GATEWAY_URL="$GATEWAY_URL" npm run dev -- --port 6060) &
+echo "[provider]             → :6060"
+
 echo ""
 echo "┌─────────────────────────────────────────┐"
 echo "│  App       http://localhost:3000         │"
+echo "│  Provider  http://localhost:6060         │"
 echo "│  GraphQL   http://localhost:4000/graphql │"
 echo "│  Jaeger    http://localhost:16686        │"
 echo "│  MinIO     http://localhost:9001         │"

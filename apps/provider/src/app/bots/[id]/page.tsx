@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { ArrowLeft, Bot, Settings, Database, BarChart3, Play, Pause, Code, Globe } from 'lucide-react';
 import Link from 'next/link';
 
@@ -22,7 +22,8 @@ const mockBot = {
   escalationRate: '8.2%',
 };
 
-export default function BotDetailPage({ params }: { params: { id: string } }) {
+export default function BotDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [tab, setTab] = useState<'config' | 'prompt' | 'channels'>('config');
   const b = mockBot;
 
@@ -53,11 +54,11 @@ export default function BotDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
         <div className="flex gap-2">
-          <Link href={`/bots/${params.id}/knowledge`}
+          <Link href={`/bots/${id}/knowledge`}
             className="flex items-center gap-2 px-3 py-2 border border-border-secondary rounded-lg text-sm text-text-secondary hover:text-text-primary transition-colors">
             <Database size={14} /> Knowledge
           </Link>
-          <Link href={`/bots/${params.id}/analytics`}
+          <Link href={`/bots/${id}/analytics`}
             className="flex items-center gap-2 px-3 py-2 border border-border-secondary rounded-lg text-sm text-text-secondary hover:text-text-primary transition-colors">
             <BarChart3 size={14} /> Analytics
           </Link>

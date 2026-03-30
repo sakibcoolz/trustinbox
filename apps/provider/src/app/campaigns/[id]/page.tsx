@@ -1,5 +1,6 @@
 'use client';
 
+import { use } from 'react';
 import { ArrowLeft, Users, BarChart3, Clock, CheckCircle2, Pause, Edit } from 'lucide-react';
 import Link from 'next/link';
 
@@ -35,7 +36,8 @@ const statusColors: Record<string, string> = {
   Draft: 'bg-border-secondary text-text-muted',
 };
 
-export default function CampaignDetailPage({ params }: { params: { id: string } }) {
+export default function CampaignDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const c = mockCampaign;
   const deliveryRate = ((c.delivered / c.targets) * 100).toFixed(1);
   const openRate = ((c.opened / c.delivered) * 100).toFixed(1);

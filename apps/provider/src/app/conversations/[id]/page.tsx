@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { ArrowLeft, Send, Bot, User, Paperclip, MoreVertical, PhoneCall } from 'lucide-react';
 import Link from 'next/link';
 
@@ -21,7 +21,8 @@ const convInfo = {
   category: 'Account Support',
 };
 
-export default function ConversationDetailPage({ params }: { params: { id: string } }) {
+export default function ConversationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState(mockMessages);
 

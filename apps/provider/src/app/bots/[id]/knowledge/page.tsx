@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { ArrowLeft, Database, Plus, FileText, Globe, Upload, Trash2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
@@ -24,14 +24,15 @@ const typeIcons: Record<string, typeof FileText> = {
   'Web Crawl': Globe,
 };
 
-export default function BotKnowledgePage({ params }: { params: { id: string } }) {
+export default function BotKnowledgePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [showAdd, setShowAdd] = useState(false);
 
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href={`/bots/${params.id}`} className="p-2 rounded-lg hover:bg-bg-hover transition-colors">
+          <Link href={`/bots/${id}`} className="p-2 rounded-lg hover:bg-bg-hover transition-colors">
             <ArrowLeft size={18} className="text-text-muted" />
           </Link>
           <div>

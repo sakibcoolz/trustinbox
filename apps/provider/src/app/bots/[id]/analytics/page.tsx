@@ -1,5 +1,6 @@
 'use client';
 
+import { use } from 'react';
 import { ArrowLeft, BarChart3, TrendingUp, TrendingDown, MessageSquare, ThumbsUp, AlertTriangle, Clock } from 'lucide-react';
 import Link from 'next/link';
 
@@ -41,11 +42,12 @@ const escalationReasons = [
   { reason: 'Legal inquiry', count: 8, pct: 7.8 },
 ];
 
-export default function BotAnalyticsPage({ params }: { params: { id: string } }) {
+export default function BotAnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center gap-3">
-        <Link href={`/bots/${params.id}`} className="p-2 rounded-lg hover:bg-bg-hover transition-colors">
+        <Link href={`/bots/${id}`} className="p-2 rounded-lg hover:bg-bg-hover transition-colors">
           <ArrowLeft size={18} className="text-text-muted" />
         </Link>
         <div>
