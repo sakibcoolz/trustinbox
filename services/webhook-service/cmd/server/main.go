@@ -9,27 +9,22 @@ import (
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
-	"github.com/trustinbox/worker-service/internal/worker"
+	"github.com/trustinbox/webhook-service/internal/consumer"
 )
 
 func main() {
-	cfg := config.LoadServiceConfig("worker-service")
+	cfg := config.LoadServiceConfig("webhook-service")
 	log := logger.New(cfg.ServiceName)
 	defer log.Sync()
 
-	log.Info("starting worker service")
-
-	// Initialize job processors
-	deliveryProc := worker.NewDeliveryProcessor(log)
-	callbackProc := worker.NewCallbackReminderProcessor(log)
-	cleanupProc := worker.NewCleanupProcessor(log)
+	log.Info("starting webhook service")
 
 	// Initialize event router
 	router := events.NewEventRouter(256, log)
 
-	// Initialize and register event consumer
-	consumer := worker.NewEventConsumer(deliveryProc, callbackProc, cleanupProc, log)
-	consumer.Register(router)
+	// Initialize and register event consumer (consumes all event types)
+	webhookConsumer := consumer.NewEventConsumer(nil, log)
+	webhookConsumer.Register(router)
 
 	// Start event router
 	ctx, cancel := context.WithCancel(context.Background())
@@ -37,13 +32,13 @@ func main() {
 
 	go router.Start(ctx)
 
-	log.Info("worker service ready, consuming events")
+	log.Info("webhook service ready, consuming all events")
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Info("shutting down worker service")
+	log.Info("shutting down webhook service")
 	cancel()
 	router.Stop()
 }

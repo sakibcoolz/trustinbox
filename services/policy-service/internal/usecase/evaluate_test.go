@@ -3,14 +3,28 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/trustinbox/cornerstone/events"
 	"github.com/trustinbox/policy-service/internal/domain/entity"
 	"go.uber.org/zap"
 )
 
 // Mock repositories for testing
+
+type mockEventPublisher struct {
+	mu     sync.Mutex
+	events []events.Event
+}
+
+func (m *mockEventPublisher) Publish(ctx context.Context, evt events.Event) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.events = append(m.events, evt)
+	return nil
+}
 
 type mockUserRepo struct {
 	prefs       *entity.UserPreferences
@@ -63,7 +77,7 @@ func (m *mockFreqRepo) IncrementAdCount(ctx context.Context, userID, orgID strin
 }
 
 func newTestEvaluator(userRepo *mockUserRepo, orgRepo *mockOrgRepo, freqRepo *mockFreqRepo) *PolicyEvaluator {
-	return NewPolicyEvaluator(userRepo, orgRepo, freqRepo, zap.NewNop())
+	return NewPolicyEvaluator(userRepo, orgRepo, freqRepo, nil, zap.NewNop())
 }
 
 func TestEvaluate_AllowStandard(t *testing.T) {
@@ -281,5 +295,78 @@ func TestEvaluate_RequireCallbackApproval(t *testing.T) {
 	}
 	if result.DecisionCode != entity.DecisionRequireCallbackApproval {
 		t.Errorf("expected REQUIRE_CALLBACK_APPROVAL, got %s", result.DecisionCode)
+	}
+}
+
+func TestEvaluate_PublishesAllowedEvent(t *testing.T) {
+	pub := &mockEventPublisher{}
+	evaluator := NewPolicyEvaluator(
+		&mockUserRepo{
+			prefs: &entity.UserPreferences{
+				UserID:                     "user-1",
+				AllowPersonalNotifications: true,
+			},
+		},
+		&mockOrgRepo{
+			status: &entity.OrganizationStatus{
+				VerificationStatus: "VERIFIED",
+				Status:             "ACTIVE",
+				SpamScore:          0.5,
+			},
+		},
+		&mockFreqRepo{},
+		pub,
+		zap.NewNop(),
+	)
+
+	_, err := evaluator.Evaluate(context.Background(), entity.EvaluationRequest{
+		UserID:            "user-1",
+		OrganizationID:    "org-1",
+		Category:          entity.CategoryPersonal,
+		CommunicationType: entity.CommTypeNotification,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	pub.mu.Lock()
+	defer pub.mu.Unlock()
+	if len(pub.events) != 1 {
+		t.Fatalf("expected 1 published event, got %d", len(pub.events))
+	}
+	if pub.events[0].Type != events.PolicyAllowed {
+		t.Errorf("expected PolicyAllowed event, got %s", pub.events[0].Type)
+	}
+	if pub.events[0].UserID != "user-1" {
+		t.Errorf("expected user_id user-1, got %s", pub.events[0].UserID)
+	}
+}
+
+func TestEvaluate_PublishesDeniedEvent(t *testing.T) {
+	pub := &mockEventPublisher{}
+	evaluator := NewPolicyEvaluator(
+		&mockUserRepo{prefs: nil}, // user not found
+		&mockOrgRepo{},
+		&mockFreqRepo{},
+		pub,
+		zap.NewNop(),
+	)
+
+	_, err := evaluator.Evaluate(context.Background(), entity.EvaluationRequest{
+		UserID:         "user-1",
+		OrganizationID: "org-1",
+		Category:       entity.CategoryPersonal,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	pub.mu.Lock()
+	defer pub.mu.Unlock()
+	if len(pub.events) != 1 {
+		t.Fatalf("expected 1 published event, got %d", len(pub.events))
+	}
+	if pub.events[0].Type != events.PolicyDenied {
+		t.Errorf("expected PolicyDenied event, got %s", pub.events[0].Type)
 	}
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	bzerr "github.com/trustinbox/cornerstone/errors"
+	"github.com/trustinbox/cornerstone/events"
 	"github.com/trustinbox/cornerstone/tracing"
 	"github.com/trustinbox/organization-service/internal/domain/entity"
 	"github.com/trustinbox/organization-service/internal/domain/repository"
@@ -15,15 +16,20 @@ import (
 type OrgUseCase struct {
 	orgRepo     repository.OrganizationRepository
 	orgUserRepo repository.OrganizationUserRepository
+	publisher   events.EventPublisher
 	log         *zap.Logger
 }
 
 func NewOrgUseCase(
 	orgRepo repository.OrganizationRepository,
 	orgUserRepo repository.OrganizationUserRepository,
+	publisher events.EventPublisher,
 	log *zap.Logger,
 ) *OrgUseCase {
-	return &OrgUseCase{orgRepo: orgRepo, orgUserRepo: orgUserRepo, log: log}
+	if publisher == nil {
+		publisher = events.NoopPublisher{}
+	}
+	return &OrgUseCase{orgRepo: orgRepo, orgUserRepo: orgUserRepo, publisher: publisher, log: log}
 }
 
 func (uc *OrgUseCase) CreateOrganization(ctx context.Context, org *entity.Organization, adminUserID string) (*entity.Organization, error) {
@@ -50,6 +56,14 @@ func (uc *OrgUseCase) CreateOrganization(ctx context.Context, org *entity.Organi
 	}
 	if err := uc.orgUserRepo.Add(ctx, orgUser); err != nil {
 		return nil, bzerr.Internal("failed to add admin user to organization", err)
+	}
+
+	evt := events.NewEvent(events.OrganizationCreated, "organization-service", map[string]string{
+		"org_name": org.Name,
+		"admin_id": adminUserID,
+	}).WithOrg(org.ID).WithUser(adminUserID)
+	if err := uc.publisher.Publish(ctx, evt); err != nil {
+		uc.log.Error("failed to publish org created event", zap.Error(err))
 	}
 
 	return org, nil
@@ -79,11 +93,38 @@ func (uc *OrgUseCase) VerifyOrganization(ctx context.Context, orgID, decision, r
 		status = "REJECTED"
 	}
 
-	return uc.orgRepo.UpdateVerificationStatus(ctx, orgID, status)
+	if err := uc.orgRepo.UpdateVerificationStatus(ctx, orgID, status); err != nil {
+		return err
+	}
+
+	evtType := events.OrganizationVerified
+	if decision == "REJECTED" {
+		evtType = events.OrganizationRejected
+	}
+	evt := events.NewEvent(evtType, "organization-service", map[string]string{
+		"decision":      decision,
+		"reason":        reason,
+		"admin_user_id": adminUserID,
+	}).WithOrg(orgID).WithUser(adminUserID)
+	if err := uc.publisher.Publish(ctx, evt); err != nil {
+		uc.log.Error("failed to publish org verification event", zap.Error(err))
+	}
+	return nil
 }
 
 func (uc *OrgUseCase) SuspendOrganization(ctx context.Context, orgID, reason, adminUserID string) error {
-	return uc.orgRepo.UpdateStatus(ctx, orgID, "SUSPENDED")
+	if err := uc.orgRepo.UpdateStatus(ctx, orgID, "SUSPENDED"); err != nil {
+		return err
+	}
+
+	evt := events.NewEvent(events.OrganizationSuspended, "organization-service", map[string]string{
+		"reason":        reason,
+		"admin_user_id": adminUserID,
+	}).WithOrg(orgID).WithUser(adminUserID)
+	if err := uc.publisher.Publish(ctx, evt); err != nil {
+		uc.log.Error("failed to publish org suspended event", zap.Error(err))
+	}
+	return nil
 }
 
 func (uc *OrgUseCase) AddOrgUser(ctx context.Context, orgUser *entity.OrganizationUser) (*entity.OrganizationUser, error) {
@@ -92,5 +133,14 @@ func (uc *OrgUseCase) AddOrgUser(ctx context.Context, orgUser *entity.Organizati
 	if err := uc.orgUserRepo.Add(ctx, orgUser); err != nil {
 		return nil, bzerr.Internal("failed to add organization user", err)
 	}
+
+	evt := events.NewEvent(events.OrganizationUserAdded, "organization-service", map[string]string{
+		"org_user_id": orgUser.ID,
+		"role":        orgUser.Role,
+	}).WithOrg(orgUser.OrganizationID).WithUser(orgUser.UserID)
+	if err := uc.publisher.Publish(ctx, evt); err != nil {
+		uc.log.Error("failed to publish org user added event", zap.Error(err))
+	}
+
 	return orgUser, nil
 }
