@@ -11,6 +11,7 @@ service IndustryProfileService {
   rpc ListIndustryProfiles(ListIndustryProfilesRequest) returns (ListIndustryProfilesResponse);
   rpc CreateIndustryProfile(CreateIndustryProfileRequest) returns (IndustryProfile);
   rpc UpdateIndustryProfile(UpdateIndustryProfileRequest) returns (IndustryProfile);
+  rpc GetSeedProfiles(GetSeedProfilesRequest) returns (GetSeedProfilesResponse);
 }
 
 message IndustryProfile {
@@ -76,4 +77,10 @@ message UpdateIndustryProfileRequest {
   string dashboard_presets_json = 11;
   string analytics_presets_json = 12;
   bool is_active = 13;
+}
+
+message GetSeedProfilesRequest {}
+
+message GetSeedProfilesResponse {
+  repeated IndustryProfile profiles = 1;
 }

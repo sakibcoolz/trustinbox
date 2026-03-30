@@ -348,3 +348,104 @@ func TestListIndustryProfiles_NegativeOffset(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestGetSeedProfiles_ReturnsFiveProfiles(t *testing.T) {
+	repo := newMockRepo()
+	uc := NewIndustryProfileUseCase(repo)
+	ctx := context.Background()
+
+	profiles := uc.GetSeedProfiles(ctx)
+	if len(profiles) != 5 {
+		t.Fatalf("expected 5 seed profiles, got %d", len(profiles))
+	}
+}
+
+func TestGetSeedProfiles_ExpectedKeys(t *testing.T) {
+	repo := newMockRepo()
+	uc := NewIndustryProfileUseCase(repo)
+	ctx := context.Background()
+
+	profiles := uc.GetSeedProfiles(ctx)
+	expectedKeys := map[string]bool{
+		"banking_finance":    false,
+		"healthcare":         false,
+		"real_estate":        false,
+		"hospitality_food":   false,
+		"logistics_shipping": false,
+	}
+	for _, p := range profiles {
+		if _, ok := expectedKeys[p.IndustryKey]; !ok {
+			t.Errorf("unexpected seed profile key: %s", p.IndustryKey)
+		}
+		expectedKeys[p.IndustryKey] = true
+	}
+	for key, found := range expectedKeys {
+		if !found {
+			t.Errorf("missing expected seed profile key: %s", key)
+		}
+	}
+}
+
+func TestGetSeedProfiles_AllActive(t *testing.T) {
+	repo := newMockRepo()
+	uc := NewIndustryProfileUseCase(repo)
+	ctx := context.Background()
+
+	profiles := uc.GetSeedProfiles(ctx)
+	for _, p := range profiles {
+		if !p.IsActive {
+			t.Errorf("expected seed profile %s to be active", p.IndustryKey)
+		}
+	}
+}
+
+func TestGetSeedProfiles_HasRequiredFields(t *testing.T) {
+	repo := newMockRepo()
+	uc := NewIndustryProfileUseCase(repo)
+	ctx := context.Background()
+
+	profiles := uc.GetSeedProfiles(ctx)
+	for _, p := range profiles {
+		if p.DisplayName == "" {
+			t.Errorf("seed profile %s has empty display_name", p.IndustryKey)
+		}
+		if p.Description == "" {
+			t.Errorf("seed profile %s has empty description", p.IndustryKey)
+		}
+		if p.DefaultReasonCodes == "" {
+			t.Errorf("seed profile %s has empty default_reason_codes", p.IndustryKey)
+		}
+		if p.DefaultTemplates == "" {
+			t.Errorf("seed profile %s has empty default_templates", p.IndustryKey)
+		}
+		if len(p.DefaultCategories) == 0 {
+			t.Errorf("seed profile %s has empty default_categories", p.IndustryKey)
+		}
+		if p.ComplianceHints == "" {
+			t.Errorf("seed profile %s has empty compliance_hints", p.IndustryKey)
+		}
+		if p.DocumentTypes == "" {
+			t.Errorf("seed profile %s has empty document_types", p.IndustryKey)
+		}
+		if p.CallbackWorkflows == "" {
+			t.Errorf("seed profile %s has empty callback_workflows", p.IndustryKey)
+		}
+		if p.BotPromptPack == "" {
+			t.Errorf("seed profile %s has empty bot_prompt_pack", p.IndustryKey)
+		}
+	}
+}
+
+func TestGetSeedProfiles_ReturnsDefensiveCopies(t *testing.T) {
+	repo := newMockRepo()
+	uc := NewIndustryProfileUseCase(repo)
+	ctx := context.Background()
+
+	profiles1 := uc.GetSeedProfiles(ctx)
+	profiles1[0].DisplayName = "MODIFIED"
+
+	profiles2 := uc.GetSeedProfiles(ctx)
+	if profiles2[0].DisplayName == "MODIFIED" {
+		t.Error("GetSeedProfiles should return defensive copies, not shared references")
+	}
+}

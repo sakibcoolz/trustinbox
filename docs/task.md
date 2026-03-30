@@ -121,11 +121,11 @@
   - [x] Document classification support
   - [x] Version tracking
 
-- [ ] **3.5 Industry Profile Service**
+- [x] **3.5 Industry Profile Service**
   - [x] Proto definition (`packages/proto/industry/v1/industry.proto`)
-  - [ ] UseCase layer (CRUD + seed data retrieval)
-  - [ ] gRPC handler
-  - [ ] Repository implementation
+  - [x] UseCase layer (CRUD + seed data retrieval)
+  - [x] gRPC handler
+  - [x] Repository implementation
 
 - [ ] **3.6 AI Orchestration Layer**
   - [ ] LLM integration abstraction (OpenAI/Anthropic)
