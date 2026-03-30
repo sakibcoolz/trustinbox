@@ -45,7 +45,7 @@ dev-service: ## Run a Go service locally (usage: make dev-service SVC=policy-ser
 build: ## Build all Go services
 	@for svc in auth-service user-service policy-service organization-service \
 		notification-service communication-service ai-service worker-service \
-		bot-service webhook-service analytics-service; do \
+		bot-service webhook-service analytics-service industry-service; do \
 		echo "Building $$svc..."; \
 		cd services/$$svc && go build -o ../../bin/$$svc ./cmd/server && cd ../..; \
 	done
