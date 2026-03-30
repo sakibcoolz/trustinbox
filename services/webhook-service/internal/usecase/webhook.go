@@ -1,9 +1,14 @@
 package usecase
 
 import (
+	"bytes"
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,10 +19,14 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+// testPayload is the synthetic payload sent when testing a webhook subscription.
+const testPayload = `{"type":"webhook.test","data":{"message":"Test event from TrustInbox"}}`
+
 // WebhookUseCase implements webhook subscription and delivery operations.
 type WebhookUseCase struct {
 	subRepo      repository.WebhookSubscriptionRepository
 	deliveryRepo repository.WebhookDeliveryRepository
+	httpClient   *http.Client
 }
 
 // NewWebhookUseCase creates a new WebhookUseCase.
@@ -28,6 +37,7 @@ func NewWebhookUseCase(
 	return &WebhookUseCase{
 		subRepo:      subRepo,
 		deliveryRepo: deliveryRepo,
+		httpClient:   &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
@@ -235,6 +245,78 @@ func (uc *WebhookUseCase) RetryDelivery(ctx context.Context, deliveryID string) 
 		return nil, bizerr.Internal("failed to retry delivery", err)
 	}
 	return delivery, nil
+}
+
+// TestSubscriptionResult holds the outcome of a test delivery.
+type TestSubscriptionResult struct {
+	Success        bool
+	ResponseStatus int
+	ResponseBody   string
+	DurationMs     int
+}
+
+// TestSubscription sends a test event to a webhook subscription URL and returns
+// the result. It validates ownership, builds an HMAC-signed request, POSTs a
+// synthetic test payload, and reports back the HTTP response.
+func (uc *WebhookUseCase) TestSubscription(ctx context.Context, subID, spID string) (*TestSubscriptionResult, error) {
+	ctx, span := tracing.StartSpan(ctx, "webhook-service", "WebhookUseCase.TestSubscription",
+		attribute.String("subscription_id", subID),
+	)
+	defer span.End()
+
+	sub, err := uc.subRepo.GetByID(ctx, subID)
+	if err != nil {
+		return nil, err
+	}
+	if sub.ServiceProviderID != spID {
+		return nil, bizerr.Forbidden("subscription does not belong to this service provider")
+	}
+
+	payload := []byte(testPayload)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sub.URL, bytes.NewReader(payload))
+	if err != nil {
+		return nil, bizerr.Internal("failed to build test request", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Webhook-Event", "webhook.test")
+
+	if sub.SecretHash != "" {
+		sig := computeHMAC(payload, sub.SecretHash)
+		req.Header.Set("X-Webhook-Signature-256", "sha256="+sig)
+	}
+
+	for k, v := range sub.Headers {
+		req.Header.Set(k, v)
+	}
+
+	start := time.Now()
+	resp, err := uc.httpClient.Do(req)
+	durationMs := int(time.Since(start).Milliseconds())
+	if err != nil {
+		return &TestSubscriptionResult{
+			Success:    false,
+			DurationMs: durationMs,
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+
+	return &TestSubscriptionResult{
+		Success:        resp.StatusCode >= 200 && resp.StatusCode < 300,
+		ResponseStatus: resp.StatusCode,
+		ResponseBody:   string(body),
+		DurationMs:     durationMs,
+	}, nil
+}
+
+// computeHMAC computes an HMAC-SHA256 signature for the given payload.
+func computeHMAC(payload []byte, secret string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(payload)
+	return hex.EncodeToString(mac.Sum(nil))
 }
 
 // ListDeliveries returns deliveries for a subscription.
