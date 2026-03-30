@@ -23,6 +23,6 @@ type DeliveryRepository interface {
 type CampaignRepository interface {
 	Create(ctx context.Context, campaign *entity.Campaign) error
 	GetByID(ctx context.Context, id string) (*entity.Campaign, error)
-	ListByOrg(ctx context.Context, orgID string, limit, offset int) ([]entity.Campaign, int, error)
+	ListBySP(ctx context.Context, spID string, limit, offset int) ([]entity.Campaign, int, error)
 	UpdateStatus(ctx context.Context, id, status string) error
 }

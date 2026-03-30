@@ -14,17 +14,17 @@ const (
 
 // Bot represents an AI bot owned by a service provider.
 type Bot struct {
-	ID                  string
-	ServiceProviderID   string
-	Name                string
-	AvatarURL           string
-	Purpose             string
-	Department          string
-	IndustryProfileID   string
-	Status              BotStatus
-	CreatedBySPUserID   string
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
+	ID                string
+	ServiceProviderID string
+	Name              string
+	AvatarURL         string
+	Purpose           string
+	Department        string
+	IndustryProfileID string
+	Status            BotStatus
+	CreatedBySPUserID string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // BotConfiguration holds the behavioral configuration for a bot.
@@ -95,36 +95,36 @@ type KnowledgeSource struct {
 
 // BotActionLog records a bot action for audit purposes.
 type BotActionLog struct {
-	ID              string
-	BotID           string
-	ConversationID  string
-	UserID          string
-	ActionType      string
-	ToolUsed        string
-	InputSummary    string
-	OutputSummary   string
-	PolicyDecision  string
-	PolicyReason    string
-	DurationMS      int
-	Success         bool
-	ErrorMessage    string
-	CreatedAt       time.Time
+	ID             string
+	BotID          string
+	ConversationID string
+	UserID         string
+	ActionType     string
+	ToolUsed       string
+	InputSummary   string
+	OutputSummary  string
+	PolicyDecision string
+	PolicyReason   string
+	DurationMS     int
+	Success        bool
+	ErrorMessage   string
+	CreatedAt      time.Time
 }
 
 // BotAnalytics holds aggregated analytics for a bot.
 type BotAnalytics struct {
-	BotID                  string
-	TotalConversations     int
-	TotalMessagesSent      int
-	TotalMessagesReceived  int
-	TotalActionsExecuted   int
-	TotalEscalations       int
-	AvgResponseTimeMS      int
+	BotID                   string
+	TotalConversations      int
+	TotalMessagesSent       int
+	TotalMessagesReceived   int
+	TotalActionsExecuted    int
+	TotalEscalations        int
+	AvgResponseTimeMS       int
 	AvgTurnsPerConversation float64
-	EscalationRate         float64
-	ResolutionRate         float64
-	SatisfactionScore      float64
-	LastActiveAt           *time.Time
+	EscalationRate          float64
+	ResolutionRate          float64
+	SatisfactionScore       float64
+	LastActiveAt            *time.Time
 }
 
 // AllowedBotTools lists all platform-approved tools a bot can use.

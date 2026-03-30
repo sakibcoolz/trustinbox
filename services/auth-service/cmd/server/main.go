@@ -7,8 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	grpcdelivery "github.com/trustinbox/auth-service/internal/delivery/grpc"
+	"github.com/trustinbox/auth-service/internal/usecase"
 	"github.com/trustinbox/cornerstone/config"
 	logger "github.com/trustinbox/cornerstone/logging"
+	pb "github.com/trustinbox/proto/gen/auth/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -28,12 +31,16 @@ func main() {
 		log.Fatal("failed to listen", zap.Error(err))
 	}
 
+	// TODO: Replace nil with PostgreSQL repository implementations
+	authUC := usecase.NewAuthUseCase(nil, nil, nil, log)
+	handler := grpcdelivery.NewAuthHandler(authUC)
+
 	srv := grpc.NewServer()
+	pb.RegisterAuthServiceServer(srv, handler)
+
 	healthSrv := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(srv, healthSrv)
 	reflection.Register(srv)
-
-	// TODO: Register auth gRPC service handler
 
 	go func() {
 		log.Info("gRPC server listening", zap.String("addr", lis.Addr().String()))

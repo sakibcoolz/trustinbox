@@ -14,8 +14,8 @@ const (
 	CodeInternal         Code = "INTERNAL"
 	CodePolicyDenied     Code = "POLICY_DENIED"
 	CodeRateLimited      Code = "RATE_LIMITED"
-	CodeSPNotVerified   Code = "SP_NOT_VERIFIED"
-	CodeSPSuspended     Code = "SP_SUSPENDED"
+	CodeSPNotVerified    Code = "SP_NOT_VERIFIED"
+	CodeSPSuspended      Code = "SP_SUSPENDED"
 	CodeUserBlocked      Code = "USER_BLOCKED"
 	CodeDNDActive        Code = "DND_ACTIVE"
 	CodeAdCapExceeded    Code = "AD_CAP_EXCEEDED"
@@ -79,3 +79,9 @@ func IsCode(err error, code Code) bool {
 	}
 	return false
 }
+
+func IsNotFound(err error) bool     { return IsCode(err, CodeNotFound) }
+func IsInvalidInput(err error) bool { return IsCode(err, CodeInvalidInput) }
+func IsUnauthorized(err error) bool { return IsCode(err, CodeUnauthorized) }
+func IsForbidden(err error) bool    { return IsCode(err, CodeForbidden) }
+func IsPolicyDenied(err error) bool { return IsCode(err, CodePolicyDenied) }

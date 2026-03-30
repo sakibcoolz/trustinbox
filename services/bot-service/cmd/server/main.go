@@ -1,14 +1,20 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
+	_ "github.com/lib/pq"
+	grpcdelivery "github.com/trustinbox/bot-service/internal/delivery/grpc"
+	"github.com/trustinbox/bot-service/internal/infra/postgres"
+	"github.com/trustinbox/bot-service/internal/usecase"
 	"github.com/trustinbox/cornerstone/config"
 	logger "github.com/trustinbox/cornerstone/logging"
+	pb "github.com/trustinbox/proto/gen/bot/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -23,18 +29,40 @@ func main() {
 
 	log.Info("starting bot service", zap.String("grpc_port", cfg.GRPCPort))
 
+	// Database connection
+	db, err := sql.Open("postgres", cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal("failed to open database", zap.Error(err))
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		log.Fatal("failed to ping database", zap.Error(err))
+	}
+
+	// Repositories
+	botRepo := postgres.NewBotRepository(db)
+	configRepo := postgres.NewBotConfigurationRepository(db)
+	permRepo := postgres.NewBotPermissionRepository(db)
+	sourceRepo := postgres.NewKnowledgeSourceRepository(db)
+	actionRepo := postgres.NewBotActionLogRepository(db)
+	statsRepo := postgres.NewBotAnalyticsRepository(db)
+
+	// Use case
+	botUC := usecase.NewBotUseCase(botRepo, configRepo, permRepo, sourceRepo, actionRepo, statsRepo, nil)
+
+	// gRPC handler
+	handler := grpcdelivery.NewBotHandler(botUC)
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.GRPCPort))
 	if err != nil {
 		log.Fatal("failed to listen", zap.Error(err))
 	}
 
 	srv := grpc.NewServer()
+	pb.RegisterBotServiceServer(srv, handler)
 	healthSrv := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(srv, healthSrv)
 	reflection.Register(srv)
-
-	// TODO: Register bot gRPC service handler
-	// botv1.RegisterBotServiceServer(srv, handler)
 
 	go func() {
 		log.Info("gRPC server listening", zap.String("addr", lis.Addr().String()))

@@ -13,10 +13,10 @@ import (
 // Mock repositories for testing
 
 type mockUserRepo struct {
-	prefs       *entity.UserPreferences
-	dndRules    []entity.DNDRule
-	slots       []entity.AvailabilitySlot
-	blockedOrgs map[string]bool
+	prefs      *entity.UserPreferences
+	dndRules   []entity.DNDRule
+	slots      []entity.AvailabilitySlot
+	blockedSPs map[string]bool
 }
 
 func (m *mockUserRepo) GetPreferences(ctx context.Context, userID string) (*entity.UserPreferences, error) {
@@ -34,17 +34,17 @@ func (m *mockUserRepo) GetAvailabilitySlots(ctx context.Context, userID string) 
 	return m.slots, nil
 }
 
-func (m *mockUserRepo) IsOrganizationBlocked(ctx context.Context, userID, orgID string) (bool, error) {
-	return m.blockedOrgs[orgID], nil
+func (m *mockUserRepo) IsServiceProviderBlocked(ctx context.Context, userID, spID string) (bool, error) {
+	return m.blockedSPs[spID], nil
 }
 
-type mockOrgRepo struct {
-	status *entity.OrganizationStatus
+type mockSPRepo struct {
+	status *entity.ServiceProviderStatus
 }
 
-func (m *mockOrgRepo) GetOrganizationStatus(ctx context.Context, orgID string) (*entity.OrganizationStatus, error) {
+func (m *mockSPRepo) GetServiceProviderStatus(ctx context.Context, spID string) (*entity.ServiceProviderStatus, error) {
 	if m.status == nil {
-		return nil, fmt.Errorf("org not found")
+		return nil, fmt.Errorf("service provider not found")
 	}
 	return m.status, nil
 }
@@ -53,17 +53,17 @@ type mockFreqRepo struct {
 	count int
 }
 
-func (m *mockFreqRepo) GetAdCountForUser(ctx context.Context, userID, orgID string) (int, error) {
+func (m *mockFreqRepo) GetAdCountForUser(ctx context.Context, userID, spID string) (int, error) {
 	return m.count, nil
 }
 
-func (m *mockFreqRepo) IncrementAdCount(ctx context.Context, userID, orgID string) error {
+func (m *mockFreqRepo) IncrementAdCount(ctx context.Context, userID, spID string) error {
 	m.count++
 	return nil
 }
 
-func newTestEvaluator(userRepo *mockUserRepo, orgRepo *mockOrgRepo, freqRepo *mockFreqRepo) *PolicyEvaluator {
-	return NewPolicyEvaluator(userRepo, orgRepo, freqRepo, zap.NewNop())
+func newTestEvaluator(userRepo *mockUserRepo, spRepo *mockSPRepo, freqRepo *mockFreqRepo) *PolicyEvaluator {
+	return NewPolicyEvaluator(userRepo, spRepo, freqRepo, zap.NewNop())
 }
 
 func TestEvaluate_AllowStandard(t *testing.T) {
@@ -72,13 +72,13 @@ func TestEvaluate_AllowStandard(t *testing.T) {
 			prefs: &entity.UserPreferences{
 				UserID:                     "user-1",
 				AllowPersonalNotifications: true,
-				AllowOrgNotifications:      true,
+				AllowSPNotifications:       true,
 				AllowCallbackRequests:      true,
 				RequireCallApproval:        false,
 			},
 		},
-		&mockOrgRepo{
-			status: &entity.OrganizationStatus{
+		&mockSPRepo{
+			status: &entity.ServiceProviderStatus{
 				VerificationStatus: "VERIFIED",
 				Status:             "ACTIVE",
 				SpamScore:          0.5,
@@ -89,7 +89,7 @@ func TestEvaluate_AllowStandard(t *testing.T) {
 
 	result, err := evaluator.Evaluate(context.Background(), entity.EvaluationRequest{
 		UserID:            "user-1",
-		OrganizationID:    "org-1",
+		ServiceProviderID: "org-1",
 		Category:          entity.CategoryPersonal,
 		Channel:           entity.ChannelInbox,
 		CommunicationType: entity.CommTypeNotification,
@@ -110,8 +110,8 @@ func TestEvaluate_DenyOrgNotVerified(t *testing.T) {
 		&mockUserRepo{
 			prefs: &entity.UserPreferences{AllowPersonalNotifications: true},
 		},
-		&mockOrgRepo{
-			status: &entity.OrganizationStatus{
+		&mockSPRepo{
+			status: &entity.ServiceProviderStatus{
 				VerificationStatus: "PENDING",
 				Status:             "ACTIVE",
 			},
@@ -120,26 +120,26 @@ func TestEvaluate_DenyOrgNotVerified(t *testing.T) {
 	)
 
 	result, _ := evaluator.Evaluate(context.Background(), entity.EvaluationRequest{
-		UserID:         "user-1",
-		OrganizationID: "org-1",
-		Category:       entity.CategoryPersonal,
+		UserID:            "user-1",
+		ServiceProviderID: "org-1",
+		Category:          entity.CategoryPersonal,
 	})
 	if result.Allowed {
-		t.Error("expected denied for unverified org")
+		t.Error("expected denied for unverified service provider")
 	}
-	if result.DecisionCode != entity.DecisionDenyOrgNotVerified {
-		t.Errorf("expected DENY_ORG_NOT_VERIFIED, got %s", result.DecisionCode)
+	if result.DecisionCode != entity.DecisionDenySPNotVerified {
+		t.Errorf("expected DENY_SP_NOT_VERIFIED, got %s", result.DecisionCode)
 	}
 }
 
-func TestEvaluate_DenyUserBlockedOrg(t *testing.T) {
+func TestEvaluate_DenyUserBlockedSP(t *testing.T) {
 	evaluator := newTestEvaluator(
 		&mockUserRepo{
-			prefs:       &entity.UserPreferences{AllowPersonalNotifications: true},
-			blockedOrgs: map[string]bool{"org-1": true},
+			prefs:      &entity.UserPreferences{AllowPersonalNotifications: true},
+			blockedSPs: map[string]bool{"org-1": true},
 		},
-		&mockOrgRepo{
-			status: &entity.OrganizationStatus{
+		&mockSPRepo{
+			status: &entity.ServiceProviderStatus{
 				VerificationStatus: "VERIFIED",
 				Status:             "ACTIVE",
 			},
@@ -148,15 +148,15 @@ func TestEvaluate_DenyUserBlockedOrg(t *testing.T) {
 	)
 
 	result, _ := evaluator.Evaluate(context.Background(), entity.EvaluationRequest{
-		UserID:         "user-1",
-		OrganizationID: "org-1",
-		Category:       entity.CategoryPersonal,
+		UserID:            "user-1",
+		ServiceProviderID: "org-1",
+		Category:          entity.CategoryPersonal,
 	})
 	if result.Allowed {
-		t.Error("expected denied for blocked org")
+		t.Error("expected denied for blocked service provider")
 	}
-	if result.DecisionCode != entity.DecisionDenyUserBlockedOrg {
-		t.Errorf("expected DENY_USER_BLOCKED_ORG, got %s", result.DecisionCode)
+	if result.DecisionCode != entity.DecisionDenyUserBlockedSP {
+		t.Errorf("expected DENY_USER_BLOCKED_SP, got %s", result.DecisionCode)
 	}
 }
 
@@ -167,8 +167,8 @@ func TestEvaluate_DenyCategoryDisabled(t *testing.T) {
 				AllowAdvertisements: false,
 			},
 		},
-		&mockOrgRepo{
-			status: &entity.OrganizationStatus{
+		&mockSPRepo{
+			status: &entity.ServiceProviderStatus{
 				VerificationStatus: "VERIFIED",
 				Status:             "ACTIVE",
 			},
@@ -177,9 +177,9 @@ func TestEvaluate_DenyCategoryDisabled(t *testing.T) {
 	)
 
 	result, _ := evaluator.Evaluate(context.Background(), entity.EvaluationRequest{
-		UserID:         "user-1",
-		OrganizationID: "org-1",
-		Category:       entity.CategoryAdvertisement,
+		UserID:            "user-1",
+		ServiceProviderID: "org-1",
+		Category:          entity.CategoryAdvertisement,
 	})
 	if result.Allowed {
 		t.Error("expected denied for disabled category")
@@ -203,8 +203,8 @@ func TestEvaluate_DenyDNDActive(t *testing.T) {
 				},
 			},
 		},
-		&mockOrgRepo{
-			status: &entity.OrganizationStatus{
+		&mockSPRepo{
+			status: &entity.ServiceProviderStatus{
 				VerificationStatus: "VERIFIED",
 				Status:             "ACTIVE",
 			},
@@ -213,10 +213,10 @@ func TestEvaluate_DenyDNDActive(t *testing.T) {
 	)
 
 	result, _ := evaluator.Evaluate(context.Background(), entity.EvaluationRequest{
-		UserID:         "user-1",
-		OrganizationID: "org-1",
-		Category:       entity.CategoryPersonal,
-		ScheduledTime:  time.Now(),
+		UserID:            "user-1",
+		ServiceProviderID: "org-1",
+		Category:          entity.CategoryPersonal,
+		ScheduledTime:     time.Now(),
 	})
 	if result.Allowed {
 		t.Error("expected denied during DND")
@@ -231,8 +231,8 @@ func TestEvaluate_AdCapExceeded(t *testing.T) {
 		&mockUserRepo{
 			prefs: &entity.UserPreferences{AllowAdvertisements: true},
 		},
-		&mockOrgRepo{
-			status: &entity.OrganizationStatus{
+		&mockSPRepo{
+			status: &entity.ServiceProviderStatus{
 				VerificationStatus: "VERIFIED",
 				Status:             "ACTIVE",
 			},
@@ -241,9 +241,9 @@ func TestEvaluate_AdCapExceeded(t *testing.T) {
 	)
 
 	result, _ := evaluator.Evaluate(context.Background(), entity.EvaluationRequest{
-		UserID:         "user-1",
-		OrganizationID: "org-1",
-		Category:       entity.CategoryAdvertisement,
+		UserID:            "user-1",
+		ServiceProviderID: "org-1",
+		Category:          entity.CategoryAdvertisement,
 	})
 	if result.Allowed {
 		t.Error("expected denied for ad cap exceeded")
@@ -261,8 +261,8 @@ func TestEvaluate_RequireCallbackApproval(t *testing.T) {
 				RequireCallApproval:   true,
 			},
 		},
-		&mockOrgRepo{
-			status: &entity.OrganizationStatus{
+		&mockSPRepo{
+			status: &entity.ServiceProviderStatus{
 				VerificationStatus: "VERIFIED",
 				Status:             "ACTIVE",
 			},
@@ -272,7 +272,7 @@ func TestEvaluate_RequireCallbackApproval(t *testing.T) {
 
 	result, _ := evaluator.Evaluate(context.Background(), entity.EvaluationRequest{
 		UserID:            "user-1",
-		OrganizationID:    "org-1",
+		ServiceProviderID: "org-1",
 		Category:          entity.CategoryPersonal,
 		CommunicationType: entity.CommTypeCallbackReq,
 	})

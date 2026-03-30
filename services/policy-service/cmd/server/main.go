@@ -9,6 +9,9 @@ import (
 
 	"github.com/trustinbox/cornerstone/config"
 	logger "github.com/trustinbox/cornerstone/logging"
+	grpcdelivery "github.com/trustinbox/policy-service/internal/delivery/grpc"
+	"github.com/trustinbox/policy-service/internal/usecase"
+	pb "github.com/trustinbox/proto/gen/policy/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -30,17 +33,16 @@ func main() {
 		log.Fatal("failed to listen", zap.Error(err))
 	}
 
-	srv := grpc.NewServer()
+	// TODO: Replace nil with PostgreSQL repository implementations
+	evaluator := usecase.NewPolicyEvaluator(nil, nil, nil, log)
+	handler := grpcdelivery.NewPolicyHandler(evaluator)
 
-	// Register health check
+	srv := grpc.NewServer()
+	pb.RegisterPolicyServiceServer(srv, handler)
+
 	healthSrv := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(srv, healthSrv)
-
-	// Enable reflection for dev
 	reflection.Register(srv)
-
-	// TODO: Register policy gRPC service handler
-	// policyv1.RegisterPolicyServiceServer(srv, handler)
 
 	go func() {
 		log.Info("gRPC server listening", zap.String("addr", lis.Addr().String()))
@@ -49,7 +51,6 @@ func main() {
 		}
 	}()
 
-	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

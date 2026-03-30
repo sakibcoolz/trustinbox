@@ -1,4 +1,4 @@
-const mockOrgs = [
+const mockSPs = [
   { id: '1', name: 'Acme Bank', domain: 'acmebank.com', status: 'verified' as const, users: 45 },
   { id: '2', name: 'City Hospital', domain: 'cityhospital.org', status: 'verified' as const, users: 120 },
   { id: '3', name: 'Quick Realty', domain: 'quickrealty.com', status: 'pending' as const, users: 8 },
@@ -12,12 +12,12 @@ const statusStyles: Record<string, string> = {
   suspended: 'chip-purple',
 };
 
-export default function OrganizationsPage() {
+export default function ServiceProvidersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-text-primary">Organizations</h1>
-        <input type="text" placeholder="Search organizations..." className="input-field w-64 text-sm" />
+        <h1 className="text-2xl font-semibold text-text-primary">Service Providers</h1>
+        <input type="text" placeholder="Search service providers..." className="input-field w-64 text-sm" />
       </div>
 
       <div className="card overflow-hidden p-0">
@@ -32,17 +32,17 @@ export default function OrganizationsPage() {
             </tr>
           </thead>
           <tbody>
-            {mockOrgs.map((org) => (
-              <tr key={org.id} className="border-b border-border-primary hover:bg-bg-hover">
-                <td className="p-3 text-text-primary font-medium">{org.name}</td>
-                <td className="p-3 text-text-secondary">{org.domain}</td>
-                <td className="p-3"><span className={statusStyles[org.status]}>{org.status}</span></td>
-                <td className="p-3 text-text-secondary">{org.users}</td>
+            {mockSPs.map((sp) => (
+              <tr key={sp.id} className="border-b border-border-primary hover:bg-bg-hover">
+                <td className="p-3 text-text-primary font-medium">{sp.name}</td>
+                <td className="p-3 text-text-secondary">{sp.domain}</td>
+                <td className="p-3"><span className={statusStyles[sp.status]}>{sp.status}</span></td>
+                <td className="p-3 text-text-secondary">{sp.users}</td>
                 <td className="p-3">
                   <div className="flex gap-2">
-                    {org.status === 'pending' && <button className="btn-primary text-xs px-2 py-1">Verify</button>}
-                    {org.status === 'verified' && <button className="btn-danger text-xs px-2 py-1">Suspend</button>}
-                    {org.status === 'suspended' && <button className="btn-secondary text-xs px-2 py-1">Reinstate</button>}
+                    {sp.status === 'pending' && <button className="btn-primary text-xs px-2 py-1">Verify</button>}
+                    {sp.status === 'verified' && <button className="btn-danger text-xs px-2 py-1">Suspend</button>}
+                    {sp.status === 'suspended' && <button className="btn-secondary text-xs px-2 py-1">Reinstate</button>}
                   </div>
                 </td>
               </tr>

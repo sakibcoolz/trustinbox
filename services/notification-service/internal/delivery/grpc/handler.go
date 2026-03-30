@@ -23,7 +23,15 @@ func NewNotificationHandler(uc *usecase.NotificationUseCase) *NotificationHandle
 }
 
 func (h *NotificationHandler) CreateNotification(ctx context.Context, req *pb.CreateNotificationRequest) (*pb.CreateNotificationResponse, error) {
-	result, err := h.uc.CreateNotification(ctx, req.UserId, req.OrganizationId, req.Category, req.Title, req.Body, req.Priority, req.Metadata)
+	result, err := h.uc.CreateNotification(ctx, usecase.CreateNotificationInput{
+		UserID:            req.UserId,
+		ServiceProviderID: req.ServiceProviderId,
+		Category:          req.Category,
+		Title:             req.Title,
+		Body:              req.Body,
+		Priority:          req.Priority,
+		Metadata:          req.Metadata,
+	})
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -35,33 +43,28 @@ func (h *NotificationHandler) CreateNotification(ctx context.Context, req *pb.Cr
 }
 
 func (h *NotificationHandler) GetNotification(ctx context.Context, req *pb.GetNotificationRequest) (*pb.Notification, error) {
-	// TODO: implement get notification
 	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 
 func (h *NotificationHandler) ListNotifications(ctx context.Context, req *pb.ListNotificationsRequest) (*pb.ListNotificationsResponse, error) {
-	notifs, total, err := h.uc.ListNotifications(ctx, req.UserId, req.Category, int(req.Limit), int(req.Offset))
+	notifs, total, err := h.uc.ListNotifications(ctx, req.UserId, req.Category, req.Status, int(req.Limit), int(req.Offset))
 	if err != nil {
 		return nil, mapError(err)
 	}
 	pbNotifs := make([]*pb.Notification, len(notifs))
 	for i, n := range notifs {
-		pbNotif := &pb.Notification{
-			Id:             n.ID,
-			UserId:         n.UserID,
-			OrganizationId: n.OrganizationID,
-			Category:       n.Category,
-			Title:          n.Title,
-			Body:           n.Body,
-			Priority:       n.Priority,
-			Status:         n.Status,
-			Metadata:       n.Metadata,
-			CreatedAt:      timestamppb.New(n.CreatedAt),
+		pbNotifs[i] = &pb.Notification{
+			Id:                n.ID,
+			UserId:            n.UserID,
+			ServiceProviderId: n.ServiceProviderID,
+			Category:          n.Category,
+			Title:             n.Title,
+			Body:              n.Body,
+			Priority:          n.Priority,
+			Status:            n.Status,
+			Metadata:          n.Metadata,
+			CreatedAt:         timestamppb.New(n.CreatedAt),
 		}
-		if n.ReadAt != nil {
-			pbNotif.ReadAt = timestamppb.New(*n.ReadAt)
-		}
-		pbNotifs[i] = pbNotif
 	}
 	return &pb.ListNotificationsResponse{
 		Notifications: pbNotifs,

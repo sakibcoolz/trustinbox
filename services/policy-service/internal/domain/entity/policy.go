@@ -6,9 +6,9 @@ import "time"
 type Category string
 
 const (
-	CategoryPersonal       Category = "PERSONAL"
-	CategoryOrganizational Category = "ORGANIZATIONAL"
-	CategoryAdvertisement  Category = "ADVERTISEMENT"
+	CategoryPersonal        Category = "PERSONAL"
+	CategoryServiceProvider Category = "SERVICE_PROVIDER"
+	CategoryAdvertisement   Category = "ADVERTISEMENT"
 )
 
 // Channel represents how communication is delivered.
@@ -39,13 +39,13 @@ type DecisionCode string
 const (
 	DecisionAllowStandard           DecisionCode = "ALLOW_STANDARD"
 	DecisionDenyUserNotFound        DecisionCode = "DENY_USER_NOT_FOUND"
-	DecisionDenyOrgNotVerified      DecisionCode = "DENY_ORG_NOT_VERIFIED"
-	DecisionDenyUserBlockedOrg      DecisionCode = "DENY_USER_BLOCKED_ORG"
+	DecisionDenySPNotVerified       DecisionCode = "DENY_SP_NOT_VERIFIED"
+	DecisionDenyUserBlockedSP       DecisionCode = "DENY_USER_BLOCKED_SP"
 	DecisionDenyCategoryDisabled    DecisionCode = "DENY_CATEGORY_DISABLED"
 	DecisionDenyDNDActive           DecisionCode = "DENY_DND_ACTIVE"
 	DecisionDenyOutsideAvailability DecisionCode = "DENY_OUTSIDE_AVAILABILITY"
 	DecisionDenyAdCapExceeded       DecisionCode = "DENY_AD_CAP_EXCEEDED"
-	DecisionDenyOrgSuspended        DecisionCode = "DENY_ORG_SUSPENDED"
+	DecisionDenySPSuspended         DecisionCode = "DENY_SP_SUSPENDED"
 	DecisionDenySpamScoreHigh       DecisionCode = "DENY_SPAM_SCORE_HIGH"
 	DecisionRequireCallbackApproval DecisionCode = "REQUIRE_CALLBACK_APPROVAL"
 	DecisionSuggestNextSlot         DecisionCode = "SUGGEST_NEXT_AVAILABLE_SLOT"
@@ -54,7 +54,7 @@ const (
 // EvaluationRequest contains all inputs for policy evaluation.
 type EvaluationRequest struct {
 	UserID            string
-	OrganizationID    string
+	ServiceProviderID string
 	Category          Category
 	Channel           Channel
 	CommunicationType CommunicationType
@@ -74,7 +74,7 @@ type EvaluationResult struct {
 type UserPreferences struct {
 	UserID                     string
 	AllowPersonalNotifications bool
-	AllowOrgNotifications      bool
+	AllowSPNotifications       bool
 	AllowAdvertisements        bool
 	AllowCallbackRequests      bool
 	AllowChat                  bool
@@ -86,7 +86,7 @@ type UserPreferences struct {
 type DNDRule struct {
 	ID         string
 	UserID     string
-	ScopeType  string // GLOBAL, CATEGORY, ORGANIZATION
+	ScopeType  string // GLOBAL, CATEGORY, SERVICE_PROVIDER
 	ScopeRefID string
 	StartTime  string // HH:MM
 	EndTime    string // HH:MM
@@ -105,9 +105,9 @@ type AvailabilitySlot struct {
 	IsActive  bool
 }
 
-// OrganizationStatus represents org verification state.
-type OrganizationStatus struct {
-	OrganizationID     string
+// ServiceProviderStatus represents service provider verification state.
+type ServiceProviderStatus struct {
+	ServiceProviderID  string
 	VerificationStatus string
 	Status             string
 	SpamScore          float64

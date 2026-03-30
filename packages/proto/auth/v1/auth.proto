@@ -60,7 +60,7 @@ message ValidateTokenResponse {
   bool valid = 1;
   string user_id = 2;
   string role = 3;
-  string organization_id = 4;
+  string service_provider_id = 4;
 }
 
 message LogoutRequest {

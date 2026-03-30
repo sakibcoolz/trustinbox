@@ -18,4 +18,7 @@ require (
 	google.golang.org/protobuf v1.33.0 // indirect
 )
 
-replace github.com/trustinbox/cornerstone => ../../packages/cornerstone
+replace (
+	github.com/trustinbox/cornerstone => ../../packages/cornerstone
+	github.com/trustinbox/proto => ../../packages/proto
+)

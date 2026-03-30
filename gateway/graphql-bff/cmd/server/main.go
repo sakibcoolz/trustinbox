@@ -22,10 +22,14 @@ import (
 	"github.com/trustinbox/cornerstone/auth/jwt"
 	"github.com/trustinbox/cornerstone/config"
 	logger "github.com/trustinbox/cornerstone/logging"
+	"github.com/trustinbox/graphql-bff/internal/clients"
+	authpb "github.com/trustinbox/proto/gen/auth/v1"
+	notifpb "github.com/trustinbox/proto/gen/notification/v1"
+	userpb "github.com/trustinbox/proto/gen/user/v1"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
-	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
 
@@ -69,6 +73,13 @@ func main() {
 	}
 	log.Info("connected to Redis")
 
+	// Connect to backend gRPC services
+	svc, err := clients.NewServiceClients(log)
+	if err != nil {
+		log.Fatal("failed to create service clients", zap.Error(err))
+	}
+	defer svc.Close()
+
 	// Initialize MinIO client
 	minioClient := initMinioClient(log)
 
@@ -107,10 +118,10 @@ func main() {
 	})
 
 	// Auth endpoints
-	mux.HandleFunc("/api/auth/login", handleLogin(db, tokenSvc, cfg.JWTSecret, log))
-	mux.HandleFunc("/api/auth/register", handleRegister(db, tokenSvc, log))
-	mux.HandleFunc("/api/auth/me", handleMe(db, tokenSvc, log))
-	mux.HandleFunc("/api/auth/refresh", handleRefresh(db, tokenSvc, log))
+	mux.HandleFunc("/api/auth/login", handleLogin(svc, db, tokenSvc, cfg.JWTSecret, log))
+	mux.HandleFunc("/api/auth/register", handleRegister(svc, tokenSvc, log))
+	mux.HandleFunc("/api/auth/me", handleMe(svc, tokenSvc, log))
+	mux.HandleFunc("/api/auth/refresh", handleRefresh(svc, tokenSvc, log))
 
 	// User endpoints
 	mux.HandleFunc("/api/users/search", handleSearchUsers(db, tokenSvc, log))
@@ -123,7 +134,7 @@ func main() {
 	mux.HandleFunc("/api/friends/remove", handleRemoveFriend(db, tokenSvc, log))
 
 	// Notification endpoints
-	mux.HandleFunc("/api/notifications", handleListNotifications(db, tokenSvc, log))
+	mux.HandleFunc("/api/notifications", handleListNotifications(svc, tokenSvc, log))
 	mux.HandleFunc("/api/notifications/read", handleMarkNotificationsRead(db, tokenSvc, log))
 	mux.HandleFunc("/api/notifications/stream", handleSSEStream(tokenSvc, log, sseHub))
 
@@ -236,9 +247,9 @@ func main() {
 	// Privacy preferences
 	mux.HandleFunc("/api/privacy/preferences", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			handleGetPrivacyPreferences(db, tokenSvc, log)(w, r)
+			handleGetPrivacyPreferences(svc, tokenSvc, log)(w, r)
 		} else if r.Method == http.MethodPatch {
-			handleUpdatePrivacyPreferences(db, tokenSvc, log)(w, r)
+			handleUpdatePrivacyPreferences(svc, tokenSvc, log)(w, r)
 		} else {
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
 		}
@@ -346,7 +357,7 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	json.NewEncoder(w).Encode(v)
 }
 
-func handleLogin(db *sql.DB, tokenSvc *jwt.TokenService, jwtSecret string, log *zap.Logger) http.HandlerFunc {
+func handleLogin(svc *clients.ServiceClients, db *sql.DB, tokenSvc *jwt.TokenService, jwtSecret string, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -364,76 +375,43 @@ func handleLogin(db *sql.DB, tokenSvc *jwt.TokenService, jwtSecret string, log *
 			return
 		}
 
-		// Look up user
-		var userID, email, passwordHash, status string
-		err := db.QueryRowContext(r.Context(),
-			`SELECT id, email, password_hash, status FROM users WHERE email = $1`, req.Email,
-		).Scan(&userID, &email, &passwordHash, &status)
+		// Delegate authentication to auth-service via gRPC
+		loginResp, err := svc.Auth.Login(r.Context(), &authpb.LoginRequest{
+			Email:    req.Email,
+			Password: req.Password,
+		})
 		if err != nil {
-			log.Warn("login failed: user not found", zap.String("email", req.Email))
-			writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "invalid credentials"})
+			st := status.Convert(err)
+			switch st.Code() {
+			case codes.Unauthenticated:
+				writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "invalid credentials"})
+			case codes.PermissionDenied:
+				writeJSON(w, http.StatusForbidden, errorResponse{Error: "account is not active"})
+			default:
+				log.Error("auth-service login failed", zap.Error(err))
+				writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
+			}
 			return
 		}
 
-		// Verify password
-		if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password)); err != nil {
-			log.Warn("login failed: wrong password", zap.String("email", req.Email))
-			writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "invalid credentials"})
-			return
+		// Fetch full profile data from user-service
+		var email, fullName, username, virtualPublicID string
+		profileResp, profileErr := svc.User.GetUserProfile(r.Context(), &userpb.GetUserProfileRequest{
+			UserId: loginResp.UserId,
+		})
+		if profileErr != nil {
+			log.Warn("user-service GetUserProfile failed after login", zap.Error(profileErr))
+		} else {
+			email = profileResp.Email
+			fullName = profileResp.FullName
+			username = profileResp.Username
+			virtualPublicID = profileResp.VirtualPublicId
 		}
 
-		if status != "ACTIVE" {
-			writeJSON(w, http.StatusForbidden, errorResponse{Error: "account is not active"})
-			return
-		}
-
-		// Generate tokens
-		accessToken, err := tokenSvc.GenerateAccessToken(userID, "USER", "")
-		if err != nil {
-			log.Error("failed to generate access token", zap.Error(err))
-			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
-			return
-		}
-
-		refreshToken, err := tokenSvc.GenerateRefreshToken(userID)
-		if err != nil {
-			log.Error("failed to generate refresh token", zap.Error(err))
-			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
-			return
-		}
-
-		// Store refresh token hash
-		hash := sha256.Sum256([]byte(refreshToken))
-		tokenHash := hex.EncodeToString(hash[:])
-		_, err = db.ExecContext(r.Context(),
-			`INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, revoked, created_at)
-			 VALUES ($1, $2, $3, $4, false, NOW())`,
-			uuid.New().String(), userID, tokenHash, time.Now().Add(7*24*time.Hour),
-		)
-		if err != nil {
-			log.Error("failed to store refresh token", zap.Error(err))
-		}
-
-		// Get user profile + username + virtual identity
-		var fullName, username string
-		_ = db.QueryRowContext(r.Context(),
-			`SELECT p.full_name, u2.username FROM user_profiles p
-			 JOIN users u2 ON u2.id = p.user_id
-			 WHERE p.user_id = $1`, userID,
-		).Scan(&fullName, &username)
-
-		var virtualPublicID string
-		_ = db.QueryRowContext(r.Context(),
-			`SELECT virtual_public_id FROM user_identities WHERE user_id = $1 AND is_active = TRUE LIMIT 1`, userID,
-		).Scan(&virtualPublicID)
-
-		// Generate a short-lived XMPP JWT token.
-		// ejabberd's jwt auth verifies this token locally using the same HS256
-		// secret — no HTTP roundtrip is needed.
-		// The 'sub' claim is the user UUID, which becomes the XMPP localpart.
-		xmppJid := userID + "@" + xmppDomain
+		// Generate XMPP JWT — gateway-specific concern for ejabberd integration
+		xmppJid := loginResp.UserId + "@" + xmppDomain
 		xmppClaims := gojwt.MapClaims{
-			"sub": userID,
+			"sub": loginResp.UserId,
 			"jid": xmppJid,
 			"iat": time.Now().Unix(),
 			"exp": time.Now().Add(24 * time.Hour).Unix(),
@@ -446,24 +424,23 @@ func handleLogin(db *sql.DB, tokenSvc *jwt.TokenService, jwtSecret string, log *
 			return
 		}
 
-		// Persist the JID and store sha256(xmppToken) so ejabberd's
-		// check_password hook can verify the token without a DB lookup.
+		// Persist XMPP JID and token hash for ejabberd check_password hook
 		xmppTokenHash := sha256.Sum256([]byte(xmppToken))
 		xmppTokenHashHex := hex.EncodeToString(xmppTokenHash[:])
 		_, _ = db.ExecContext(r.Context(),
 			`UPDATE users SET xmpp_jid = $1, xmpp_token_hash = $2 WHERE id = $3`,
-			xmppJid, xmppTokenHashHex, userID,
+			xmppJid, xmppTokenHashHex, loginResp.UserId,
 		)
 
-		log.Info("user logged in", zap.String("user_id", userID), zap.String("username", username))
+		log.Info("user logged in", zap.String("user_id", loginResp.UserId), zap.String("username", username))
 
 		writeJSON(w, http.StatusOK, authResponse{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
+			AccessToken:  loginResp.AccessToken,
+			RefreshToken: loginResp.RefreshToken,
 			XMPPToken:    xmppToken,
 			XMPPJid:      xmppJid,
 			User: userResponse{
-				ID:              userID,
+				ID:              loginResp.UserId,
 				Email:           email,
 				FullName:        fullName,
 				Username:        username,
@@ -492,7 +469,7 @@ func generateVirtualPublicID() string {
 	return "TI-" + string(b)
 }
 
-func handleRegister(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
+func handleRegister(svc *clients.ServiceClients, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -517,113 +494,51 @@ func handleRegister(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger) htt
 			return
 		}
 
-		// Add c/ prefix for customer accounts
-		username := "c/" + rawUsername
-
-		// Check if user already exists (email or username)
-		var exists bool
-		db.QueryRowContext(r.Context(), `SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)`, req.Email).Scan(&exists)
-		if exists {
-			writeJSON(w, http.StatusConflict, errorResponse{Error: "user with this email already exists"})
-			return
-		}
-		db.QueryRowContext(r.Context(), `SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)`, username).Scan(&exists)
-		if exists {
-			writeJSON(w, http.StatusConflict, errorResponse{Error: "username is already taken"})
-			return
-		}
-
-		// Hash password
-		hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		// Delegate registration to auth-service via gRPC
+		regResp, err := svc.Auth.Register(r.Context(), &authpb.RegisterRequest{
+			Username: rawUsername,
+			Email:    req.Email,
+			Mobile:   req.Mobile,
+			Password: req.Password,
+			FullName: req.FullName,
+		})
 		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
+			st := status.Convert(err)
+			switch st.Code() {
+			case codes.AlreadyExists:
+				writeJSON(w, http.StatusConflict, errorResponse{Error: st.Message()})
+			case codes.InvalidArgument:
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: st.Message()})
+			default:
+				log.Error("auth-service register failed", zap.Error(err))
+				writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
+			}
 			return
 		}
 
-		userID := uuid.New().String()
-
-		// Create user + profile in a transaction
-		tx, err := db.BeginTx(r.Context(), nil)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
-			return
-		}
-		defer tx.Rollback()
-
-		_, err = tx.ExecContext(r.Context(),
-			`INSERT INTO users (id, email, mobile, password_hash, username, status, created_at, updated_at)
-			 VALUES ($1, $2, $3, $4, $5, 'ACTIVE', NOW(), NOW())`,
-			userID, req.Email, req.Mobile, string(hash), username,
-		)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to create user"})
-			return
-		}
-
-		_, err = tx.ExecContext(r.Context(),
-			`INSERT INTO user_profiles (user_id, full_name, timezone, language)
-			 VALUES ($1, $2, 'UTC', 'en')`,
-			userID, req.FullName,
-		)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to create profile"})
-			return
-		}
-
-		// Create virtual public identity (privacy layer for org interactions)
-		virtualPublicID := generateVirtualPublicID()
-		maskedPhone := maskPhone(req.Mobile)
-		_, err = tx.ExecContext(r.Context(),
-			`INSERT INTO user_identities (id, user_id, virtual_public_id, masked_phone, is_active, created_at)
-			 VALUES ($1, $2, $3, $4, TRUE, NOW())`,
-			uuid.New().String(), userID, virtualPublicID, maskedPhone,
-		)
-		if err != nil {
-			log.Error("failed to create virtual identity", zap.Error(err))
-		}
-
-		if err := tx.Commit(); err != nil {
-			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
-			return
-		}
-
-		// Generate tokens
-		accessToken, _ := tokenSvc.GenerateAccessToken(userID, "USER", "")
-		refreshToken, _ := tokenSvc.GenerateRefreshToken(userID)
-
-		// Store refresh token hash
-		h := sha256.Sum256([]byte(refreshToken))
-		tokenHash := hex.EncodeToString(h[:])
-		db.ExecContext(r.Context(),
-			`INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, revoked, created_at)
-			 VALUES ($1, $2, $3, $4, false, NOW())`,
-			uuid.New().String(), userID, tokenHash, time.Now().Add(7*24*time.Hour),
-		)
-
-		log.Info("user registered", zap.String("user_id", userID), zap.String("username", username))
+		log.Info("user registered", zap.String("user_id", regResp.UserId), zap.String("username", regResp.Username))
 
 		writeJSON(w, http.StatusCreated, authResponse{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
+			AccessToken:  regResp.AccessToken,
+			RefreshToken: regResp.RefreshToken,
 			User: userResponse{
-				ID:              userID,
+				ID:              regResp.UserId,
 				Email:           req.Email,
 				FullName:        req.FullName,
-				Username:        username,
-				VirtualPublicID: virtualPublicID,
+				Username:        regResp.Username,
+				VirtualPublicID: regResp.VirtualPublicId,
 			},
 		})
 	}
 }
 
-func handleMe(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
+func handleMe(svc *clients.ServiceClients, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
 			return
 		}
 
-		// Extract bearer token
 		auth := r.Header.Get("Authorization")
 		if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
 			writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "missing or invalid authorization header"})
@@ -637,28 +552,22 @@ func handleMe(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger) http.Hand
 			return
 		}
 
-		var email, fullName, username string
-		err = db.QueryRowContext(r.Context(),
-			`SELECT u.email, COALESCE(p.full_name, ''), u.username
-			 FROM users u LEFT JOIN user_profiles p ON u.id = p.user_id
-			 WHERE u.id = $1`, claims.UserID,
-		).Scan(&email, &fullName, &username)
+		// Fetch profile from user-service via gRPC
+		profileResp, err := svc.User.GetUserProfile(r.Context(), &userpb.GetUserProfileRequest{
+			UserId: claims.UserID,
+		})
 		if err != nil {
+			log.Error("user-service GetUserProfile failed", zap.Error(err))
 			writeJSON(w, http.StatusNotFound, errorResponse{Error: "user not found"})
 			return
 		}
 
-		var virtualPublicID string
-		_ = db.QueryRowContext(r.Context(),
-			`SELECT virtual_public_id FROM user_identities WHERE user_id = $1 AND is_active = TRUE LIMIT 1`, claims.UserID,
-		).Scan(&virtualPublicID)
-
 		writeJSON(w, http.StatusOK, userResponse{
-			ID:              claims.UserID,
-			Email:           email,
-			FullName:        fullName,
-			Username:        username,
-			VirtualPublicID: virtualPublicID,
+			ID:              profileResp.UserId,
+			Email:           profileResp.Email,
+			FullName:        profileResp.FullName,
+			Username:        profileResp.Username,
+			VirtualPublicID: profileResp.VirtualPublicId,
 		})
 	}
 }
@@ -667,7 +576,7 @@ type refreshRequest struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
-func handleRefresh(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
+func handleRefresh(svc *clients.ServiceClients, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -680,61 +589,19 @@ func handleRefresh(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger) http
 			return
 		}
 
-		// Validate JWT signature and expiry
-		userID, err := tokenSvc.ValidateRefreshToken(req.RefreshToken)
+		// Delegate token refresh to auth-service via gRPC
+		resp, err := svc.Auth.RefreshToken(r.Context(), &authpb.RefreshTokenRequest{
+			RefreshToken: req.RefreshToken,
+		})
 		if err != nil {
 			writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "invalid or expired refresh token"})
 			return
 		}
 
-		// Verify token exists in DB and is not revoked
-		hash := sha256.Sum256([]byte(req.RefreshToken))
-		tokenHash := hex.EncodeToString(hash[:])
-		var tokenID string
-		err = db.QueryRowContext(r.Context(),
-			`SELECT id FROM refresh_tokens WHERE token_hash = $1 AND user_id = $2 AND revoked = false AND expires_at > NOW()`,
-			tokenHash, userID,
-		).Scan(&tokenID)
-		if err != nil {
-			writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "refresh token not found or revoked"})
-			return
-		}
-
-		// Rotate: revoke old token
-		_, _ = db.ExecContext(r.Context(), `UPDATE refresh_tokens SET revoked = true WHERE id = $1`, tokenID)
-
-		// Issue new access token
-		accessToken, err := tokenSvc.GenerateAccessToken(userID, "USER", "")
-		if err != nil {
-			log.Error("failed to generate access token", zap.Error(err))
-			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
-			return
-		}
-
-		// Issue new refresh token (rotation)
-		newRefreshToken, err := tokenSvc.GenerateRefreshToken(userID)
-		if err != nil {
-			log.Error("failed to generate refresh token", zap.Error(err))
-			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
-			return
-		}
-
-		// Persist new refresh token
-		newHash := sha256.Sum256([]byte(newRefreshToken))
-		newTokenHash := hex.EncodeToString(newHash[:])
-		_, err = db.ExecContext(r.Context(),
-			`INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, revoked, created_at)
-			 VALUES ($1, $2, $3, $4, false, NOW())`,
-			uuid.New().String(), userID, newTokenHash, time.Now().Add(7*24*time.Hour),
-		)
-		if err != nil {
-			log.Error("failed to store new refresh token", zap.Error(err))
-		}
-
-		log.Info("token refreshed", zap.String("user_id", userID))
+		log.Info("token refreshed via gRPC")
 		writeJSON(w, http.StatusOK, map[string]string{
-			"accessToken":  accessToken,
-			"refreshToken": newRefreshToken,
+			"accessToken":  resp.AccessToken,
+			"refreshToken": resp.RefreshToken,
 		})
 	}
 }
@@ -1339,7 +1206,7 @@ func handleRemoveFriend(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger)
 
 // ==================== Notification Handlers ====================
 
-func handleListNotifications(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
+func handleListNotifications(svc *clients.ServiceClients, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -1352,31 +1219,34 @@ func handleListNotifications(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Lo
 			return
 		}
 
-		rows, err := db.QueryContext(r.Context(),
-			`SELECT id, category, title, body, COALESCE(metadata::text, '{}'), status, created_at
-			 FROM notifications
-			 WHERE user_id = $1
-			 ORDER BY created_at DESC
-			 LIMIT 50`, userID)
+		// Fetch notifications from notification-service via gRPC
+		resp, err := svc.Notification.ListNotifications(r.Context(), &notifpb.ListNotificationsRequest{
+			UserId: userID,
+			Limit:  50,
+		})
 		if err != nil {
-			log.Error("failed to list notifications", zap.Error(err))
+			log.Error("notification-service ListNotifications failed", zap.Error(err))
 			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
 			return
 		}
-		defer rows.Close()
 
-		results := []notificationResponse{}
-		for rows.Next() {
-			var n notificationResponse
-			var dataStr, createdAt, status string
-			if err := rows.Scan(&n.ID, &n.Type, &n.Title, &n.Body, &dataStr, &status, &createdAt); err != nil {
-				continue
+		results := make([]notificationResponse, 0, len(resp.Notifications))
+		for _, n := range resp.Notifications {
+			nr := notificationResponse{
+				ID:    n.Id,
+				Type:  n.Category,
+				Title: n.Title,
+				Body:  n.Body,
+				Read:  n.Status == "READ",
 			}
-			n.Read = status == "READ"
-			n.Data = json.RawMessage(dataStr)
-			t, _ := time.Parse(time.RFC3339Nano, createdAt)
-			n.CreatedAt = t.Format(time.RFC3339)
-			results = append(results, n)
+			if n.CreatedAt != nil {
+				nr.CreatedAt = n.CreatedAt.AsTime().Format(time.RFC3339)
+			}
+			if len(n.Metadata) > 0 {
+				metaJSON, _ := json.Marshal(n.Metadata)
+				nr.Data = json.RawMessage(metaJSON)
+			}
+			results = append(results, nr)
 		}
 
 		writeJSON(w, http.StatusOK, results)

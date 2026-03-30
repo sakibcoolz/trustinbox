@@ -13,7 +13,7 @@ service PolicyService {
 enum CommunicationCategory {
   COMMUNICATION_CATEGORY_UNSPECIFIED = 0;
   COMMUNICATION_CATEGORY_PERSONAL = 1;
-  COMMUNICATION_CATEGORY_ORGANIZATIONAL = 2;
+  COMMUNICATION_CATEGORY_SERVICE_PROVIDER = 2;
   COMMUNICATION_CATEGORY_ADVERTISEMENT = 3;
 }
 
@@ -39,13 +39,13 @@ enum DecisionCode {
   DECISION_CODE_UNSPECIFIED = 0;
   DECISION_CODE_ALLOW_STANDARD = 1;
   DECISION_CODE_DENY_USER_NOT_FOUND = 2;
-  DECISION_CODE_DENY_ORG_NOT_VERIFIED = 3;
-  DECISION_CODE_DENY_USER_BLOCKED_ORG = 4;
+  DECISION_CODE_DENY_SP_NOT_VERIFIED = 3;
+  DECISION_CODE_DENY_USER_BLOCKED_SP = 4;
   DECISION_CODE_DENY_CATEGORY_DISABLED = 5;
   DECISION_CODE_DENY_DND_ACTIVE = 6;
   DECISION_CODE_DENY_OUTSIDE_AVAILABILITY = 7;
   DECISION_CODE_DENY_AD_CAP_EXCEEDED = 8;
-  DECISION_CODE_DENY_ORG_SUSPENDED = 9;
+  DECISION_CODE_DENY_SP_SUSPENDED = 9;
   DECISION_CODE_DENY_SPAM_SCORE_HIGH = 10;
   DECISION_CODE_REQUIRE_CALLBACK_APPROVAL = 11;
   DECISION_CODE_SUGGEST_NEXT_AVAILABLE_SLOT = 12;
@@ -53,7 +53,7 @@ enum DecisionCode {
 
 message EvaluateCommunicationRequest {
   string user_id = 1;
-  string organization_id = 2;
+  string service_provider_id = 2;
   CommunicationCategory category = 3;
   CommunicationChannel channel = 4;
   CommunicationType communication_type = 5;
@@ -70,7 +70,7 @@ message EvaluateCommunicationResponse {
 
 message CheckCallbackPermissionRequest {
   string user_id = 1;
-  string organization_id = 2;
+  string service_provider_id = 2;
 }
 
 message CheckCallbackPermissionResponse {
@@ -81,7 +81,7 @@ message CheckCallbackPermissionResponse {
 
 message GetNextAvailableSlotRequest {
   string user_id = 1;
-  string organization_id = 2;
+  string service_provider_id = 2;
   CommunicationCategory category = 3;
 }
 

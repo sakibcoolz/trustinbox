@@ -11,7 +11,7 @@ type CallbackRequestRepository interface {
 	Create(ctx context.Context, req *entity.CallbackRequest) error
 	GetByID(ctx context.Context, id string) (*entity.CallbackRequest, error)
 	ListByUser(ctx context.Context, userID, status string, limit, offset int) ([]entity.CallbackRequest, int, error)
-	ListByOrg(ctx context.Context, orgID, status string, limit, offset int) ([]entity.CallbackRequest, int, error)
+	ListBySP(ctx context.Context, spID, status string, limit, offset int) ([]entity.CallbackRequest, int, error)
 	Approve(ctx context.Context, id string, slotStart, slotEnd time.Time) error
 	Reject(ctx context.Context, id, reason string) error
 	UpdateStatus(ctx context.Context, id, status string) error
@@ -42,6 +42,6 @@ type DocumentShareRepository interface {
 
 type SpamReportRepository interface {
 	Create(ctx context.Context, report *entity.SpamReport) error
-	ListByOrg(ctx context.Context, orgID string, limit, offset int) ([]entity.SpamReport, int, error)
+	ListBySP(ctx context.Context, spID string, limit, offset int) ([]entity.SpamReport, int, error)
 	UpdateStatus(ctx context.Context, id, status string) error
 }

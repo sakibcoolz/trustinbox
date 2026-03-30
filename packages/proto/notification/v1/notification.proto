@@ -17,8 +17,8 @@ service NotificationService {
 
 message CreateNotificationRequest {
   string user_id = 1;
-  string organization_id = 2;
-  string category = 3;   // PERSONAL, ORGANIZATIONAL, ADVERTISEMENT
+  string service_provider_id = 2;
+  string category = 3;   // PERSONAL, SERVICE_PROVIDER, ADVERTISEMENT
   string title = 4;
   string body = 5;
   string priority = 6;   // LOW, NORMAL, HIGH, URGENT
@@ -39,7 +39,7 @@ message GetNotificationRequest {
 message Notification {
   string id = 1;
   string user_id = 2;
-  string organization_id = 3;
+  string service_provider_id = 3;
   string category = 4;
   string title = 5;
   string body = 6;

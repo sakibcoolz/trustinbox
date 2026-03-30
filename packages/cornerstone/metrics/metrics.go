@@ -16,10 +16,10 @@ type Recorder struct {
 	meter metric.Meter
 
 	// Notification metrics
-	NotificationsSent     metric.Int64Counter
+	NotificationsSent      metric.Int64Counter
 	NotificationsDelivered metric.Int64Counter
-	NotificationsRead     metric.Int64Counter
-	NotificationsRejected metric.Int64Counter
+	NotificationsRead      metric.Int64Counter
+	NotificationsRejected  metric.Int64Counter
 
 	// Callback metrics
 	CallbacksRequested metric.Int64Counter
@@ -45,7 +45,7 @@ type Recorder struct {
 	DocumentOpens  metric.Int64Counter
 
 	// Webhook metrics
-	WebhookDeliveries      metric.Int64Counter
+	WebhookDeliveries       metric.Int64Counter
 	WebhookDeliveryFailures metric.Int64Counter
 
 	// Request duration

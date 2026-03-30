@@ -30,20 +30,22 @@ func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		AccessToken:  result.AccessToken,
 		RefreshToken: result.RefreshToken,
 		UserId:       result.UserID,
-		Username:     result.Username,
-		Role:         result.Role,
 		ExpiresAt:    result.ExpiresAt,
 	}, nil
 }
 
 func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
-	result, err := h.uc.Register(ctx, req.Username, req.Email, req.Mobile, req.Password, req.FullName)
+	result, err := h.uc.Register(ctx, usecase.RegisterInput{
+		Email:    req.Email,
+		Mobile:   req.Mobile,
+		Password: req.Password,
+		FullName: req.FullName,
+	})
 	if err != nil {
 		return nil, mapError(err)
 	}
 	return &pb.RegisterResponse{
 		UserId:          result.UserID,
-		Username:        result.Username,
 		VirtualPublicId: result.VirtualPublicID,
 		AccessToken:     result.AccessToken,
 		RefreshToken:    result.RefreshToken,
@@ -51,17 +53,14 @@ func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 }
 
 func (h *AuthHandler) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
-	// TODO: implement refresh token in use case
 	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 
 func (h *AuthHandler) ValidateToken(ctx context.Context, req *pb.ValidateTokenRequest) (*pb.ValidateTokenResponse, error) {
-	// TODO: implement validate token in use case
 	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 
 func (h *AuthHandler) Logout(ctx context.Context, req *pb.LogoutRequest) (*pb.LogoutResponse, error) {
-	// TODO: implement logout in use case
 	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 

@@ -35,9 +35,9 @@ type AvailabilitySlotRepository interface {
 	Delete(ctx context.Context, id, userID string) error
 }
 
-type BlockedOrganizationRepository interface {
-	IsBlocked(ctx context.Context, userID, orgID string) (bool, error)
-	Block(ctx context.Context, blocked *entity.BlockedOrganization) error
-	Unblock(ctx context.Context, userID, orgID string) error
-	ListByUser(ctx context.Context, userID string) ([]entity.BlockedOrganization, error)
+type BlockedServiceProviderRepository interface {
+	IsBlocked(ctx context.Context, userID, spID string) (bool, error)
+	Block(ctx context.Context, blocked *entity.BlockedServiceProvider) error
+	Unblock(ctx context.Context, userID, spID string) error
+	ListByUser(ctx context.Context, userID string) ([]entity.BlockedServiceProvider, error)
 }

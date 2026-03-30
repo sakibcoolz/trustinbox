@@ -1,294 +1,294 @@
 package events
-package events
 
 import (
-	"context"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}	}		}			}				c.client.XAck(ctx, c.stream, c.group, msg.ID)				}					continue					)						zap.Error(err),						zap.String("event_id", event.ID),					c.logger.Error("handler failed",				if err := handler(ctx, &event); err != nil {				}					continue					c.logger.Error("unmarshal stream event", zap.Error(err))				if err := json.Unmarshal([]byte(data), &event); err != nil {				var event Event				}					continue				if !ok {				data, ok := msg.Values["data"].(string)			for _, msg := range stream.Messages {		for _, stream := range streams {		}			continue			time.Sleep(time.Second)			c.logger.Error("stream read error", zap.Error(err))			}				continue			if err == redis.Nil {		if err != nil {		}).Result()			Block:    2 * time.Second,			Count:    c.batchSize,			Streams:  []string{c.stream, ">"},			Consumer: c.consumer,			Group:    c.group,		streams, err := c.client.XReadGroup(ctx, &redis.XReadGroupArgs{		}		default:			return		case <-ctx.Done():		select {	for {func (c *RedisStreamConsumer) consume(ctx context.Context, handler Handler) {}	return nil	go c.consume(ctx, handler)	}		return fmt.Errorf("create consumer group: %w", err)	if err != nil && !strings.Contains(err.Error(), "BUSYGROUP") {	err := c.client.XGroupCreateMkStream(ctx, c.stream, c.group, "0").Err()	// Create consumer group if it doesn't exist.func (c *RedisStreamConsumer) Start(ctx context.Context, handler Handler) error {// Start begins consuming events from the stream.}	}		batchSize: 10,		consumer:  consumer,		group:     group,		stream:    stream,		logger:    logger,		client:    client,	return &RedisStreamConsumer{func NewRedisStreamConsumer(client *redis.Client, logger *zap.Logger, stream, group, consumer string) *RedisStreamConsumer {// NewRedisStreamConsumer creates a consumer for Redis Streams with consumer group support.}	batchSize int64	consumer  string	group     string	stream    string	logger    *zap.Logger	client    *redis.Clienttype RedisStreamConsumer struct {// RedisStreamConsumer consumes events from a Redis Stream using consumer groups.}	return nilfunc (p *RedisStreamPublisher) Close() error {}	return err	_, err := pipe.Exec(ctx)	}		})			},				"data":       string(data),				"event_type": string(event.Type),			Values: map[string]interface{}{			Stream: p.streamName,		pipe.XAdd(ctx, &redis.XAddArgs{		}			return fmt.Errorf("marshal event %s: %w", event.ID, err)		if err != nil {		data, err := json.Marshal(event)	for _, event := range events {	pipe := p.client.Pipeline()func (p *RedisStreamPublisher) PublishBatch(ctx context.Context, events []*Event) error {}	return nil	)		zap.String("stream", p.streamName),		zap.String("event_id", event.ID),	p.logger.Debug("event published to stream",	}		return fmt.Errorf("publish to redis stream: %w", err)	if err != nil {	}).Result()		},			"data":       string(data),			"event_type": string(event.Type),		Values: map[string]interface{}{		Stream: p.streamName,	_, err = p.client.XAdd(ctx, &redis.XAddArgs{	}		return fmt.Errorf("marshal event: %w", err)	if err != nil {	data, err := json.Marshal(event)func (p *RedisStreamPublisher) Publish(ctx context.Context, event *Event) error {}	}		streamName: streamName,		logger:     logger,		client:     client,	return &RedisStreamPublisher{func NewRedisStreamPublisher(client *redis.Client, logger *zap.Logger, streamName string) *RedisStreamPublisher {// NewRedisStreamPublisher creates a publisher that uses Redis Streams for durability.}	streamName string	logger     *zap.Logger	client     *redis.Clienttype RedisStreamPublisher struct {// RedisStreamPublisher uses Redis Streams for durable event delivery.}	return nil	}		return s.pubsub.Close()	if s.pubsub != nil {func (s *RedisSubscriber) Close() error {}	}		}			}				)					zap.Error(err),					zap.String("event_type", string(event.Type)),					zap.String("event_id", event.ID),				s.logger.Error("event handler failed",			if err := handler(ctx, &event); err != nil {			}				continue				)					zap.String("channel", msg.Channel),					zap.Error(err),				s.logger.Error("failed to unmarshal event",			if err := json.Unmarshal([]byte(msg.Payload), &event); err != nil {			var event Event			}				return			if !ok {		case msg, ok := <-ch:			return		case <-ctx.Done():		select {	for {	ch := s.pubsub.Channel()func (s *RedisSubscriber) listen(ctx context.Context, handler Handler) {}	return nil	go s.listen(ctx, handler)	)		zap.String("channels", strings.Join(channels, ",")),	s.logger.Info("subscribed to events",	}		return fmt.Errorf("subscribe to redis channels: %w", err)	if err != nil {	_, err := s.pubsub.Receive(ctx)	// Wait for confirmation that subscription is created.	s.pubsub = s.client.Subscribe(ctx, channels...)	}		channels[i] = channelPrefix + string(et)	for i, et := range eventTypes {	channels := make([]string, len(eventTypes))func (s *RedisSubscriber) Subscribe(ctx context.Context, eventTypes []EventType, handler Handler) error {}	}		logger: logger,		client: client,	return &RedisSubscriber{func NewRedisSubscriber(client *redis.Client, logger *zap.Logger) *RedisSubscriber {// NewRedisSubscriber creates a new Redis-based event subscriber.}	pubsub *redis.PubSub	logger *zap.Logger	client *redis.Clienttype RedisSubscriber struct {// RedisSubscriber subscribes to events via Redis Pub/Sub.}	return nilfunc (p *RedisPublisher) Close() error {}	return nil	}		return fmt.Errorf("publish batch to redis: %w", err)	if err != nil {	_, err := pipe.Exec(ctx)	}		pipe.Publish(ctx, channel, data)		channel := channelPrefix + string(event.Type)		}			return fmt.Errorf("marshal event %s: %w", event.ID, err)		if err != nil {		data, err := json.Marshal(event)	for _, event := range events {	pipe := p.client.Pipeline()func (p *RedisPublisher) PublishBatch(ctx context.Context, events []*Event) error {}	return nil	)		zap.String("channel", channel),		zap.String("event_type", string(event.Type)),		zap.String("event_id", event.ID),	p.logger.Debug("event published",	}		return fmt.Errorf("publish event to redis: %w", err)	if err := p.client.Publish(ctx, channel, data).Err(); err != nil {	channel := channelPrefix + string(event.Type)	}		return fmt.Errorf("marshal event: %w", err)	if err != nil {	data, err := json.Marshal(event)func (p *RedisPublisher) Publish(ctx context.Context, event *Event) error {}	}		logger: logger,		client: client,	return &RedisPublisher{func NewRedisPublisher(client *redis.Client, logger *zap.Logger) *RedisPublisher {// NewRedisPublisher creates a new Redis-based event publisher.}	logger *zap.Logger	client *redis.Clienttype RedisPublisher struct {// RedisPublisher publishes events via Redis Pub/Sub.)	allChannel    = "trustinbox:events:*"	channelPrefix = "trustinbox:events:"const ()	"go.uber.org/zap"	"github.com/redis/go-redis/v9"	"time"	"strings"	"fmt"	"encoding/json"
+"context"
+"encoding/json"
+"fmt"
+"strings"
+"time"
+
+"github.com/redis/go-redis/v9"
+"go.uber.org/zap"
+)
+
+const (
+channelPrefix = "trustinbox:events:"
+allChannel    = "trustinbox:events:*"
+)
+
+// ---------------------------------------------------------------------------
+// RedisPublisher — fire-and-forget via Pub/Sub
+// ---------------------------------------------------------------------------
+
+// RedisPublisher publishes events via Redis Pub/Sub.
+type RedisPublisher struct {
+client *redis.Client
+logger *zap.Logger
+}
+
+// NewRedisPublisher creates a new Redis-based event publisher.
+func NewRedisPublisher(client *redis.Client, logger *zap.Logger) *RedisPublisher {
+return &RedisPublisher{
+client: client,
+logger: logger,
+}
+}
+
+func (p *RedisPublisher) Publish(ctx context.Context, event *Event) error {
+data, err := json.Marshal(event)
+if err != nil {
+return fmt.Errorf("marshal event: %w", err)
+}
+channel := channelPrefix + string(event.Type)
+if err := p.client.Publish(ctx, channel, data).Err(); err != nil {
+return fmt.Errorf("publish event to redis: %w", err)
+}
+p.logger.Debug("event published",
+zap.String("event_id", event.ID),
+zap.String("event_type", string(event.Type)),
+zap.String("channel", channel),
+)
+return nil
+}
+
+func (p *RedisPublisher) PublishBatch(ctx context.Context, events []*Event) error {
+pipe := p.client.Pipeline()
+for _, event := range events {
+data, err := json.Marshal(event)
+if err != nil {
+return fmt.Errorf("marshal event %s: %w", event.ID, err)
+}
+channel := channelPrefix + string(event.Type)
+pipe.Publish(ctx, channel, data)
+}
+_, err := pipe.Exec(ctx)
+if err != nil {
+return fmt.Errorf("publish batch to redis: %w", err)
+}
+return nil
+}
+
+func (p *RedisPublisher) Close() error {
+return nil
+}
+
+// ---------------------------------------------------------------------------
+// RedisSubscriber — Pub/Sub listener
+// ---------------------------------------------------------------------------
+
+// RedisSubscriber subscribes to events via Redis Pub/Sub.
+type RedisSubscriber struct {
+client *redis.Client
+logger *zap.Logger
+pubsub *redis.PubSub
+}
+
+// NewRedisSubscriber creates a new Redis-based event subscriber.
+func NewRedisSubscriber(client *redis.Client, logger *zap.Logger) *RedisSubscriber {
+return &RedisSubscriber{
+client: client,
+logger: logger,
+}
+}
+
+func (s *RedisSubscriber) Subscribe(ctx context.Context, eventTypes []EventType, handler Handler) error {
+channels := make([]string, len(eventTypes))
+for i, et := range eventTypes {
+channels[i] = channelPrefix + string(et)
+}
+s.pubsub = s.client.Subscribe(ctx, channels...)
+_, err := s.pubsub.Receive(ctx) // Wait for confirmation that subscription is created.
+if err != nil {
+return fmt.Errorf("subscribe to redis channels: %w", err)
+}
+s.logger.Info("subscribed to events",
+zap.String("channels", strings.Join(channels, ",")),
+)
+go s.listen(ctx, handler)
+return nil
+}
+
+func (s *RedisSubscriber) listen(ctx context.Context, handler Handler) {
+ch := s.pubsub.Channel()
+for {
+select {
+case <-ctx.Done():
+return
+case msg, ok := <-ch:
+if !ok {
+return
+}
+var event Event
+if err := json.Unmarshal([]byte(msg.Payload), &event); err != nil {
+s.logger.Error("failed to unmarshal event",
+zap.Error(err),
+zap.String("channel", msg.Channel),
+)
+continue
+}
+if err := handler(ctx, &event); err != nil {
+s.logger.Error("event handler failed",
+zap.String("event_id", event.ID),
+zap.String("event_type", string(event.Type)),
+zap.Error(err),
+)
+}
+}
+}
+}
+
+func (s *RedisSubscriber) Close() error {
+if s.pubsub != nil {
+return s.pubsub.Close()
+}
+return nil
+}
+
+// ---------------------------------------------------------------------------
+// RedisStreamPublisher — durable delivery via XADD
+// ---------------------------------------------------------------------------
+
+// RedisStreamPublisher uses Redis Streams for durable event delivery.
+type RedisStreamPublisher struct {
+client     *redis.Client
+logger     *zap.Logger
+streamName string
+}
+
+// NewRedisStreamPublisher creates a publisher that uses Redis Streams for durability.
+func NewRedisStreamPublisher(client *redis.Client, logger *zap.Logger, streamName string) *RedisStreamPublisher {
+return &RedisStreamPublisher{
+client:     client,
+logger:     logger,
+streamName: streamName,
+}
+}
+
+func (p *RedisStreamPublisher) Publish(ctx context.Context, event *Event) error {
+data, err := json.Marshal(event)
+if err != nil {
+return fmt.Errorf("marshal event: %w", err)
+}
+_, err = p.client.XAdd(ctx, &redis.XAddArgs{
+Stream: p.streamName,
+Values: map[string]interface{}{
+"event_type": string(event.Type),
+"data":       string(data),
+},
+}).Result()
+if err != nil {
+return fmt.Errorf("publish to redis stream: %w", err)
+}
+p.logger.Debug("event published to stream",
+zap.String("event_id", event.ID),
+zap.String("stream", p.streamName),
+)
+return nil
+}
+
+func (p *RedisStreamPublisher) PublishBatch(ctx context.Context, events []*Event) error {
+pipe := p.client.Pipeline()
+for _, event := range events {
+data, err := json.Marshal(event)
+if err != nil {
+return fmt.Errorf("marshal event %s: %w", event.ID, err)
+}
+pipe.XAdd(ctx, &redis.XAddArgs{
+Stream: p.streamName,
+Values: map[string]interface{}{
+"event_type": string(event.Type),
+"data":       string(data),
+},
+})
+}
+_, err := pipe.Exec(ctx)
+return err
+}
+
+func (p *RedisStreamPublisher) Close() error {
+return nil
+}
+
+// ---------------------------------------------------------------------------
+// RedisStreamConsumer — consumer-group based stream reader
+// ---------------------------------------------------------------------------
+
+// RedisStreamConsumer consumes events from a Redis Stream using consumer groups.
+type RedisStreamConsumer struct {
+client    *redis.Client
+logger    *zap.Logger
+stream    string
+group     string
+consumer  string
+batchSize int64
+}
+
+// NewRedisStreamConsumer creates a consumer for Redis Streams with consumer group support.
+func NewRedisStreamConsumer(client *redis.Client, logger *zap.Logger, stream, group, consumer string) *RedisStreamConsumer {
+return &RedisStreamConsumer{
+client:    client,
+logger:    logger,
+stream:    stream,
+group:     group,
+consumer:  consumer,
+batchSize: 10,
+}
+}
+
+// Start begins consuming events from the stream.
+func (c *RedisStreamConsumer) Start(ctx context.Context, handler Handler) error {
+// Create consumer group if it doesn't exist.
+err := c.client.XGroupCreateMkStream(ctx, c.stream, c.group, "0").Err()
+if err != nil && !strings.Contains(err.Error(), "BUSYGROUP") {
+return fmt.Errorf("create consumer group: %w", err)
+}
+go c.consume(ctx, handler)
+return nil
+}
+
+func (c *RedisStreamConsumer) consume(ctx context.Context, handler Handler) {
+for {
+select {
+case <-ctx.Done():
+return
+default:
+}
+
+streams, err := c.client.XReadGroup(ctx, &redis.XReadGroupArgs{
+Group:    c.group,
+Consumer: c.consumer,
+Streams:  []string{c.stream, ">"},
+Count:    c.batchSize,
+Block:    2 * time.Second,
+}).Result()
+if err != nil {
+if err == redis.Nil {
+continue
+}
+c.logger.Error("stream read error", zap.Error(err))
+time.Sleep(time.Second)
+continue
+}
+
+for _, stream := range streams {
+for _, msg := range stream.Messages {
+data, ok := msg.Values["data"].(string)
+if !ok {
+continue
+}
+var event Event
+if err := json.Unmarshal([]byte(data), &event); err != nil {
+c.logger.Error("unmarshal stream event", zap.Error(err))
+continue
+}
+if err := handler(ctx, &event); err != nil {
+c.logger.Error("handler failed",
+zap.String("event_id", event.ID),
+zap.Error(err),
+)
+}
+c.client.XAck(ctx, c.stream, c.group, msg.ID)
+}
+}
+}
+}

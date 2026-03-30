@@ -4,8 +4,9 @@ import (
 	"context"
 
 	bizerr "github.com/trustinbox/cornerstone/errors"
-	"github.com/trustinbox/user-service/internal/usecase"
 	pb "github.com/trustinbox/proto/gen/user/v1"
+	"github.com/trustinbox/user-service/internal/domain/entity"
+	"github.com/trustinbox/user-service/internal/usecase"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -27,37 +28,53 @@ func (h *UserHandler) GetUserProfile(ctx context.Context, req *pb.GetUserProfile
 		return nil, mapError(err)
 	}
 	return &pb.GetUserProfileResponse{
-		UserId:          profile.UserID,
-		Username:        profile.Username,
-		FullName:        profile.FullName,
-		Email:           profile.Email,
-		VirtualPublicId: profile.VirtualPublicID,
-		AvatarUrl:       profile.AvatarURL,
-		Timezone:        profile.Timezone,
-		Language:        profile.Language,
-		Status:          profile.Status,
+		UserId:    profile.UserID,
+		FullName:  profile.FullName,
+		AvatarUrl: profile.AvatarURL,
+		Timezone:  profile.Timezone,
+		Language:  profile.Language,
 	}, nil
 }
 
 func (h *UserHandler) UpdateUserProfile(ctx context.Context, req *pb.UpdateUserProfileRequest) (*pb.UpdateUserProfileResponse, error) {
-	// TODO: implement when use case supports it
 	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 
 func (h *UserHandler) GetPrivacyPreference(ctx context.Context, req *pb.GetPrivacyPreferenceRequest) (*pb.PrivacyPreference, error) {
-	// TODO: implement get privacy preferences
 	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 
 func (h *UserHandler) UpdatePrivacyPreference(ctx context.Context, req *pb.UpdatePrivacyPreferenceRequest) (*pb.PrivacyPreference, error) {
-	pref, err := h.uc.UpdatePrivacyPreference(ctx, req.UserId, toPrefMap(req))
-	if err != nil {
+	pref := &entity.PrivacyPreference{UserID: req.UserId}
+	if req.AllowPersonalNotifications != nil {
+		pref.AllowPersonalNotifications = *req.AllowPersonalNotifications
+	}
+	if req.AllowSpNotifications != nil {
+		pref.AllowOrgNotifications = *req.AllowSpNotifications
+	}
+	if req.AllowAdvertisements != nil {
+		pref.AllowAdvertisements = *req.AllowAdvertisements
+	}
+	if req.AllowCallbackRequests != nil {
+		pref.AllowCallbackRequests = *req.AllowCallbackRequests
+	}
+	if req.AllowChat != nil {
+		pref.AllowChat = *req.AllowChat
+	}
+	if req.AllowDocumentShares != nil {
+		pref.AllowDocumentShares = *req.AllowDocumentShares
+	}
+	if req.RequireCallApproval != nil {
+		pref.RequireCallApproval = *req.RequireCallApproval
+	}
+
+	if err := h.uc.UpdatePrivacyPreference(ctx, pref); err != nil {
 		return nil, mapError(err)
 	}
 	return &pb.PrivacyPreference{
 		UserId:                     pref.UserID,
 		AllowPersonalNotifications: pref.AllowPersonalNotifications,
-		AllowOrgNotifications:      pref.AllowOrgNotifications,
+		AllowSpNotifications:       pref.AllowOrgNotifications,
 		AllowAdvertisements:        pref.AllowAdvertisements,
 		AllowCallbackRequests:      pref.AllowCallbackRequests,
 		AllowChat:                  pref.AllowChat,
@@ -87,7 +104,14 @@ func (h *UserHandler) ListAvailabilitySlots(ctx context.Context, req *pb.ListAva
 }
 
 func (h *UserHandler) CreateAvailabilitySlot(ctx context.Context, req *pb.CreateAvailabilitySlotRequest) (*pb.AvailabilitySlot, error) {
-	slot, err := h.uc.CreateAvailabilitySlot(ctx, req.UserId, int(req.DayOfWeek), req.StartTime, req.EndTime, req.SlotType)
+	slot, err := h.uc.CreateAvailabilitySlot(ctx, &entity.AvailabilitySlot{
+		UserID:    req.UserId,
+		DayOfWeek: int(req.DayOfWeek),
+		StartTime: req.StartTime,
+		EndTime:   req.EndTime,
+		SlotType:  req.SlotType,
+		IsActive:  true,
+	})
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -103,7 +127,6 @@ func (h *UserHandler) CreateAvailabilitySlot(ctx context.Context, req *pb.Create
 }
 
 func (h *UserHandler) DeleteAvailabilitySlot(ctx context.Context, req *pb.DeleteAvailabilitySlotRequest) (*pb.DeleteAvailabilitySlotResponse, error) {
-	// TODO: implement
 	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 
@@ -137,7 +160,15 @@ func (h *UserHandler) CreateDNDRule(ctx context.Context, req *pb.CreateDNDRuleRe
 	for i, d := range req.DaysOfWeek {
 		days[i] = int(d)
 	}
-	rule, err := h.uc.CreateDNDRule(ctx, req.UserId, req.ScopeType, req.ScopeRefId, req.StartTime, req.EndTime, days)
+	rule, err := h.uc.CreateDNDRule(ctx, &entity.DNDRule{
+		UserID:     req.UserId,
+		ScopeType:  req.ScopeType,
+		ScopeRefID: req.ScopeRefId,
+		StartTime:  req.StartTime,
+		EndTime:    req.EndTime,
+		DaysOfWeek: days,
+		IsActive:   req.IsActive,
+	})
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -165,51 +196,24 @@ func (h *UserHandler) DeleteDNDRule(ctx context.Context, req *pb.DeleteDNDRuleRe
 	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 
-func (h *UserHandler) BlockOrganization(ctx context.Context, req *pb.BlockOrganizationRequest) (*pb.BlockOrganizationResponse, error) {
-	err := h.uc.BlockOrganization(ctx, req.UserId, req.OrganizationId)
+func (h *UserHandler) BlockServiceProvider(ctx context.Context, req *pb.BlockServiceProviderRequest) (*pb.BlockServiceProviderResponse, error) {
+	err := h.uc.BlockServiceProvider(ctx, req.UserId, req.ServiceProviderId)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &pb.BlockOrganizationResponse{Success: true}, nil
+	return &pb.BlockServiceProviderResponse{Success: true}, nil
 }
 
-func (h *UserHandler) UnblockOrganization(ctx context.Context, req *pb.UnblockOrganizationRequest) (*pb.UnblockOrganizationResponse, error) {
-	err := h.uc.UnblockOrganization(ctx, req.UserId, req.OrganizationId)
+func (h *UserHandler) UnblockServiceProvider(ctx context.Context, req *pb.UnblockServiceProviderRequest) (*pb.UnblockServiceProviderResponse, error) {
+	err := h.uc.UnblockServiceProvider(ctx, req.UserId, req.ServiceProviderId)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &pb.UnblockOrganizationResponse{Success: true}, nil
+	return &pb.UnblockServiceProviderResponse{Success: true}, nil
 }
 
-func (h *UserHandler) ListBlockedOrganizations(ctx context.Context, req *pb.ListBlockedOrganizationsRequest) (*pb.ListBlockedOrganizationsResponse, error) {
-	// TODO: implement
+func (h *UserHandler) ListBlockedServiceProviders(ctx context.Context, req *pb.ListBlockedServiceProvidersRequest) (*pb.ListBlockedServiceProvidersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "not implemented")
-}
-
-func toPrefMap(req *pb.UpdatePrivacyPreferenceRequest) map[string]bool {
-	m := make(map[string]bool)
-	if req.AllowPersonalNotifications != nil {
-		m["allow_personal_notifications"] = *req.AllowPersonalNotifications
-	}
-	if req.AllowOrgNotifications != nil {
-		m["allow_org_notifications"] = *req.AllowOrgNotifications
-	}
-	if req.AllowAdvertisements != nil {
-		m["allow_advertisements"] = *req.AllowAdvertisements
-	}
-	if req.AllowCallbackRequests != nil {
-		m["allow_callback_requests"] = *req.AllowCallbackRequests
-	}
-	if req.AllowChat != nil {
-		m["allow_chat"] = *req.AllowChat
-	}
-	if req.AllowDocumentShares != nil {
-		m["allow_document_shares"] = *req.AllowDocumentShares
-	}
-	if req.RequireCallApproval != nil {
-		m["require_call_approval"] = *req.RequireCallApproval
-	}
-	return m
 }
 
 func mapError(err error) error {

@@ -7,11 +7,11 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-2xl space-y-8">
-        {/* Organization Profile */}
+        {/* Service Provider Profile */}
         <section className="bg-bg-card border border-border-primary rounded-xl p-6">
-          <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-4">Organization Profile</h2>
+          <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-4">Service Provider Profile</h2>
           <div className="space-y-4">
-            <SettingsField label="Organization Name" value="Acme Corp" />
+            <SettingsField label="Service Provider Name" value="Acme Corp" />
             <SettingsField label="Industry Profile" value="Banking & Finance" />
             <SettingsField label="Verification Status" value="Verified" badge />
             <SettingsField label="Tenant" value="default" />

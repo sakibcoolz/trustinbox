@@ -2,9 +2,11 @@ package grpc
 
 import (
 	"context"
+	"time"
 
-	"github.com/trustinbox/cornerstone/tracing"
 	bizerr "github.com/trustinbox/cornerstone/errors"
+	"github.com/trustinbox/cornerstone/tracing"
+	"github.com/trustinbox/policy-service/internal/domain/entity"
 	"github.com/trustinbox/policy-service/internal/usecase"
 	pb "github.com/trustinbox/proto/gen/policy/v1"
 	"go.opentelemetry.io/otel/attribute"
@@ -26,33 +28,49 @@ func NewPolicyHandler(evaluator *usecase.PolicyEvaluator) *PolicyHandler {
 func (h *PolicyHandler) EvaluateCommunication(ctx context.Context, req *pb.EvaluateCommunicationRequest) (*pb.EvaluateCommunicationResponse, error) {
 	ctx, span := tracing.StartSpan(ctx, "policy-service", "gRPC.EvaluateCommunication",
 		attribute.String("user_id", req.UserId),
-		attribute.String("organization_id", req.OrganizationId),
+		attribute.String("service_provider_id", req.ServiceProviderId),
 	)
 	defer span.End()
 
-	result, err := h.evaluator.Evaluate(ctx, req.UserId, req.OrganizationId,
-		mapCategory(req.Category),
-		mapChannel(req.Channel),
-		mapCommType(req.CommunicationType),
-		req.ScheduledUnix,
-	)
+	var scheduledTime time.Time
+	if req.ScheduledUnix > 0 {
+		scheduledTime = time.Unix(req.ScheduledUnix, 0)
+	}
+
+	result, err := h.evaluator.Evaluate(ctx, entity.EvaluationRequest{
+		UserID:            req.UserId,
+		ServiceProviderID: req.ServiceProviderId,
+		Category:          mapCategory(req.Category),
+		Channel:           mapChannel(req.Channel),
+		CommunicationType: mapCommType(req.CommunicationType),
+		ScheduledTime:     scheduledTime,
+	})
 	if err != nil {
 		return nil, mapError(err)
 	}
 
+	var nextAvailableUnix int64
+	if result.NextAvailableAt != nil {
+		nextAvailableUnix = result.NextAvailableAt.Unix()
+	}
+
 	return &pb.EvaluateCommunicationResponse{
-		Allowed:          result.Allowed,
-		DecisionCode:     mapDecisionCode(result.DecisionCode),
-		Reason:           result.Reason,
-		AppliedRules:     result.AppliedRules,
-		NextAvailableUnix: result.NextAvailableUnix,
+		Allowed:           result.Allowed,
+		DecisionCode:      mapDecisionCode(result.DecisionCode),
+		Reason:            result.Reason,
+		AppliedRules:      result.AppliedRules,
+		NextAvailableUnix: nextAvailableUnix,
 	}, nil
 }
 
 func (h *PolicyHandler) CheckCallbackPermission(ctx context.Context, req *pb.CheckCallbackPermissionRequest) (*pb.CheckCallbackPermissionResponse, error) {
-	result, err := h.evaluator.Evaluate(ctx, req.UserId, req.OrganizationId,
-		"ORGANIZATIONAL", "CALLBACK", "CALLBACK_REQUEST", 0,
-	)
+	result, err := h.evaluator.Evaluate(ctx, entity.EvaluationRequest{
+		UserID:            req.UserId,
+		ServiceProviderID: req.ServiceProviderId,
+		Category:          entity.CategoryServiceProvider,
+		Channel:           entity.ChannelCallback,
+		CommunicationType: entity.CommTypeCallbackReq,
+	})
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -64,80 +82,79 @@ func (h *PolicyHandler) CheckCallbackPermission(ctx context.Context, req *pb.Che
 }
 
 func (h *PolicyHandler) GetNextAvailableSlot(ctx context.Context, req *pb.GetNextAvailableSlotRequest) (*pb.GetNextAvailableSlotResponse, error) {
-	// TODO: implement next available slot lookup
 	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 
-func mapCategory(c pb.CommunicationCategory) string {
+func mapCategory(c pb.CommunicationCategory) entity.Category {
 	switch c {
 	case pb.CommunicationCategory_COMMUNICATION_CATEGORY_PERSONAL:
-		return "PERSONAL"
-	case pb.CommunicationCategory_COMMUNICATION_CATEGORY_ORGANIZATIONAL:
-		return "ORGANIZATIONAL"
+		return entity.CategoryPersonal
+	case pb.CommunicationCategory_COMMUNICATION_CATEGORY_SERVICE_PROVIDER:
+		return entity.CategoryServiceProvider
 	case pb.CommunicationCategory_COMMUNICATION_CATEGORY_ADVERTISEMENT:
-		return "ADVERTISEMENT"
+		return entity.CategoryAdvertisement
 	default:
-		return "UNKNOWN"
+		return entity.Category("UNKNOWN")
 	}
 }
 
-func mapChannel(c pb.CommunicationChannel) string {
+func mapChannel(c pb.CommunicationChannel) entity.Channel {
 	switch c {
 	case pb.CommunicationChannel_COMMUNICATION_CHANNEL_PUSH:
-		return "PUSH"
+		return entity.ChannelPush
 	case pb.CommunicationChannel_COMMUNICATION_CHANNEL_INBOX:
-		return "INBOX"
+		return entity.ChannelInbox
 	case pb.CommunicationChannel_COMMUNICATION_CHANNEL_CHAT:
-		return "CHAT"
+		return entity.ChannelChat
 	case pb.CommunicationChannel_COMMUNICATION_CHANNEL_CALLBACK:
-		return "CALLBACK"
+		return entity.ChannelCallback
 	case pb.CommunicationChannel_COMMUNICATION_CHANNEL_DOCUMENT:
-		return "DOCUMENT"
+		return entity.ChannelDocument
 	default:
-		return "UNKNOWN"
+		return entity.Channel("UNKNOWN")
 	}
 }
 
-func mapCommType(t pb.CommunicationType) string {
+func mapCommType(t pb.CommunicationType) entity.CommunicationType {
 	switch t {
 	case pb.CommunicationType_COMMUNICATION_TYPE_NOTIFICATION:
-		return "NOTIFICATION"
+		return entity.CommTypeNotification
 	case pb.CommunicationType_COMMUNICATION_TYPE_CALLBACK_REQUEST:
-		return "CALLBACK_REQUEST"
+		return entity.CommTypeCallbackReq
 	case pb.CommunicationType_COMMUNICATION_TYPE_CHAT_MESSAGE:
-		return "CHAT_MESSAGE"
+		return entity.CommTypeChatMessage
 	case pb.CommunicationType_COMMUNICATION_TYPE_DOCUMENT_SHARE:
-		return "DOCUMENT_SHARE"
+		return entity.CommTypeDocumentShare
 	case pb.CommunicationType_COMMUNICATION_TYPE_CAMPAIGN:
-		return "CAMPAIGN"
+		return entity.CommTypeCampaign
 	default:
-		return "UNKNOWN"
+		return entity.CommunicationType("UNKNOWN")
 	}
 }
 
-func mapDecisionCode(code string) pb.DecisionCode {
+func mapDecisionCode(code entity.DecisionCode) pb.DecisionCode {
 	switch code {
-	case "ALLOW_STANDARD":
+	case entity.DecisionAllowStandard:
 		return pb.DecisionCode_DECISION_CODE_ALLOW_STANDARD
-	case "DENY_USER_NOT_FOUND":
+	case entity.DecisionDenyUserNotFound:
 		return pb.DecisionCode_DECISION_CODE_DENY_USER_NOT_FOUND
-	case "DENY_ORG_NOT_VERIFIED":
-		return pb.DecisionCode_DECISION_CODE_DENY_ORG_NOT_VERIFIED
-	case "DENY_USER_BLOCKED_ORG":
-		return pb.DecisionCode_DECISION_CODE_DENY_USER_BLOCKED_ORG
-	case "DENY_CATEGORY_DISABLED":
+	case entity.DecisionDenySPNotVerified:
+		return pb.DecisionCode_DECISION_CODE_DENY_SP_NOT_VERIFIED
+	case entity.DecisionDenyUserBlockedSP:
+		return pb.DecisionCode_DECISION_CODE_DENY_USER_BLOCKED_SP
+	case entity.DecisionDenyCategoryDisabled:
 		return pb.DecisionCode_DECISION_CODE_DENY_CATEGORY_DISABLED
-	case "DENY_DND_ACTIVE":
+	case entity.DecisionDenyDNDActive:
 		return pb.DecisionCode_DECISION_CODE_DENY_DND_ACTIVE
-	case "DENY_OUTSIDE_AVAILABILITY":
+	case entity.DecisionDenyOutsideAvailability:
 		return pb.DecisionCode_DECISION_CODE_DENY_OUTSIDE_AVAILABILITY
-	case "DENY_AD_CAP_EXCEEDED":
+	case entity.DecisionDenyAdCapExceeded:
 		return pb.DecisionCode_DECISION_CODE_DENY_AD_CAP_EXCEEDED
-	case "DENY_ORG_SUSPENDED":
-		return pb.DecisionCode_DECISION_CODE_DENY_ORG_SUSPENDED
-	case "DENY_SPAM_SCORE_HIGH":
+	case entity.DecisionDenySPSuspended:
+		return pb.DecisionCode_DECISION_CODE_DENY_SP_SUSPENDED
+	case entity.DecisionDenySpamScoreHigh:
 		return pb.DecisionCode_DECISION_CODE_DENY_SPAM_SCORE_HIGH
-	case "REQUIRE_CALLBACK_APPROVAL":
+	case entity.DecisionRequireCallbackApproval:
 		return pb.DecisionCode_DECISION_CODE_REQUIRE_CALLBACK_APPROVAL
 	default:
 		return pb.DecisionCode_DECISION_CODE_UNSPECIFIED

@@ -23,20 +23,20 @@ const (
 // PolicyEvaluator implements the core policy evaluation logic.
 type PolicyEvaluator struct {
 	userRepo repository.UserPreferenceRepository
-	orgRepo  repository.OrganizationRepository
+	spRepo   repository.ServiceProviderRepository
 	freqRepo repository.FrequencyRepository
 	log      *zap.Logger
 }
 
 func NewPolicyEvaluator(
 	userRepo repository.UserPreferenceRepository,
-	orgRepo repository.OrganizationRepository,
+	spRepo repository.ServiceProviderRepository,
 	freqRepo repository.FrequencyRepository,
 	log *zap.Logger,
 ) *PolicyEvaluator {
 	return &PolicyEvaluator{
 		userRepo: userRepo,
-		orgRepo:  orgRepo,
+		spRepo:   spRepo,
 		freqRepo: freqRepo,
 		log:      log,
 	}
@@ -46,7 +46,7 @@ func NewPolicyEvaluator(
 func (e *PolicyEvaluator) Evaluate(ctx context.Context, req entity.EvaluationRequest) (*entity.EvaluationResult, error) {
 	ctx, span := tracing.StartSpan(ctx, tracerName, "PolicyEvaluator.Evaluate",
 		attribute.String("user_id", req.UserID),
-		attribute.String("organization_id", req.OrganizationID),
+		attribute.String("service_provider_id", req.ServiceProviderID),
 		attribute.String("category", string(req.Category)),
 	)
 	defer span.End()
@@ -65,36 +65,36 @@ func (e *PolicyEvaluator) Evaluate(ctx context.Context, req entity.EvaluationReq
 	}
 	result.AppliedRules = append(result.AppliedRules, "USER_EXISTS_CHECK")
 
-	// 2. Check organization exists and is verified
-	orgStatus, err := e.orgRepo.GetOrganizationStatus(ctx, req.OrganizationID)
+	// 2. Check service provider exists and is verified
+	spStatus, err := e.spRepo.GetServiceProviderStatus(ctx, req.ServiceProviderID)
 	if err != nil {
-		result.DecisionCode = entity.DecisionDenyOrgNotVerified
-		result.Reason = "organization not found"
-		result.AppliedRules = append(result.AppliedRules, "ORG_VERIFICATION_CHECK")
+		result.DecisionCode = entity.DecisionDenySPNotVerified
+		result.Reason = "service provider not found"
+		result.AppliedRules = append(result.AppliedRules, "SP_VERIFICATION_CHECK")
 		return result, nil
 	}
-	if orgStatus.VerificationStatus != "VERIFIED" {
-		result.DecisionCode = entity.DecisionDenyOrgNotVerified
-		result.Reason = fmt.Sprintf("organization verification status: %s", orgStatus.VerificationStatus)
-		result.AppliedRules = append(result.AppliedRules, "ORG_VERIFICATION_CHECK")
+	if spStatus.VerificationStatus != "VERIFIED" {
+		result.DecisionCode = entity.DecisionDenySPNotVerified
+		result.Reason = fmt.Sprintf("service provider verification status: %s", spStatus.VerificationStatus)
+		result.AppliedRules = append(result.AppliedRules, "SP_VERIFICATION_CHECK")
 		return result, nil
 	}
-	if orgStatus.Status == "SUSPENDED" {
-		result.DecisionCode = entity.DecisionDenyOrgSuspended
-		result.Reason = "organization is suspended"
-		result.AppliedRules = append(result.AppliedRules, "ORG_STATUS_CHECK")
+	if spStatus.Status == "SUSPENDED" {
+		result.DecisionCode = entity.DecisionDenySPSuspended
+		result.Reason = "service provider is suspended"
+		result.AppliedRules = append(result.AppliedRules, "SP_STATUS_CHECK")
 		return result, nil
 	}
-	result.AppliedRules = append(result.AppliedRules, "ORG_VERIFICATION_CHECK", "ORG_STATUS_CHECK")
+	result.AppliedRules = append(result.AppliedRules, "SP_VERIFICATION_CHECK", "SP_STATUS_CHECK")
 
-	// 3. Check user blocked organization
-	blocked, err := e.userRepo.IsOrganizationBlocked(ctx, req.UserID, req.OrganizationID)
+	// 3. Check user blocked service provider
+	blocked, err := e.userRepo.IsServiceProviderBlocked(ctx, req.UserID, req.ServiceProviderID)
 	if err != nil {
-		e.log.Error("failed to check blocked org", zap.Error(err))
+		e.log.Error("failed to check blocked service provider", zap.Error(err))
 	}
 	if blocked {
-		result.DecisionCode = entity.DecisionDenyUserBlockedOrg
-		result.Reason = "user has blocked this organization"
+		result.DecisionCode = entity.DecisionDenyUserBlockedSP
+		result.Reason = "user has blocked this service provider"
 		result.AppliedRules = append(result.AppliedRules, "BLOCK_LIST_CHECK")
 		return result, nil
 	}
@@ -119,7 +119,7 @@ func (e *PolicyEvaluator) Evaluate(ctx context.Context, req entity.EvaluationReq
 	if err != nil {
 		e.log.Error("failed to load DND rules", zap.Error(err))
 	}
-	if e.isDNDActive(dndRules, evalTime, req.Category, req.OrganizationID) {
+	if e.isDNDActive(dndRules, evalTime, req.Category, req.ServiceProviderID) {
 		result.DecisionCode = entity.DecisionDenyDNDActive
 		result.Reason = "user is in Do Not Disturb mode"
 		result.AppliedRules = append(result.AppliedRules, "DND_CHECK")
@@ -139,7 +139,7 @@ func (e *PolicyEvaluator) Evaluate(ctx context.Context, req entity.EvaluationReq
 
 	// 7. Check ad frequency cap
 	if req.Category == entity.CategoryAdvertisement {
-		adCount, err := e.freqRepo.GetAdCountForUser(ctx, req.UserID, req.OrganizationID)
+		adCount, err := e.freqRepo.GetAdCountForUser(ctx, req.UserID, req.ServiceProviderID)
 		if err != nil {
 			e.log.Error("failed to check ad frequency", zap.Error(err))
 		}
@@ -153,9 +153,9 @@ func (e *PolicyEvaluator) Evaluate(ctx context.Context, req entity.EvaluationReq
 	}
 
 	// 8. Check spam score
-	if orgStatus.SpamScore >= spamScoreThreshold {
+	if spStatus.SpamScore >= spamScoreThreshold {
 		result.DecisionCode = entity.DecisionDenySpamScoreHigh
-		result.Reason = fmt.Sprintf("organization spam score too high: %.1f", orgStatus.SpamScore)
+		result.Reason = fmt.Sprintf("service provider spam score too high: %.1f", spStatus.SpamScore)
 		result.AppliedRules = append(result.AppliedRules, "SPAM_SCORE_CHECK")
 		return result, nil
 	}
@@ -172,8 +172,8 @@ func (e *PolicyEvaluator) isCategoryAllowed(prefs *entity.UserPreferences, categ
 	switch category {
 	case entity.CategoryPersonal:
 		return prefs.AllowPersonalNotifications
-	case entity.CategoryOrganizational:
-		return prefs.AllowOrgNotifications
+	case entity.CategoryServiceProvider:
+		return prefs.AllowSPNotifications
 	case entity.CategoryAdvertisement:
 		return prefs.AllowAdvertisements
 	}
@@ -189,7 +189,7 @@ func (e *PolicyEvaluator) isCategoryAllowed(prefs *entity.UserPreferences, categ
 	return true
 }
 
-func (e *PolicyEvaluator) isDNDActive(rules []entity.DNDRule, t time.Time, category entity.Category, orgID string) bool {
+func (e *PolicyEvaluator) isDNDActive(rules []entity.DNDRule, t time.Time, category entity.Category, spID string) bool {
 	dayOfWeek := int(t.Weekday())
 	currentTime := t.Format("15:04")
 
@@ -205,8 +205,8 @@ func (e *PolicyEvaluator) isDNDActive(rules []entity.DNDRule, t time.Time, categ
 			if rule.ScopeRefID != string(category) {
 				continue
 			}
-		case "ORGANIZATION":
-			if rule.ScopeRefID != orgID {
+		case "SERVICE_PROVIDER":
+			if rule.ScopeRefID != spID {
 				continue
 			}
 		}

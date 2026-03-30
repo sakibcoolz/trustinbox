@@ -17,7 +17,7 @@ type UserUseCase struct {
 	privacyRepo      repository.PrivacyPreferenceRepository
 	dndRepo          repository.DNDRuleRepository
 	availabilityRepo repository.AvailabilitySlotRepository
-	blockRepo        repository.BlockedOrganizationRepository
+	blockRepo        repository.BlockedServiceProviderRepository
 	log              *zap.Logger
 }
 
@@ -26,7 +26,7 @@ func NewUserUseCase(
 	privacyRepo repository.PrivacyPreferenceRepository,
 	dndRepo repository.DNDRuleRepository,
 	availabilityRepo repository.AvailabilitySlotRepository,
-	blockRepo repository.BlockedOrganizationRepository,
+	blockRepo repository.BlockedServiceProviderRepository,
 	log *zap.Logger,
 ) *UserUseCase {
 	return &UserUseCase{
@@ -85,14 +85,14 @@ func (uc *UserUseCase) ListAvailabilitySlots(ctx context.Context, userID string)
 	return uc.availabilityRepo.ListByUser(ctx, userID)
 }
 
-func (uc *UserUseCase) BlockOrganization(ctx context.Context, userID, orgID string) error {
-	return uc.blockRepo.Block(ctx, &entity.BlockedOrganization{
-		ID:             uuid.New().String(),
-		UserID:         userID,
-		OrganizationID: orgID,
+func (uc *UserUseCase) BlockServiceProvider(ctx context.Context, userID, spID string) error {
+	return uc.blockRepo.Block(ctx, &entity.BlockedServiceProvider{
+		ID:                uuid.New().String(),
+		UserID:            userID,
+		ServiceProviderID: spID,
 	})
 }
 
-func (uc *UserUseCase) UnblockOrganization(ctx context.Context, userID, orgID string) error {
-	return uc.blockRepo.Unblock(ctx, userID, orgID)
+func (uc *UserUseCase) UnblockServiceProvider(ctx context.Context, userID, spID string) error {
+	return uc.blockRepo.Unblock(ctx, userID, spID)
 }

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/trustinbox/cornerstone/tracing"
 	bizerr "github.com/trustinbox/cornerstone/errors"
+	"github.com/trustinbox/cornerstone/tracing"
 	"github.com/trustinbox/webhook-service/internal/domain/entity"
 	"github.com/trustinbox/webhook-service/internal/domain/repository"
 	"go.opentelemetry.io/otel/attribute"

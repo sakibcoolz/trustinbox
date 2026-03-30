@@ -2,7 +2,7 @@ package entity
 
 import "time"
 
-type Organization struct {
+type ServiceProvider struct {
 	ID                 string
 	Name               string
 	LegalName          string
@@ -15,23 +15,23 @@ type Organization struct {
 	UpdatedAt          time.Time
 }
 
-type OrganizationUser struct {
-	ID             string
-	OrganizationID string
-	UserID         string
-	Role           string // ORG_ADMIN, AGENT, ANALYST
-	Status         string
-	CreatedAt      time.Time
+type ServiceProviderUser struct {
+	ID                string
+	ServiceProviderID string
+	UserID            string
+	Role              string // SP_ADMIN, AGENT, ANALYST
+	Status            string
+	CreatedAt         time.Time
 }
 
-type OrganizationVerification struct {
-	ID             string
-	OrganizationID string
-	DocumentType   string
-	DocumentS3Key  string
-	Status         string
-	ReviewedBy     string
-	ReviewedAt     *time.Time
-	Notes          string
-	CreatedAt      time.Time
+type ServiceProviderVerification struct {
+	ID                string
+	ServiceProviderID string
+	DocumentType      string
+	DocumentS3Key     string
+	Status            string
+	ReviewedBy        string
+	ReviewedAt        *time.Time
+	Notes             string
+	CreatedAt         time.Time
 }

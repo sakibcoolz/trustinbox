@@ -19,13 +19,13 @@ type PolicyChecker interface {
 
 // BotUseCase implements bot lifecycle and action operations.
 type BotUseCase struct {
-	botRepo     repository.BotRepository
-	configRepo  repository.BotConfigurationRepository
-	permRepo    repository.BotPermissionRepository
-	sourceRepo  repository.KnowledgeSourceRepository
-	actionRepo  repository.BotActionLogRepository
-	statsRepo   repository.BotAnalyticsRepository
-	policy      PolicyChecker
+	botRepo    repository.BotRepository
+	configRepo repository.BotConfigurationRepository
+	permRepo   repository.BotPermissionRepository
+	sourceRepo repository.KnowledgeSourceRepository
+	actionRepo repository.BotActionLogRepository
+	statsRepo  repository.BotAnalyticsRepository
+	policy     PolicyChecker
 }
 
 // NewBotUseCase creates a new BotUseCase.
@@ -303,6 +303,144 @@ func (uc *BotUseCase) AddKnowledgeSource(ctx context.Context, botID, spID, sourc
 		return nil, bizerr.Internal("failed to create knowledge source", err)
 	}
 	return source, nil
+}
+
+// GetBotConfiguration retrieves the configuration for a bot.
+func (uc *BotUseCase) GetBotConfiguration(ctx context.Context, botID, spID string) (*entity.BotConfiguration, error) {
+	ctx, span := tracing.StartSpan(ctx, "bot-service", "BotUseCase.GetBotConfiguration",
+		attribute.String("bot_id", botID),
+	)
+	defer span.End()
+
+	bot, err := uc.botRepo.GetByID(ctx, botID)
+	if err != nil {
+		return nil, err
+	}
+	if bot.ServiceProviderID != spID {
+		return nil, bizerr.Forbidden("bot does not belong to this service provider")
+	}
+	return uc.configRepo.Get(ctx, botID)
+}
+
+// UpdateBotConfiguration updates the configuration for a bot.
+func (uc *BotUseCase) UpdateBotConfiguration(ctx context.Context, botID, spID string, config *entity.BotConfiguration) (*entity.BotConfiguration, error) {
+	ctx, span := tracing.StartSpan(ctx, "bot-service", "BotUseCase.UpdateBotConfiguration",
+		attribute.String("bot_id", botID),
+	)
+	defer span.End()
+
+	bot, err := uc.botRepo.GetByID(ctx, botID)
+	if err != nil {
+		return nil, err
+	}
+	if bot.ServiceProviderID != spID {
+		return nil, bizerr.Forbidden("bot does not belong to this service provider")
+	}
+
+	config.BotID = botID
+	if err := uc.configRepo.Upsert(ctx, config); err != nil {
+		return nil, bizerr.Internal("failed to update bot configuration", err)
+	}
+	return uc.configRepo.Get(ctx, botID)
+}
+
+// SetBotPermission sets a tool permission for a bot.
+func (uc *BotUseCase) SetBotPermission(ctx context.Context, botID, spID, toolName string, isAllowed bool, constraints string) error {
+	ctx, span := tracing.StartSpan(ctx, "bot-service", "BotUseCase.SetBotPermission",
+		attribute.String("bot_id", botID),
+		attribute.String("tool_name", toolName),
+	)
+	defer span.End()
+
+	bot, err := uc.botRepo.GetByID(ctx, botID)
+	if err != nil {
+		return err
+	}
+	if bot.ServiceProviderID != spID {
+		return bizerr.Forbidden("bot does not belong to this service provider")
+	}
+
+	perm := &entity.BotPermission{
+		ID:          uuid.New().String(),
+		BotID:       botID,
+		ToolName:    toolName,
+		IsAllowed:   isAllowed,
+		Constraints: constraints,
+	}
+	return uc.permRepo.Set(ctx, perm)
+}
+
+// ListBotPermissions returns all permissions for a bot.
+func (uc *BotUseCase) ListBotPermissions(ctx context.Context, botID, spID string) ([]*entity.BotPermission, error) {
+	ctx, span := tracing.StartSpan(ctx, "bot-service", "BotUseCase.ListBotPermissions",
+		attribute.String("bot_id", botID),
+	)
+	defer span.End()
+
+	bot, err := uc.botRepo.GetByID(ctx, botID)
+	if err != nil {
+		return nil, err
+	}
+	if bot.ServiceProviderID != spID {
+		return nil, bizerr.Forbidden("bot does not belong to this service provider")
+	}
+	return uc.permRepo.ListByBot(ctx, botID)
+}
+
+// RemoveKnowledgeSource removes a knowledge source from a bot.
+func (uc *BotUseCase) RemoveKnowledgeSource(ctx context.Context, sourceID, botID, spID string) error {
+	ctx, span := tracing.StartSpan(ctx, "bot-service", "BotUseCase.RemoveKnowledgeSource",
+		attribute.String("bot_id", botID),
+		attribute.String("source_id", sourceID),
+	)
+	defer span.End()
+
+	bot, err := uc.botRepo.GetByID(ctx, botID)
+	if err != nil {
+		return err
+	}
+	if bot.ServiceProviderID != spID {
+		return bizerr.Forbidden("bot does not belong to this service provider")
+	}
+	return uc.sourceRepo.Delete(ctx, sourceID)
+}
+
+// ListKnowledgeSources returns all knowledge sources for a bot.
+func (uc *BotUseCase) ListKnowledgeSources(ctx context.Context, botID, spID string) ([]*entity.KnowledgeSource, error) {
+	ctx, span := tracing.StartSpan(ctx, "bot-service", "BotUseCase.ListKnowledgeSources",
+		attribute.String("bot_id", botID),
+	)
+	defer span.End()
+
+	bot, err := uc.botRepo.GetByID(ctx, botID)
+	if err != nil {
+		return nil, err
+	}
+	if bot.ServiceProviderID != spID {
+		return nil, bizerr.Forbidden("bot does not belong to this service provider")
+	}
+	return uc.sourceRepo.ListByBot(ctx, botID)
+}
+
+// ListBotActionLogs returns action logs for a bot, optionally filtered by conversation.
+func (uc *BotUseCase) ListBotActionLogs(ctx context.Context, botID, spID, conversationID string, limit, offset int) ([]*entity.BotActionLog, int, error) {
+	ctx, span := tracing.StartSpan(ctx, "bot-service", "BotUseCase.ListBotActionLogs",
+		attribute.String("bot_id", botID),
+	)
+	defer span.End()
+
+	bot, err := uc.botRepo.GetByID(ctx, botID)
+	if err != nil {
+		return nil, 0, err
+	}
+	if bot.ServiceProviderID != spID {
+		return nil, 0, bizerr.Forbidden("bot does not belong to this service provider")
+	}
+
+	if conversationID != "" {
+		return uc.actionRepo.ListByConversation(ctx, conversationID, limit, offset)
+	}
+	return uc.actionRepo.ListByBot(ctx, botID, limit, offset)
 }
 
 // GetBotAnalytics retrieves analytics for a bot.

@@ -66,35 +66,35 @@ type NotificationAnalytics struct {
 
 // CallbackAnalytics provides callback-specific analytics.
 type CallbackAnalytics struct {
-	TotalRequested       int64
-	TotalApproved        int64
-	TotalCompleted       int64
-	TotalDenied          int64
-	ApprovalRate         float64
-	CompletionRate       float64
-	AvgApprovalTimeMS    int64
-	AvgCompletionTimeMS  int64
+	TotalRequested      int64
+	TotalApproved       int64
+	TotalCompleted      int64
+	TotalDenied         int64
+	ApprovalRate        float64
+	CompletionRate      float64
+	AvgApprovalTimeMS   int64
+	AvgCompletionTimeMS int64
 }
 
 // CampaignAnalytics provides campaign-specific analytics.
 type CampaignAnalytics struct {
-	TotalCampaigns   int64
-	TotalTargeted    int64
-	TotalDelivered   int64
-	TotalOptedOut    int64
-	DeliveryRate     float64
-	OptOutRate       float64
+	TotalCampaigns int64
+	TotalTargeted  int64
+	TotalDelivered int64
+	TotalOptedOut  int64
+	DeliveryRate   float64
+	OptOutRate     float64
 }
 
 // BotAnalytics provides bot-specific analytics.
 type BotAnalytics struct {
-	TotalConversations     int64
-	TotalActions           int64
-	TotalEscalations       int64
-	EscalationRate         float64
+	TotalConversations      int64
+	TotalActions            int64
+	TotalEscalations        int64
+	EscalationRate          float64
 	AvgTurnsPerConversation float64
-	AvgResponseTimeMS      int64
-	TopToolsUsed           map[string]int64
+	AvgResponseTimeMS       int64
+	TopToolsUsed            map[string]int64
 }
 
 // DateRange specifies a time window for analytics queries.

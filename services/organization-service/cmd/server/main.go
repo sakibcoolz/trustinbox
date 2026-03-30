@@ -9,6 +9,9 @@ import (
 
 	"github.com/trustinbox/cornerstone/config"
 	logger "github.com/trustinbox/cornerstone/logging"
+	grpcdelivery "github.com/trustinbox/organization-service/internal/delivery/grpc"
+	"github.com/trustinbox/organization-service/internal/usecase"
+	pb "github.com/trustinbox/proto/gen/organization/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -28,7 +31,13 @@ func main() {
 		log.Fatal("failed to listen", zap.Error(err))
 	}
 
+	// TODO: Replace nil with PostgreSQL repository implementations
+	spUC := usecase.NewSPUseCase(nil, nil, log)
+	handler := grpcdelivery.NewServiceProviderHandler(spUC)
+
 	srv := grpc.NewServer()
+	pb.RegisterServiceProviderServiceServer(srv, handler)
+
 	healthSrv := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(srv, healthSrv)
 	reflection.Register(srv)

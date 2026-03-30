@@ -12,64 +12,64 @@ import (
 	"go.uber.org/zap"
 )
 
-type OrgUseCase struct {
-	orgRepo     repository.OrganizationRepository
-	orgUserRepo repository.OrganizationUserRepository
-	log         *zap.Logger
+type SPUseCase struct {
+	spRepo     repository.ServiceProviderRepository
+	spUserRepo repository.ServiceProviderUserRepository
+	log        *zap.Logger
 }
 
-func NewOrgUseCase(
-	orgRepo repository.OrganizationRepository,
-	orgUserRepo repository.OrganizationUserRepository,
+func NewSPUseCase(
+	spRepo repository.ServiceProviderRepository,
+	spUserRepo repository.ServiceProviderUserRepository,
 	log *zap.Logger,
-) *OrgUseCase {
-	return &OrgUseCase{orgRepo: orgRepo, orgUserRepo: orgUserRepo, log: log}
+) *SPUseCase {
+	return &SPUseCase{spRepo: spRepo, spUserRepo: spUserRepo, log: log}
 }
 
-func (uc *OrgUseCase) CreateOrganization(ctx context.Context, org *entity.Organization, adminUserID string) (*entity.Organization, error) {
-	ctx, span := tracing.StartSpan(ctx, "organization-service", "CreateOrganization",
-		attribute.String("name", org.Name),
+func (uc *SPUseCase) CreateServiceProvider(ctx context.Context, sp *entity.ServiceProvider, adminUserID string) (*entity.ServiceProvider, error) {
+	ctx, span := tracing.StartSpan(ctx, "organization-service", "CreateServiceProvider",
+		attribute.String("name", sp.Name),
 	)
 	defer span.End()
 
-	org.ID = uuid.New().String()
-	org.VerificationStatus = "PENDING"
-	org.Status = "ACTIVE"
+	sp.ID = uuid.New().String()
+	sp.VerificationStatus = "PENDING"
+	sp.Status = "ACTIVE"
 
-	if err := uc.orgRepo.Create(ctx, org); err != nil {
-		return nil, bzerr.Internal("failed to create organization", err)
+	if err := uc.spRepo.Create(ctx, sp); err != nil {
+		return nil, bzerr.Internal("failed to create service provider", err)
 	}
 
 	// Add admin user
-	orgUser := &entity.OrganizationUser{
-		ID:             uuid.New().String(),
-		OrganizationID: org.ID,
-		UserID:         adminUserID,
-		Role:           "ORG_ADMIN",
-		Status:         "ACTIVE",
+	spUser := &entity.ServiceProviderUser{
+		ID:                uuid.New().String(),
+		ServiceProviderID: sp.ID,
+		UserID:            adminUserID,
+		Role:              "SP_ADMIN",
+		Status:            "ACTIVE",
 	}
-	if err := uc.orgUserRepo.Add(ctx, orgUser); err != nil {
-		return nil, bzerr.Internal("failed to add admin user to organization", err)
+	if err := uc.spUserRepo.Add(ctx, spUser); err != nil {
+		return nil, bzerr.Internal("failed to add admin user to service provider", err)
 	}
 
-	return org, nil
+	return sp, nil
 }
 
-func (uc *OrgUseCase) GetOrganization(ctx context.Context, id string) (*entity.Organization, error) {
-	org, err := uc.orgRepo.GetByID(ctx, id)
+func (uc *SPUseCase) GetServiceProvider(ctx context.Context, id string) (*entity.ServiceProvider, error) {
+	sp, err := uc.spRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, bzerr.NotFound("organization", id)
+		return nil, bzerr.NotFound("service_provider", id)
 	}
-	return org, nil
+	return sp, nil
 }
 
-func (uc *OrgUseCase) ListOrganizations(ctx context.Context, search, verificationStatus string, limit, offset int) ([]entity.Organization, int, error) {
-	return uc.orgRepo.List(ctx, search, verificationStatus, limit, offset)
+func (uc *SPUseCase) ListServiceProviders(ctx context.Context, search, verificationStatus string, limit, offset int) ([]entity.ServiceProvider, int, error) {
+	return uc.spRepo.List(ctx, search, verificationStatus, limit, offset)
 }
 
-func (uc *OrgUseCase) VerifyOrganization(ctx context.Context, orgID, decision, reason, adminUserID string) error {
-	ctx, span := tracing.StartSpan(ctx, "organization-service", "VerifyOrganization",
-		attribute.String("org_id", orgID),
+func (uc *SPUseCase) VerifyServiceProvider(ctx context.Context, spID, decision, reason, adminUserID string) error {
+	ctx, span := tracing.StartSpan(ctx, "organization-service", "VerifyServiceProvider",
+		attribute.String("sp_id", spID),
 		attribute.String("decision", decision),
 	)
 	defer span.End()
@@ -79,18 +79,18 @@ func (uc *OrgUseCase) VerifyOrganization(ctx context.Context, orgID, decision, r
 		status = "REJECTED"
 	}
 
-	return uc.orgRepo.UpdateVerificationStatus(ctx, orgID, status)
+	return uc.spRepo.UpdateVerificationStatus(ctx, spID, status)
 }
 
-func (uc *OrgUseCase) SuspendOrganization(ctx context.Context, orgID, reason, adminUserID string) error {
-	return uc.orgRepo.UpdateStatus(ctx, orgID, "SUSPENDED")
+func (uc *SPUseCase) SuspendServiceProvider(ctx context.Context, spID, reason, adminUserID string) error {
+	return uc.spRepo.UpdateStatus(ctx, spID, "SUSPENDED")
 }
 
-func (uc *OrgUseCase) AddOrgUser(ctx context.Context, orgUser *entity.OrganizationUser) (*entity.OrganizationUser, error) {
-	orgUser.ID = uuid.New().String()
-	orgUser.Status = "ACTIVE"
-	if err := uc.orgUserRepo.Add(ctx, orgUser); err != nil {
-		return nil, bzerr.Internal("failed to add organization user", err)
+func (uc *SPUseCase) AddSPUser(ctx context.Context, spUser *entity.ServiceProviderUser) (*entity.ServiceProviderUser, error) {
+	spUser.ID = uuid.New().String()
+	spUser.Status = "ACTIVE"
+	if err := uc.spUserRepo.Add(ctx, spUser); err != nil {
+		return nil, bzerr.Internal("failed to add service provider user", err)
 	}
-	return orgUser, nil
+	return spUser, nil
 }

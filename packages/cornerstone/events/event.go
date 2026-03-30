@@ -13,15 +13,15 @@ type EventType string
 
 // Domain event types.
 const (
-	// Organization events
-	OrganizationCreated  EventType = "organization.created"
-	OrganizationVerified EventType = "organization.verified"
-	OrganizationSuspended EventType = "organization.suspended"
+	// Service Provider events
+	ServiceProviderCreated   EventType = "service_provider.created"
+	ServiceProviderVerified  EventType = "service_provider.verified"
+	ServiceProviderSuspended EventType = "service_provider.suspended"
 
 	// Customer events
-	CustomerSynced       EventType = "customer.synced"
-	CustomerBlockedOrg   EventType = "customer.blocked_org"
-	CustomerUnblockedOrg EventType = "customer.unblocked_org"
+	CustomerSynced      EventType = "customer.synced"
+	CustomerBlockedSP   EventType = "customer.blocked_sp"
+	CustomerUnblockedSP EventType = "customer.unblocked_sp"
 
 	// Consent events
 	ConsentUpdated EventType = "consent.updated"
@@ -68,16 +68,16 @@ const (
 
 // Event is the standard domain event envelope.
 type Event struct {
-	ID              string          `json:"id"`
-	Type            EventType       `json:"type"`
-	TenantID        string          `json:"tenant_id,omitempty"`
-	ActorID         string          `json:"actor_id,omitempty"`
-	ServiceProviderID string        `json:"service_provider_id,omitempty"`
-	UserID          string          `json:"user_id,omitempty"`
-	EntityID        string          `json:"entity_id,omitempty"`
-	TraceID         string          `json:"trace_id,omitempty"`
-	Payload         json.RawMessage `json:"payload"`
-	OccurredAt      time.Time       `json:"occurred_at"`
+	ID                string          `json:"id"`
+	Type              EventType       `json:"type"`
+	TenantID          string          `json:"tenant_id,omitempty"`
+	ActorID           string          `json:"actor_id,omitempty"`
+	ServiceProviderID string          `json:"service_provider_id,omitempty"`
+	UserID            string          `json:"user_id,omitempty"`
+	EntityID          string          `json:"entity_id,omitempty"`
+	TraceID           string          `json:"trace_id,omitempty"`
+	Payload           json.RawMessage `json:"payload"`
+	OccurredAt        time.Time       `json:"occurred_at"`
 }
 
 // NewEvent creates a new event with a generated ID and timestamp.

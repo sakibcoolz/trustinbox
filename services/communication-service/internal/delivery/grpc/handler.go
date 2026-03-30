@@ -3,8 +3,9 @@ package grpc
 import (
 	"context"
 
-	bizerr "github.com/trustinbox/cornerstone/errors"
+	"github.com/trustinbox/communication-service/internal/domain/entity"
 	"github.com/trustinbox/communication-service/internal/usecase"
+	bizerr "github.com/trustinbox/cornerstone/errors"
 	pb "github.com/trustinbox/proto/gen/communication/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -23,14 +24,19 @@ func NewCommunicationHandler(uc *usecase.CommunicationUseCase) *CommunicationHan
 }
 
 func (h *CommunicationHandler) CreateCallbackRequest(ctx context.Context, req *pb.CreateCallbackRequestRequest) (*pb.CreateCallbackRequestResponse, error) {
-	result, err := h.uc.CreateCallbackRequest(ctx, req.UserId, req.OrganizationId, req.RequestedByOrgUserId, req.Reason, req.Details)
+	result, err := h.uc.CreateCallbackRequest(ctx, &entity.CallbackRequest{
+		UserID:            req.UserId,
+		ServiceProviderID: req.ServiceProviderId,
+		RequestedBySPUser: req.RequestedBySpUserId,
+		Reason:            req.Reason,
+		Details:           req.Details,
+	})
 	if err != nil {
 		return nil, mapError(err)
 	}
 	return &pb.CreateCallbackRequestResponse{
 		CallbackRequestId: result.ID,
 		Status:            result.Status,
-		RejectionReason:   result.RejectionReason,
 	}, nil
 }
 
@@ -60,14 +66,14 @@ func (h *CommunicationHandler) ListCallbackRequests(ctx context.Context, req *pb
 	pbReqs := make([]*pb.CallbackRequest, len(requests))
 	for i, r := range requests {
 		cbReq := &pb.CallbackRequest{
-			Id:                    r.ID,
-			UserId:                r.UserID,
-			OrganizationId:        r.OrganizationID,
-			RequestedByOrgUserId:  r.RequestedByOrgUserID,
-			Reason:                r.Reason,
-			Details:               r.Details,
-			Status:                r.Status,
-			RequestedAt:           timestamppb.New(r.RequestedAt),
+			Id:                  r.ID,
+			UserId:              r.UserID,
+			ServiceProviderId:   r.ServiceProviderID,
+			RequestedBySpUserId: r.RequestedBySPUser,
+			Reason:              r.Reason,
+			Details:             r.Details,
+			Status:              r.Status,
+			RequestedAt:         timestamppb.New(r.RequestedAt),
 		}
 		if r.RespondedAt != nil {
 			cbReq.RespondedAt = timestamppb.New(*r.RespondedAt)
@@ -106,11 +112,11 @@ func (h *CommunicationHandler) ListConversations(ctx context.Context, req *pb.Li
 	pbConvos := make([]*pb.Conversation, len(conversations))
 	for i, c := range conversations {
 		pbConvos[i] = &pb.Conversation{
-			Id:             c.ID,
-			UserId:         c.UserID,
-			OrganizationId: c.OrganizationID,
-			Status:         c.Status,
-			CreatedAt:      timestamppb.New(c.CreatedAt),
+			Id:                c.ID,
+			UserId:            c.UserID,
+			ServiceProviderId: c.ServiceProviderID,
+			Status:            c.Status,
+			CreatedAt:         timestamppb.New(c.CreatedAt),
 		}
 	}
 	return &pb.ListConversationsResponse{
@@ -120,16 +126,25 @@ func (h *CommunicationHandler) ListConversations(ctx context.Context, req *pb.Li
 }
 
 func (h *CommunicationHandler) SendMessage(ctx context.Context, req *pb.SendMessageRequest) (*pb.Message, error) {
-	msg, err := h.uc.SendMessage(ctx, req.ConversationId, req.SenderId, req.Body, req.MessageType)
+	msg, err := h.uc.SendMessage(ctx, &entity.Message{
+		ConversationID: req.ConversationId,
+		SenderType:     req.SenderType,
+		SenderRefID:    req.SenderRefId,
+		MessageType:    req.MessageType,
+		Content:        req.Content,
+		Metadata:       req.Metadata,
+	})
 	if err != nil {
 		return nil, mapError(err)
 	}
 	return &pb.Message{
 		Id:             msg.ID,
 		ConversationId: msg.ConversationID,
-		SenderId:       msg.SenderID,
-		Body:           msg.Body,
+		SenderType:     msg.SenderType,
+		SenderRefId:    msg.SenderRefID,
 		MessageType:    msg.MessageType,
+		Content:        msg.Content,
+		Metadata:       msg.Metadata,
 		CreatedAt:      timestamppb.New(msg.CreatedAt),
 	}, nil
 }
@@ -151,7 +166,14 @@ func (h *CommunicationHandler) ListDocumentShares(ctx context.Context, req *pb.L
 }
 
 func (h *CommunicationHandler) ReportSpam(ctx context.Context, req *pb.ReportSpamRequest) (*pb.ReportSpamResponse, error) {
-	err := h.uc.ReportSpam(ctx, req.ReportedBy, req.ConversationId, req.Reason)
+	err := h.uc.ReportSpam(ctx, &entity.SpamReport{
+		UserID:            req.UserId,
+		ServiceProviderID: req.OrganizationId,
+		NotificationID:    req.NotificationId,
+		CallbackRequestID: req.CallbackRequestId,
+		Reason:            req.Reason,
+		Details:           req.Details,
+	})
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -168,6 +190,8 @@ func mapError(err error) error {
 	case bizerr.IsInvalidInput(err):
 		return status.Errorf(codes.InvalidArgument, err.Error())
 	case bizerr.IsForbidden(err):
+		return status.Errorf(codes.PermissionDenied, err.Error())
+	case bizerr.IsPolicyDenied(err):
 		return status.Errorf(codes.PermissionDenied, err.Error())
 	default:
 		return status.Errorf(codes.Internal, err.Error())

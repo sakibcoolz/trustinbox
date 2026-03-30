@@ -6,19 +6,19 @@ import (
 	"github.com/trustinbox/organization-service/internal/domain/entity"
 )
 
-type OrganizationRepository interface {
-	Create(ctx context.Context, org *entity.Organization) error
-	GetByID(ctx context.Context, id string) (*entity.Organization, error)
-	List(ctx context.Context, search string, verificationStatus string, limit, offset int) ([]entity.Organization, int, error)
-	Update(ctx context.Context, org *entity.Organization) error
+type ServiceProviderRepository interface {
+	Create(ctx context.Context, sp *entity.ServiceProvider) error
+	GetByID(ctx context.Context, id string) (*entity.ServiceProvider, error)
+	List(ctx context.Context, search string, verificationStatus string, limit, offset int) ([]entity.ServiceProvider, int, error)
+	Update(ctx context.Context, sp *entity.ServiceProvider) error
 	UpdateVerificationStatus(ctx context.Context, id, status string) error
 	UpdateStatus(ctx context.Context, id, status string) error
 }
 
-type OrganizationUserRepository interface {
-	Add(ctx context.Context, orgUser *entity.OrganizationUser) error
-	Remove(ctx context.Context, id, orgID string) error
-	GetByID(ctx context.Context, id string) (*entity.OrganizationUser, error)
-	ListByOrg(ctx context.Context, orgID string, limit, offset int) ([]entity.OrganizationUser, int, error)
-	GetByOrgAndUser(ctx context.Context, orgID, userID string) (*entity.OrganizationUser, error)
+type ServiceProviderUserRepository interface {
+	Add(ctx context.Context, spUser *entity.ServiceProviderUser) error
+	Remove(ctx context.Context, id, spID string) error
+	GetByID(ctx context.Context, id string) (*entity.ServiceProviderUser, error)
+	ListBySP(ctx context.Context, spID string, limit, offset int) ([]entity.ServiceProviderUser, int, error)
+	GetBySPAndUser(ctx context.Context, spID, userID string) (*entity.ServiceProviderUser, error)
 }

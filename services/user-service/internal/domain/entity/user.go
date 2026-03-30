@@ -37,7 +37,7 @@ type PrivacyPreference struct {
 type DNDRule struct {
 	ID         string
 	UserID     string
-	ScopeType  string // GLOBAL, CATEGORY, ORGANIZATION
+	ScopeType  string // GLOBAL, CATEGORY, SERVICE_PROVIDER
 	ScopeRefID string
 	StartTime  string // HH:MM
 	EndTime    string // HH:MM
@@ -57,10 +57,10 @@ type AvailabilitySlot struct {
 	CreatedAt time.Time
 }
 
-type BlockedOrganization struct {
-	ID             string
-	UserID         string
-	OrganizationID string
-	Reason         string
-	CreatedAt      time.Time
+type BlockedServiceProvider struct {
+	ID                string
+	UserID            string
+	ServiceProviderID string
+	Reason            string
+	CreatedAt         time.Time
 }

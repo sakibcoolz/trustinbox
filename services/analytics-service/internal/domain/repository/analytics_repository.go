@@ -13,6 +13,6 @@ type AnalyticsRepository interface {
 	UpsertDailyMetrics(ctx context.Context, analytics *entity.DailyAnalytics) error
 	GetNotificationAnalytics(ctx context.Context, spID string, dateRange entity.DateRange) (*entity.NotificationAnalytics, error)
 	GetCallbackAnalytics(ctx context.Context, spID string, dateRange entity.DateRange) (*entity.CallbackAnalytics, error)
-	GetCampaignAnalytics(ctx context.Context, spID string, dateRange entity.DateRange) (*entity.CampaignAnalytics, error)
-	GetBotAnalytics(ctx context.Context, spID string, dateRange entity.DateRange) (*entity.BotAnalytics, error)
+	GetCampaignAnalytics(ctx context.Context, spID, campaignID string, dateRange entity.DateRange) (*entity.CampaignAnalytics, error)
+	GetBotAnalytics(ctx context.Context, spID, botID string, dateRange entity.DateRange) (*entity.BotAnalytics, error)
 }

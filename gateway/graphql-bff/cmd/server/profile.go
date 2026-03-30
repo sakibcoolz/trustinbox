@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/trustinbox/cornerstone/auth/jwt"
+	"github.com/trustinbox/graphql-bff/internal/clients"
+	userpb "github.com/trustinbox/proto/gen/user/v1"
 	"go.uber.org/zap"
 )
 
@@ -479,7 +481,7 @@ func sortActivityItems(items []activityItem) {
 // GET /api/privacy/preferences
 // ============================================================
 
-func handleGetPrivacyPreferences(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
+func handleGetPrivacyPreferences(svc *clients.ServiceClients, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -492,43 +494,34 @@ func handleGetPrivacyPreferences(db *sql.DB, tokenSvc *jwt.TokenService, log *za
 			return
 		}
 
-		resp := privacyPreferencesResponse{
-			AllowPersonalNotifications: true,
-			AllowSPNotifications:       true,
-			AllowAdvertisements:        false,
-			AllowCallbackRequests:      true,
-			AllowChat:                  true,
-			AllowDocumentShares:        true,
-			RequireCallApproval:        true,
-		}
-
-		err = db.QueryRowContext(r.Context(), `
-			SELECT
-				allow_personal_notifications,
-				allow_sp_notifications,
-				allow_advertisements,
-				allow_callback_requests,
-				allow_chat,
-				allow_document_shares,
-				require_call_approval
-				FROM privacy_preferences WHERE user_id = $1
-			`, userID).Scan(
-				&resp.AllowPersonalNotifications,
-				&resp.AllowSPNotifications,
-			&resp.AllowAdvertisements,
-			&resp.AllowCallbackRequests,
-			&resp.AllowChat,
-			&resp.AllowDocumentShares,
-			&resp.RequireCallApproval,
-		)
-		if err != nil && err != sql.ErrNoRows {
-			log.Error("handleGetPrivacyPreferences: query failed", zap.Error(err))
-			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to fetch preferences"})
+		// Fetch privacy preferences from user-service via gRPC
+		prefs, err := svc.User.GetPrivacyPreference(r.Context(), &userpb.GetPrivacyPreferenceRequest{
+			UserId: userID,
+		})
+		if err != nil {
+			log.Warn("user-service GetPrivacyPreference failed, returning defaults", zap.Error(err))
+			// Return defaults on error (service may not have data yet)
+			writeJSON(w, http.StatusOK, privacyPreferencesResponse{
+				AllowPersonalNotifications: true,
+				AllowSPNotifications:       true,
+				AllowAdvertisements:        false,
+				AllowCallbackRequests:      true,
+				AllowChat:                  true,
+				AllowDocumentShares:        true,
+				RequireCallApproval:        true,
+			})
 			return
 		}
-		// If ErrNoRows, return defaults already set above
 
-		writeJSON(w, http.StatusOK, resp)
+		writeJSON(w, http.StatusOK, privacyPreferencesResponse{
+			AllowPersonalNotifications: prefs.AllowPersonalNotifications,
+			AllowSPNotifications:       prefs.AllowSpNotifications,
+			AllowAdvertisements:        prefs.AllowAdvertisements,
+			AllowCallbackRequests:      prefs.AllowCallbackRequests,
+			AllowChat:                  prefs.AllowChat,
+			AllowDocumentShares:        prefs.AllowDocumentShares,
+			RequireCallApproval:        prefs.RequireCallApproval,
+		})
 	}
 }
 
@@ -536,7 +529,7 @@ func handleGetPrivacyPreferences(db *sql.DB, tokenSvc *jwt.TokenService, log *za
 // PATCH /api/privacy/preferences
 // ============================================================
 
-func handleUpdatePrivacyPreferences(db *sql.DB, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
+func handleUpdatePrivacyPreferences(svc *clients.ServiceClients, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPatch {
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -555,36 +548,21 @@ func handleUpdatePrivacyPreferences(db *sql.DB, tokenSvc *jwt.TokenService, log 
 			return
 		}
 
-		_, err = db.ExecContext(r.Context(), `
-			INSERT INTO privacy_preferences (
-				user_id,
-				allow_personal_notifications, allow_sp_notifications,
-				allow_advertisements, allow_callback_requests,
-				allow_chat, allow_document_shares,
-				require_call_approval,
-				created_at, updated_at
-			) VALUES ($1, TRUE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, NOW(), NOW())
-			ON CONFLICT (user_id) DO UPDATE SET
-				allow_personal_notifications = CASE WHEN $2 IS NOT NULL THEN $2 ELSE privacy_preferences.allow_personal_notifications END,
-				allow_sp_notifications       = CASE WHEN $3 IS NOT NULL THEN $3 ELSE privacy_preferences.allow_sp_notifications END,
-				allow_advertisements         = CASE WHEN $4 IS NOT NULL THEN $4 ELSE privacy_preferences.allow_advertisements END,
-				allow_callback_requests      = CASE WHEN $5 IS NOT NULL THEN $5 ELSE privacy_preferences.allow_callback_requests END,
-				allow_chat                   = CASE WHEN $6 IS NOT NULL THEN $6 ELSE privacy_preferences.allow_chat END,
-				allow_document_shares        = CASE WHEN $7 IS NOT NULL THEN $7 ELSE privacy_preferences.allow_document_shares END,
-				require_call_approval        = CASE WHEN $8 IS NOT NULL THEN $8 ELSE privacy_preferences.require_call_approval END,
-				updated_at = NOW()
-		`,
-			userID,
-			nullableBool(req.AllowPersonalNotifications),
-			nullableBool(req.AllowSPNotifications),
-			nullableBool(req.AllowAdvertisements),
-			nullableBool(req.AllowCallbackRequests),
-			nullableBool(req.AllowChat),
-			nullableBool(req.AllowDocumentShares),
-			nullableBool(req.RequireCallApproval),
-		)
+		// Build gRPC request with optional fields
+		updateReq := &userpb.UpdatePrivacyPreferenceRequest{
+			UserId:                     userID,
+			AllowPersonalNotifications: req.AllowPersonalNotifications,
+			AllowSpNotifications:       req.AllowSPNotifications,
+			AllowAdvertisements:        req.AllowAdvertisements,
+			AllowCallbackRequests:      req.AllowCallbackRequests,
+			AllowChat:                  req.AllowChat,
+			AllowDocumentShares:        req.AllowDocumentShares,
+			RequireCallApproval:        req.RequireCallApproval,
+		}
+
+		_, err = svc.User.UpdatePrivacyPreference(r.Context(), updateReq)
 		if err != nil {
-			log.Error("handleUpdatePrivacyPreferences: upsert failed", zap.Error(err))
+			log.Error("user-service UpdatePrivacyPreference failed", zap.Error(err))
 			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to update preferences"})
 			return
 		}

@@ -27,7 +27,7 @@ export default function CampaignsPage() {
       <div className="space-y-4">
         {[
           { name: 'Q4 Loan Offers', type: 'Personal', status: 'In Progress', targets: 1250, delivered: 980, optOuts: 12, date: 'Dec 1, 2024' },
-          { name: 'New Feature Announcement', type: 'Organizational', status: 'Completed', targets: 3400, delivered: 3350, optOuts: 3, date: 'Nov 15, 2024' },
+          { name: 'New Feature Announcement', type: 'Service Provider', status: 'Completed', targets: 3400, delivered: 3350, optOuts: 3, date: 'Nov 15, 2024' },
           { name: 'Holiday Promotion', type: 'Advertisement', status: 'Draft', targets: 0, delivered: 0, optOuts: 0, date: 'Dec 20, 2024' },
         ].map((campaign, i) => (
           <div key={i} className="bg-bg-card border border-border-primary rounded-xl p-5 hover:border-border-secondary transition-colors cursor-pointer">

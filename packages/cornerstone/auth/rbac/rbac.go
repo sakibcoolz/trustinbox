@@ -23,14 +23,14 @@ const (
 	PermDocumentView   Permission = "document.view"
 
 	// Campaign permissions
-	PermCampaignCreate  Permission = "campaign.create"
-	PermCampaignManage  Permission = "campaign.manage"
-	PermCampaignView    Permission = "campaign.view"
+	PermCampaignCreate Permission = "campaign.create"
+	PermCampaignManage Permission = "campaign.manage"
+	PermCampaignView   Permission = "campaign.view"
 
 	// Bot permissions
-	PermBotCreate  Permission = "bot.create"
-	PermBotManage  Permission = "bot.manage"
-	PermBotView    Permission = "bot.view"
+	PermBotCreate Permission = "bot.create"
+	PermBotManage Permission = "bot.manage"
+	PermBotView   Permission = "bot.view"
 
 	// Analytics permissions
 	PermAnalyticsView Permission = "analytics.view"
@@ -39,10 +39,10 @@ const (
 	PermComplianceView   Permission = "compliance.view"
 	PermComplianceExport Permission = "compliance.export"
 
-	// Team/Org management permissions
-	PermTeamManage         Permission = "team.manage"
-	PermTeamView           Permission = "team.view"
-	PermOrgSettingsManage  Permission = "org.settings.manage"
+	// Team/SP management permissions
+	PermTeamManage       Permission = "team.manage"
+	PermTeamView         Permission = "team.view"
+	PermSPSettingsManage Permission = "sp.settings.manage"
 
 	// Integration permissions
 	PermIntegrationManage Permission = "integration.manage"
@@ -84,7 +84,7 @@ var rolePermissions = map[Role][]Permission{
 		PermAnalyticsView,
 		PermComplianceView, PermComplianceExport,
 		PermTeamManage, PermTeamView,
-		PermOrgSettingsManage,
+		PermSPSettingsManage,
 		PermIntegrationManage, PermIntegrationView,
 		PermWebhookManage, PermWebhookView,
 		PermAPIKeyManage, PermAPIKeyView,
@@ -99,7 +99,7 @@ var rolePermissions = map[Role][]Permission{
 		PermAnalyticsView,
 		PermComplianceView, PermComplianceExport,
 		PermTeamManage, PermTeamView,
-		PermOrgSettingsManage,
+		PermSPSettingsManage,
 		PermIntegrationManage, PermIntegrationView,
 		PermWebhookManage, PermWebhookView,
 		PermAPIKeyManage, PermAPIKeyView,

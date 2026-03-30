@@ -67,21 +67,21 @@ func (uc *AnalyticsUseCase) GetCallbackAnalytics(ctx context.Context, spID strin
 }
 
 // GetCampaignAnalytics returns campaign-specific metrics.
-func (uc *AnalyticsUseCase) GetCampaignAnalytics(ctx context.Context, spID string, dateRange entity.DateRange) (*entity.CampaignAnalytics, error) {
+func (uc *AnalyticsUseCase) GetCampaignAnalytics(ctx context.Context, spID, campaignID string, dateRange entity.DateRange) (*entity.CampaignAnalytics, error) {
 	ctx, span := tracing.StartSpan(ctx, "analytics-service", "AnalyticsUseCase.GetCampaignAnalytics",
 		attribute.String("service_provider_id", spID),
 	)
 	defer span.End()
 
-	return uc.repo.GetCampaignAnalytics(ctx, spID, dateRange)
+	return uc.repo.GetCampaignAnalytics(ctx, spID, campaignID, dateRange)
 }
 
 // GetBotAnalytics returns bot-specific metrics.
-func (uc *AnalyticsUseCase) GetBotAnalytics(ctx context.Context, spID string, dateRange entity.DateRange) (*entity.BotAnalytics, error) {
+func (uc *AnalyticsUseCase) GetBotAnalytics(ctx context.Context, spID, botID string, dateRange entity.DateRange) (*entity.BotAnalytics, error) {
 	ctx, span := tracing.StartSpan(ctx, "analytics-service", "AnalyticsUseCase.GetBotAnalytics",
 		attribute.String("service_provider_id", spID),
 	)
 	defer span.End()
 
-	return uc.repo.GetBotAnalytics(ctx, spID, dateRange)
+	return uc.repo.GetBotAnalytics(ctx, spID, botID, dateRange)
 }

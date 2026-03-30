@@ -47,13 +47,13 @@ func NewNotificationUseCase(
 }
 
 type CreateNotificationInput struct {
-	UserID         string
-	OrganizationID string
-	Category       string
-	Title          string
-	Body           string
-	Priority       string
-	Metadata       map[string]string
+	UserID            string
+	ServiceProviderID string
+	Category          string
+	Title             string
+	Body              string
+	Priority          string
+	Metadata          map[string]string
 }
 
 type CreateNotificationResult struct {
@@ -65,14 +65,14 @@ type CreateNotificationResult struct {
 func (uc *NotificationUseCase) CreateNotification(ctx context.Context, input CreateNotificationInput) (*CreateNotificationResult, error) {
 	ctx, span := tracing.StartSpan(ctx, "notification-service", "CreateNotification",
 		attribute.String("user_id", input.UserID),
-		attribute.String("org_id", input.OrganizationID),
+		attribute.String("sp_id", input.ServiceProviderID),
 		attribute.String("category", input.Category),
 	)
 	defer span.End()
 
 	// Evaluate policy
 	allowed, reason, err := uc.policyChecker.EvaluateCommunication(
-		ctx, input.UserID, input.OrganizationID, input.Category, "INBOX", "NOTIFICATION",
+		ctx, input.UserID, input.ServiceProviderID, input.Category, "INBOX", "NOTIFICATION",
 	)
 	if err != nil {
 		return nil, bzerr.Internal("policy evaluation failed", err)
@@ -87,15 +87,15 @@ func (uc *NotificationUseCase) CreateNotification(ctx context.Context, input Cre
 
 	// Create notification
 	notif := &entity.Notification{
-		ID:             uuid.New().String(),
-		UserID:         input.UserID,
-		OrganizationID: input.OrganizationID,
-		Category:       input.Category,
-		Title:          input.Title,
-		Body:           input.Body,
-		Priority:       input.Priority,
-		Status:         "QUEUED",
-		Metadata:       input.Metadata,
+		ID:                uuid.New().String(),
+		UserID:            input.UserID,
+		ServiceProviderID: input.ServiceProviderID,
+		Category:          input.Category,
+		Title:             input.Title,
+		Body:              input.Body,
+		Priority:          input.Priority,
+		Status:            "QUEUED",
+		Metadata:          input.Metadata,
 	}
 
 	if err := uc.notifRepo.Create(ctx, notif); err != nil {

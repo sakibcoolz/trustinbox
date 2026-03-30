@@ -14,7 +14,7 @@ import (
 )
 
 type PolicyChecker interface {
-	EvaluateCallbackPermission(ctx context.Context, userID, orgID string) (bool, string, error)
+	EvaluateCallbackPermission(ctx context.Context, userID, spID string) (bool, string, error)
 }
 
 type CommunicationUseCase struct {
@@ -48,12 +48,12 @@ func NewCommunicationUseCase(
 func (uc *CommunicationUseCase) CreateCallbackRequest(ctx context.Context, req *entity.CallbackRequest) (*entity.CallbackRequest, error) {
 	ctx, span := tracing.StartSpan(ctx, "communication-service", "CreateCallbackRequest",
 		attribute.String("user_id", req.UserID),
-		attribute.String("org_id", req.OrganizationID),
+		attribute.String("sp_id", req.ServiceProviderID),
 	)
 	defer span.End()
 
 	// Check policy
-	allowed, reason, err := uc.policy.EvaluateCallbackPermission(ctx, req.UserID, req.OrganizationID)
+	allowed, reason, err := uc.policy.EvaluateCallbackPermission(ctx, req.UserID, req.ServiceProviderID)
 	if err != nil {
 		return nil, bzerr.Internal("policy check failed", err)
 	}

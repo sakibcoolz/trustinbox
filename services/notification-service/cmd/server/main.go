@@ -9,6 +9,9 @@ import (
 
 	"github.com/trustinbox/cornerstone/config"
 	logger "github.com/trustinbox/cornerstone/logging"
+	grpcdelivery "github.com/trustinbox/notification-service/internal/delivery/grpc"
+	"github.com/trustinbox/notification-service/internal/usecase"
+	pb "github.com/trustinbox/proto/gen/notification/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -28,7 +31,13 @@ func main() {
 		log.Fatal("failed to listen", zap.Error(err))
 	}
 
+	// TODO: Replace nil with PostgreSQL repository implementations and real PolicyChecker/QueuePublisher
+	notifUC := usecase.NewNotificationUseCase(nil, nil, nil, nil, log)
+	handler := grpcdelivery.NewNotificationHandler(notifUC)
+
 	srv := grpc.NewServer()
+	pb.RegisterNotificationServiceServer(srv, handler)
+
 	healthSrv := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(srv, healthSrv)
 	reflection.Register(srv)
