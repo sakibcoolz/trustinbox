@@ -9,6 +9,7 @@ use (
 	./services/auth-service
 	./services/bot-service
 	./services/communication-service
+	./services/document-service
 	./services/notification-service
 	./services/organization-service
 	./services/policy-service
