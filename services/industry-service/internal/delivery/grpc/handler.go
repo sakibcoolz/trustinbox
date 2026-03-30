@@ -76,6 +76,15 @@ func (h *IndustryProfileHandler) UpdateIndustryProfile(ctx context.Context, req 
 	return profileToProto(profile), nil
 }
 
+func (h *IndustryProfileHandler) GetSeedProfiles(ctx context.Context, _ *pb.GetSeedProfilesRequest) (*pb.GetSeedProfilesResponse, error) {
+	profiles := h.uc.GetSeedProfiles(ctx)
+	pbProfiles := make([]*pb.IndustryProfile, len(profiles))
+	for i, p := range profiles {
+		pbProfiles[i] = profileToProto(p)
+	}
+	return &pb.GetSeedProfilesResponse{Profiles: pbProfiles}, nil
+}
+
 // --- Proto mapping helpers ---
 
 func profileToProto(p *entity.IndustryProfile) *pb.IndustryProfile {
