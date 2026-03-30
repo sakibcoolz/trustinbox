@@ -80,7 +80,16 @@ func (h *WebhookHandler) ListSubscriptions(ctx context.Context, req *pb.ListSubs
 }
 
 func (h *WebhookHandler) TestSubscription(ctx context.Context, req *pb.TestSubscriptionRequest) (*pb.TestSubscriptionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "TestSubscription not yet implemented")
+	result, err := h.uc.TestSubscription(ctx, req.GetSubscriptionId(), req.GetServiceProviderId())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &pb.TestSubscriptionResponse{
+		Success:        result.Success,
+		ResponseStatus: int32(result.ResponseStatus),
+		ResponseBody:   result.ResponseBody,
+		DurationMs:     int32(result.DurationMs),
+	}, nil
 }
 
 func (h *WebhookHandler) ListDeliveries(ctx context.Context, req *pb.ListDeliveriesRequest) (*pb.ListDeliveriesResponse, error) {

@@ -101,10 +101,10 @@
   - [x] Domain entities (WebhookSubscription, WebhookDelivery)
   - [x] Repository interfaces
   - [x] WebhookUseCase (subscription CRUD + event dispatch + retry)
-  - [ ] PostgreSQL repository implementations
-  - [ ] HTTP delivery worker (POST to subscriber URLs with HMAC signing)
-  - [ ] Event consumer goroutine (Redis Streams → match subscriptions)
-  - [ ] gRPC delivery handler (pending proto gen)
+  - [x] PostgreSQL repository implementations
+  - [x] HTTP delivery worker (POST to subscriber URLs with HMAC signing)
+  - [x] Event consumer goroutine (Redis Streams → match subscriptions)
+  - [x] gRPC delivery handler (pending proto gen)
 
 - [x] **3.3 Analytics Service (`services/analytics-service`, port 50061)**
   - [x] go.mod with cornerstone replace directive
@@ -327,7 +327,7 @@
 - [ ] **9.3 Testing Strategy**
   - [x] Policy evaluator unit tests (reference implementation)
   - [ ] Unit tests for bot-service use case
-  - [ ] Unit tests for webhook-service use case
+  - [x] Unit tests for webhook-service use case
   - [ ] Unit tests for analytics-service use case
   - [ ] Integration tests for DB round-trips
   - [ ] E2E tests: notification delivery, callback approval, bot action
