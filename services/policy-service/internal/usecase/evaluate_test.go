@@ -257,8 +257,9 @@ func TestEvaluate_RequireCallbackApproval(t *testing.T) {
 	evaluator := newTestEvaluator(
 		&mockUserRepo{
 			prefs: &entity.UserPreferences{
-				AllowCallbackRequests: true,
-				RequireCallApproval:   true,
+				AllowPersonalNotifications: true,
+				AllowCallbackRequests:      true,
+				RequireCallApproval:        true,
 			},
 		},
 		&mockSPRepo{

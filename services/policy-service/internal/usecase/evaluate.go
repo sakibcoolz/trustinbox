@@ -202,15 +202,22 @@ func (e *PolicyEvaluator) publishPolicyEvent(ctx context.Context, req entity.Eva
 }
 
 func (e *PolicyEvaluator) isCategoryAllowed(prefs *entity.UserPreferences, category entity.Category, commType entity.CommunicationType) bool {
+	// Check category-level preference first.
 	switch category {
 	case entity.CategoryPersonal:
-		return prefs.AllowPersonalNotifications
+		if !prefs.AllowPersonalNotifications {
+			return false
+		}
 	case entity.CategoryServiceProvider:
-		return prefs.AllowSPNotifications
+		if !prefs.AllowSPNotifications {
+			return false
+		}
 	case entity.CategoryAdvertisement:
-		return prefs.AllowAdvertisements
+		if !prefs.AllowAdvertisements {
+			return false
+		}
 	}
-	// For specific communication types
+	// Also check communication-type-specific preferences.
 	switch commType {
 	case entity.CommTypeCallbackReq:
 		return prefs.AllowCallbackRequests

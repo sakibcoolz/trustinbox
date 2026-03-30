@@ -246,32 +246,32 @@
 
 ## Phase 7: Customer App Completion (`apps/web`)
 
-- [ ] **7.1 Settings Pages**
-  - [ ] Privacy preferences form (7 toggles → GraphQL mutation)
-  - [ ] DND rule manager (create/edit/delete + day/time picker)
-  - [ ] Availability slot manager (weekly calendar view)
-  - [ ] Blocked organizations list with unblock action
+- [x] **7.1 Settings Pages**
+  - [x] Privacy preferences form (7 toggles → GraphQL mutation)
+  - [x] DND rule manager (create/edit/delete + day/time picker)
+  - [x] Availability slot manager (weekly calendar view)
+  - [x] Blocked organizations list with unblock action
 
-- [ ] **7.2 Callback Request Center**
-  - [ ] Wire callback-request-list to GraphQL queries
-  - [ ] Approve/reject mutations with slot picker
-  - [ ] Status badges and timeline
+- [x] **7.2 Callback Request Center**
+  - [x] Wire callback-request-list to GraphQL queries
+  - [x] Approve/reject mutations with slot picker
+  - [x] Status badges and timeline
 
-- [ ] **7.3 Service Provider Directory**
-  - [ ] Search/browse verified providers
-  - [ ] View provider profile (industry, trust score, policy)
-  - [ ] Block/unblock provider
-  - [ ] View relationship history
+- [x] **7.3 Service Provider Directory**
+  - [x] Search/browse verified providers
+  - [x] View provider profile (industry, trust score, policy)
+  - [x] Block/unblock provider
+  - [x] View relationship history
 
-- [ ] **7.4 Document Center**
-  - [ ] List received documents with share context
-  - [ ] Secure document viewer (presigned URLs)
-  - [ ] Download tracking
+- [x] **7.4 Document Center**
+  - [x] List received documents with share context
+  - [x] Secure document viewer (presigned URLs)
+  - [x] Download tracking
 
-- [ ] **7.5 AI Summary Widget**
-  - [ ] Dashboard conversation summaries
-  - [ ] Notification digest (daily/weekly)
-  - [ ] Smart categorization badges
+- [x] **7.5 AI Summary Widget**
+  - [x] Dashboard conversation summaries
+  - [x] Notification digest (daily/weekly)
+  - [x] Smart categorization badges
 
 ---
 
@@ -281,31 +281,31 @@
   - [x] 5 roles defined (PLATFORM_ADMIN, SP_ADMIN, AGENT, ANALYST, CUSTOMER)
   - [x] 25+ granular permissions
   - [x] gRPC interceptor for RBAC enforcement
-  - [ ] Gateway resolver-level RBAC middleware
+  - [x] Gateway resolver-level RBAC middleware
 
-- [ ] **8.2 Tenant Isolation**
-  - [ ] Row-level security policies in PostgreSQL
-  - [ ] service_provider_id check in all repository queries
-  - [ ] Gateway context propagation for tenant scope
+- [x] **8.2 Tenant Isolation**
+  - [x] Row-level security policies in PostgreSQL
+  - [x] service_provider_id check in all repository queries
+  - [x] Gateway context propagation for tenant scope
 
 - [x] **8.3 Field Encryption**
   - [x] AES-256-GCM encryption in `packages/cornerstone/crypto/`
   - [x] HashField for deterministic search indexing
-  - [ ] Integrate encryption into user-service for PII fields
-  - [ ] Key management via env-injected master key
+  - [x] Integrate encryption into user-service for PII fields
+  - [x] Key management via env-injected master key
 
 - [x] **8.4 API Security**
   - [x] HMAC-SHA256 webhook signing (`packages/cornerstone/webhook/signing.go`)
-  - [ ] API key authentication middleware
-  - [ ] Rate limiting (100 req/min per API key)
-  - [ ] Signed URLs for document downloads (15-min expiry)
-  - [ ] CORS configuration
+  - [x] API key authentication middleware
+  - [x] Rate limiting (100 req/min per API key)
+  - [x] Signed URLs for document downloads (15-min expiry)
+  - [x] CORS configuration
 
-- [ ] **8.5 Bot Authorization**
+- [x] **8.5 Bot Authorization**
   - [x] Bot tool permission system (allow/deny per tool)
   - [x] Policy evaluation gate on every bot action
   - [x] Audit log for every bot action
-  - [ ] Verify bot cannot bypass DND, consent, or block rules (integration test)
+  - [x] Verify bot cannot bypass DND, consent, or block rules (integration test)
 
 ---
 

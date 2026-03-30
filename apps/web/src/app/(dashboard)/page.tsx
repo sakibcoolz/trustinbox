@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useNotifications } from '@/lib/notification-context';
 import { useChat } from '@/lib/chat-context';
 import { useMemo } from 'react';
+import { AISummaryWidget } from '@/features/dashboard/ai-summary-widget';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -72,6 +73,9 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* AI Summary Widget */}
+        <AISummaryWidget />
 
         {/* Quick actions */}
         <div className="grid grid-cols-3 gap-3 sm:gap-4">

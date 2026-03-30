@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/trustinbox/cornerstone/config"
+	"github.com/trustinbox/cornerstone/crypto"
 	logger "github.com/trustinbox/cornerstone/logging"
 	pb "github.com/trustinbox/proto/gen/user/v1"
 	grpcdelivery "github.com/trustinbox/user-service/internal/delivery/grpc"
@@ -26,12 +27,25 @@ func main() {
 
 	log.Info("starting user service", zap.String("grpc_port", cfg.GRPCPort))
 
+	// Field-level encryption for PII data.
+	// The master key MUST be injected via ENCRYPTION_MASTER_KEY env var in
+	// production.  A deterministic dev-only fallback is used when unset.
+	masterKey := config.GetEnv("ENCRYPTION_MASTER_KEY", "dev-master-key-change-in-production")
+	encryptor := crypto.NewEncryptor(masterKey)
+	log.Info("PII field encryption initialised",
+		zap.Bool("production_key", os.Getenv("ENCRYPTION_MASTER_KEY") != ""),
+	)
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.GRPCPort))
 	if err != nil {
 		log.Fatal("failed to listen", zap.Error(err))
 	}
 
-	// TODO: Replace nil with PostgreSQL repository implementations
+	// TODO: Replace nil with PostgreSQL repository implementations.
+	// When ready, wrap profile and identity repos with encryption:
+	//   profileRepo = encryption.NewEncryptedUserProfileRepository(pgProfileRepo, encryptor)
+	//   identityRepo = encryption.NewEncryptedUserIdentityRepository(pgIdentityRepo, encryptor)
+	_ = encryptor // will be used when repo implementations are wired
 	userUC := usecase.NewUserUseCase(nil, nil, nil, nil, nil, log)
 	handler := grpcdelivery.NewUserHandler(userUC)
 

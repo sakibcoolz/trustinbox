@@ -108,8 +108,8 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// CORS middleware
-	handler := corsMiddleware(mux)
+	// Middleware chain: CORS → RBAC → Tenant-scoping → handler
+	handler := corsMiddleware(rbacMiddleware(cfg.JWTSecret, log, tenantMiddleware(db, log, mux)))
 
 	// Health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -207,6 +207,9 @@ func main() {
 	mux.HandleFunc("/api/upload", handleUploadFile(chatD, minioClient))
 	mux.HandleFunc("/api/files/", handleServeFile(chatD, minioClient))
 
+	// Signed document download URL (15-min expiry)
+	mux.HandleFunc("/api/documents/signed-url/", handleSignedDocumentURL(db, tokenSvc, minioClient, log))
+
 	// Avatar upload/remove/serve endpoints
 	// Order matters: exact paths registered before the prefix catch-all.
 	mux.HandleFunc("/api/avatar/upload", handleAvatarUpload(chatD, minioClient))
@@ -287,7 +290,7 @@ func main() {
 	})
 
 	// ─── Provider API (v1) — API-key authenticated, rate-limited ─────
-	rl := newRateLimiter(50, 100) // 50 req/s sustained, 100 burst
+	rl := newRateLimiter(100.0/60.0, 20) // 100 req/min sustained, burst of 20
 	providerMux := http.NewServeMux()
 	providerMux.HandleFunc("/api/v1/notifications", handleProviderNotifications(svc, log))
 	providerMux.HandleFunc("/api/v1/notifications/", handleProviderNotifications(svc, log))
@@ -330,18 +333,37 @@ func main() {
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
+	// Allowed origins — configurable via CORS_ALLOWED_ORIGINS env var
+	// (comma-separated).  Defaults to development origins.
+	allowedOrigins := map[string]bool{
+		"http://localhost:3000": true,
+		"http://localhost:3001": true,
+		"http://localhost:3002": true,
+	}
+	if extra := os.Getenv("CORS_ALLOWED_ORIGINS"); extra != "" {
+		for _, o := range strings.Split(extra, ",") {
+			o = strings.TrimSpace(o)
+			if o != "" {
+				allowedOrigins[o] = true
+			}
+		}
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
-		if origin == "" {
-			origin = "http://localhost:3000"
+
+		// Only reflect the origin if it is in the allowlist.
+		if allowedOrigins[origin] {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
 		}
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key, X-Request-ID")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Max-Age", "86400")
 
 		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
