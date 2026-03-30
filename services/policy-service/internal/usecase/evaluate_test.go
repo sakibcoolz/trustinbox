@@ -63,7 +63,7 @@ func (m *mockFreqRepo) IncrementAdCount(ctx context.Context, userID, orgID strin
 }
 
 func newTestEvaluator(userRepo *mockUserRepo, orgRepo *mockOrgRepo, freqRepo *mockFreqRepo) *PolicyEvaluator {
-	return NewPolicyEvaluator(userRepo, orgRepo, freqRepo, zap.NewNop())
+	return NewPolicyEvaluator(userRepo, orgRepo, freqRepo, nil, zap.NewNop())
 }
 
 func TestEvaluate_AllowStandard(t *testing.T) {

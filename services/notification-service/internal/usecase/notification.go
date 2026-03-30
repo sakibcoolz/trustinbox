@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	bzerr "github.com/trustinbox/cornerstone/errors"
+	"github.com/trustinbox/cornerstone/events"
 	"github.com/trustinbox/cornerstone/tracing"
 	"github.com/trustinbox/notification-service/internal/domain/entity"
 	"github.com/trustinbox/notification-service/internal/domain/repository"
@@ -27,6 +28,7 @@ type NotificationUseCase struct {
 	deliveryRepo  repository.DeliveryRepository
 	policyChecker PolicyChecker
 	queue         QueuePublisher
+	publisher     events.EventPublisher
 	log           *zap.Logger
 }
 
@@ -35,13 +37,18 @@ func NewNotificationUseCase(
 	deliveryRepo repository.DeliveryRepository,
 	policyChecker PolicyChecker,
 	queue QueuePublisher,
+	publisher events.EventPublisher,
 	log *zap.Logger,
 ) *NotificationUseCase {
+	if publisher == nil {
+		publisher = events.NoopPublisher{}
+	}
 	return &NotificationUseCase{
 		notifRepo:     notifRepo,
 		deliveryRepo:  deliveryRepo,
 		policyChecker: policyChecker,
 		queue:         queue,
+		publisher:     publisher,
 		log:           log,
 	}
 }
@@ -107,6 +114,17 @@ func (uc *NotificationUseCase) CreateNotification(ctx context.Context, input Cre
 		uc.log.Error("failed to queue delivery", zap.String("notification_id", notif.ID), zap.Error(err))
 	}
 
+	// Publish event
+	evt := events.NewEvent(events.NotificationCreated, "notification-service", map[string]string{
+		"notification_id": notif.ID,
+		"category":        input.Category,
+		"priority":        input.Priority,
+		"status":          "QUEUED",
+	}).WithUser(input.UserID).WithOrg(input.OrganizationID)
+	if err := uc.publisher.Publish(ctx, evt); err != nil {
+		uc.log.Error("failed to publish notification event", zap.Error(err))
+	}
+
 	return &CreateNotificationResult{
 		NotificationID: notif.ID,
 		Status:         "QUEUED",
@@ -118,5 +136,14 @@ func (uc *NotificationUseCase) ListNotifications(ctx context.Context, userID, ca
 }
 
 func (uc *NotificationUseCase) MarkAsRead(ctx context.Context, notifID, userID string) error {
-	return uc.notifRepo.MarkAsRead(ctx, notifID, userID)
+	if err := uc.notifRepo.MarkAsRead(ctx, notifID, userID); err != nil {
+		return err
+	}
+	evt := events.NewEvent(events.NotificationRead, "notification-service", map[string]string{
+		"notification_id": notifID,
+	}).WithUser(userID)
+	if err := uc.publisher.Publish(ctx, evt); err != nil {
+		uc.log.Error("failed to publish notification read event", zap.Error(err))
+	}
+	return nil
 }
