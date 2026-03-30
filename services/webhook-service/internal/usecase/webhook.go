@@ -19,10 +19,14 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+// testPayload is the synthetic payload sent when testing a webhook subscription.
+const testPayload = `{"type":"webhook.test","data":{"message":"Test event from TrustInbox"}}`
+
 // WebhookUseCase implements webhook subscription and delivery operations.
 type WebhookUseCase struct {
 	subRepo      repository.WebhookSubscriptionRepository
 	deliveryRepo repository.WebhookDeliveryRepository
+	httpClient   *http.Client
 }
 
 // NewWebhookUseCase creates a new WebhookUseCase.
@@ -33,6 +37,7 @@ func NewWebhookUseCase(
 	return &WebhookUseCase{
 		subRepo:      subRepo,
 		deliveryRepo: deliveryRepo,
+		httpClient:   &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
@@ -267,7 +272,7 @@ func (uc *WebhookUseCase) TestSubscription(ctx context.Context, subID, spID stri
 		return nil, bizerr.Forbidden("subscription does not belong to this service provider")
 	}
 
-	payload := []byte(`{"type":"webhook.test","data":{"message":"Test event from TrustInbox"}}`)
+	payload := []byte(testPayload)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sub.URL, bytes.NewReader(payload))
 	if err != nil {
@@ -287,8 +292,7 @@ func (uc *WebhookUseCase) TestSubscription(ctx context.Context, subID, spID stri
 	}
 
 	start := time.Now()
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := uc.httpClient.Do(req)
 	durationMs := int(time.Since(start).Milliseconds())
 	if err != nil {
 		return &TestSubscriptionResult{
