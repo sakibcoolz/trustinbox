@@ -1,15 +1,20 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 	grpcdelivery "github.com/trustinbox/auth-service/internal/delivery/grpc"
+	"github.com/trustinbox/auth-service/internal/infra/postgres"
 	"github.com/trustinbox/auth-service/internal/usecase"
+	"github.com/trustinbox/cornerstone/auth/jwt"
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
@@ -44,8 +49,24 @@ func main() {
 	publisher := events.NewRedisStreamPublisher(rdb, log, "trustinbox:events")
 	defer publisher.Close()
 
-	// TODO: Replace nil with PostgreSQL repository implementations
-	authUC := usecase.NewAuthUseCase(nil, nil, nil, publisher, log)
+	// Database
+	db, err := sql.Open("postgres", cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal("failed to open database", zap.Error(err))
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		log.Fatal("failed to ping database", zap.Error(err))
+	}
+
+	// Repositories
+	userRepo := postgres.NewUserRepository(db)
+	tokenRepo := postgres.NewTokenRepository(db)
+
+	// JWT token service
+	tokenSvc := jwt.NewTokenService(cfg.JWTSecret, 15*time.Minute, 7*24*time.Hour)
+
+	authUC := usecase.NewAuthUseCase(userRepo, tokenRepo, tokenSvc, publisher, log)
 	handler := grpcdelivery.NewAuthHandler(authUC)
 
 	srv := grpc.NewServer()

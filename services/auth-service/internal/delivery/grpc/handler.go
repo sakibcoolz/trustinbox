@@ -53,7 +53,15 @@ func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 }
 
 func (h *AuthHandler) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "not implemented")
+	result, err := h.uc.RefreshToken(ctx, req.RefreshToken)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &pb.RefreshTokenResponse{
+		AccessToken:  result.AccessToken,
+		RefreshToken: result.RefreshToken,
+		ExpiresAt:    result.ExpiresAt,
+	}, nil
 }
 
 func (h *AuthHandler) ValidateToken(ctx context.Context, req *pb.ValidateTokenRequest) (*pb.ValidateTokenResponse, error) {

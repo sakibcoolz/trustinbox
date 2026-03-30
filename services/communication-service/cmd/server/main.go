@@ -1,14 +1,17 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
+	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 	grpcdelivery "github.com/trustinbox/communication-service/internal/delivery/grpc"
+	"github.com/trustinbox/communication-service/internal/infra/postgres"
 	"github.com/trustinbox/communication-service/internal/usecase"
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/events"
@@ -28,6 +31,17 @@ func main() {
 
 	log.Info("starting communication service", zap.String("grpc_port", cfg.GRPCPort))
 
+	// Database connection
+	db, err := sql.Open("postgres", cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal("failed to open database", zap.Error(err))
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		log.Fatal("failed to ping database", zap.Error(err))
+	}
+	log.Info("connected to database")
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.GRPCPort))
 	if err != nil {
 		log.Fatal("failed to listen", zap.Error(err))
@@ -44,8 +58,14 @@ func main() {
 	publisher := events.NewRedisStreamPublisher(rdb, log, "trustinbox:events")
 	defer publisher.Close()
 
-	// TODO: Replace nil with PostgreSQL repository implementations and real PolicyChecker
-	commUC := usecase.NewCommunicationUseCase(nil, nil, nil, nil, nil, publisher, log)
+	// PostgreSQL repository implementations
+	callbackRepo := postgres.NewCallbackRequestRepository(db)
+	convRepo := postgres.NewConversationRepository(db)
+	msgRepo := postgres.NewMessageRepository(db)
+	spamRepo := postgres.NewSpamReportRepository(db)
+
+	// PolicyChecker left nil for now — will be wired when cross-service integration is ready
+	commUC := usecase.NewCommunicationUseCase(callbackRepo, convRepo, msgRepo, spamRepo, nil, publisher, log)
 	handler := grpcdelivery.NewCommunicationHandler(commUC)
 
 	srv := grpc.NewServer()

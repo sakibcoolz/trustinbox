@@ -61,7 +61,7 @@ func (uc *AuthUseCase) Login(ctx context.Context, email, password string) (*Logi
 		return nil, bzerr.Unauthorized("account is not active")
 	}
 
-	accessToken, err := uc.tokenSvc.GenerateAccessToken(user.ID, "USER", "")
+	accessToken, err := uc.tokenSvc.GenerateAccessToken(user.ID, "CUSTOMER", "")
 	if err != nil {
 		return nil, bzerr.Internal("failed to generate access token", err)
 	}
@@ -123,7 +123,7 @@ func (uc *AuthUseCase) Register(ctx context.Context, input RegisterInput) (*Regi
 		return nil, bzerr.Wrap(bzerr.CodeAlreadyExists, "user already exists", err)
 	}
 
-	accessToken, _ := uc.tokenSvc.GenerateAccessToken(userID, "USER", "")
+	accessToken, _ := uc.tokenSvc.GenerateAccessToken(userID, "CUSTOMER", "")
 	refreshToken, _ := uc.tokenSvc.GenerateRefreshToken(userID)
 
 	tokenHash := hashToken(refreshToken)
@@ -167,4 +167,65 @@ func (uc *AuthUseCase) publishEvent(ctx context.Context, eventType events.EventT
 func hashToken(token string) string {
 	h := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(h[:])
+}
+
+func (uc *AuthUseCase) RefreshToken(ctx context.Context, refreshToken string) (*LoginResult, error) {
+	// Validate the refresh token JWT signature and expiry
+	userID, err := uc.tokenSvc.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		return nil, bzerr.Unauthorized("invalid or expired refresh token")
+	}
+
+	// Verify the token hash exists in DB and is not revoked
+	hash := hashToken(refreshToken)
+	stored, err := uc.tokenRepo.GetByHash(ctx, hash)
+	if err != nil {
+		return nil, bzerr.Unauthorized("refresh token not found")
+	}
+	if stored.Revoked {
+		return nil, bzerr.Unauthorized("refresh token has been revoked")
+	}
+	if stored.ExpiresAt.Before(time.Now()) {
+		return nil, bzerr.Unauthorized("refresh token expired")
+	}
+
+	// Revoke the old refresh token (rotate)
+	_ = uc.tokenRepo.Revoke(ctx, hash)
+
+	// Look up the user to get current role info
+	user, err := uc.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, bzerr.Unauthorized("user not found")
+	}
+	if user.Status != "ACTIVE" {
+		return nil, bzerr.Unauthorized("account is not active")
+	}
+
+	// Generate new token pair
+	newAccess, err := uc.tokenSvc.GenerateAccessToken(user.ID, "CUSTOMER", "")
+	if err != nil {
+		return nil, bzerr.Internal("failed to generate access token", err)
+	}
+	newRefresh, err := uc.tokenSvc.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return nil, bzerr.Internal("failed to generate refresh token", err)
+	}
+
+	// Store the new refresh token hash
+	newHash := hashToken(newRefresh)
+	if err := uc.tokenRepo.Store(ctx, &entity.RefreshToken{
+		ID:        uuid.New().String(),
+		UserID:    user.ID,
+		TokenHash: newHash,
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+	}); err != nil {
+		return nil, bzerr.Internal("failed to store refresh token", err)
+	}
+
+	return &LoginResult{
+		AccessToken:  newAccess,
+		RefreshToken: newRefresh,
+		UserID:       user.ID,
+		ExpiresAt:    time.Now().Add(15 * time.Minute).Unix(),
+	}, nil
 }

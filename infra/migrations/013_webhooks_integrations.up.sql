@@ -30,12 +30,14 @@ CREATE TABLE webhook_deliveries (
     response_status INT,
     response_body TEXT,
     response_headers JSONB,
-    attempt_count INT NOT NULL DEFAULT 1,
+    attempts INT NOT NULL DEFAULT 1,
+    max_retries INT NOT NULL DEFAULT 5,
     next_retry_at TIMESTAMPTZ,
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    error TEXT,
     duration_ms INT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    completed_at TIMESTAMPTZ
+    delivered_at TIMESTAMPTZ
 );
 
 CREATE INDEX idx_webhook_deliveries_sub ON webhook_deliveries(subscription_id);

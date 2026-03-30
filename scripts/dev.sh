@@ -48,7 +48,7 @@ source "$ROOT/.env"
 set +a
 
 # ── 5. Kill any stale processes on our ports ────────────────────────────────
-PORTS="50051 50052 50053 50054 50055 50056 50057 50058 4000 3000"
+PORTS="50051 50052 50053 50054 50055 50056 50057 50058 50059 50060 50061 50062 50063 4000 3000"
 for port in $PORTS; do
   fuser -k "$port/tcp" 2>/dev/null || true
 done
@@ -89,6 +89,26 @@ echo "[ai-service]           → :50057"
 GRPC_PORT=50058 SERVICE_NAME=worker-service \
   go run "$ROOT/services/worker-service/cmd/server" &
 echo "[worker-service]       → :50058"
+
+GRPC_PORT=50059 SERVICE_NAME=bot-service \
+  go run "$ROOT/services/bot-service/cmd/server" &
+echo "[bot-service]          → :50059"
+
+GRPC_PORT=50060 SERVICE_NAME=webhook-service \
+  go run "$ROOT/services/webhook-service/cmd/server" &
+echo "[webhook-service]      → :50060"
+
+GRPC_PORT=50061 SERVICE_NAME=analytics-service \
+  go run "$ROOT/services/analytics-service/cmd/server" &
+echo "[analytics-service]    → :50061"
+
+GRPC_PORT=50062 SERVICE_NAME=document-service \
+  go run "$ROOT/services/document-service/cmd/server" &
+echo "[document-service]     → :50062"
+
+GRPC_PORT=50063 SERVICE_NAME=industry-service \
+  go run "$ROOT/services/industry-service/cmd/server" &
+echo "[industry-service]     → :50063"
 
 # ── 8. Start GraphQL gateway ─────────────────────────────────────────────────
 HTTP_PORT=4000 SERVICE_NAME=graphql-gateway \

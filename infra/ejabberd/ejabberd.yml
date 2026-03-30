@@ -24,6 +24,16 @@ loglevel: info
 auth_method: jwt
 jwt_key: "/home/ejabberd/conf/jwt_secret"   # JWK file; kty=oct auto-selects HS256; MUST match JWT_SECRET in gateway env
 
+# JWT auth requires SASL PLAIN – the client sends the JWT as the password.
+# Disable stronger mechanisms so @xmpp/client doesn't negotiate SCRAM (which
+# requires a stored password hash that doesn't exist for JWT-only auth).
+disable_sasl_mechanisms:
+  - "SCRAM-SHA-1"
+  - "SCRAM-SHA-256"
+  - "SCRAM-SHA-512"
+  - "DIGEST-MD5"
+  - "X-OAUTH2"
+
 # ─── Listeners ────────────────────────────────────────────────────────────────
 listen:
   # Standard XMPP client port (native TCP, optional – mainly for server-side tools)

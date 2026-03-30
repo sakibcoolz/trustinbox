@@ -119,9 +119,9 @@ func main() {
 
 	// Auth endpoints
 	mux.HandleFunc("/api/auth/login", handleLogin(svc, db, tokenSvc, cfg.JWTSecret, log))
-	mux.HandleFunc("/api/auth/register", handleRegister(svc, tokenSvc, log))
+	mux.HandleFunc("/api/auth/register", handleRegister(svc, db, tokenSvc, cfg.JWTSecret, log))
 	mux.HandleFunc("/api/auth/me", handleMe(svc, tokenSvc, log))
-	mux.HandleFunc("/api/auth/refresh", handleRefresh(svc, tokenSvc, log))
+	mux.HandleFunc("/api/auth/refresh", handleRefresh(svc, db, tokenSvc, cfg.JWTSecret, log))
 
 	// User endpoints
 	mux.HandleFunc("/api/users/search", handleSearchUsers(db, tokenSvc, log))
@@ -445,7 +445,47 @@ func handleLogin(svc *clients.ServiceClients, db *sql.DB, tokenSvc *jwt.TokenSer
 			UserId: loginResp.UserId,
 		})
 		if profileErr != nil {
-			log.Warn("user-service GetUserProfile failed after login", zap.Error(profileErr))
+			// Profile row may not exist (registered before this fix). Create it from
+			// the users table so subsequent calls succeed.
+			var dbEmail, dbUsername sql.NullString
+			row := db.QueryRowContext(r.Context(),
+				`SELECT email, username FROM users WHERE id = $1`,
+				loginResp.UserId,
+			)
+			if row.Scan(&dbEmail, &dbUsername) == nil {
+				email = dbEmail.String
+				username = dbUsername.String
+			}
+			// Try to get full_name from user_profiles (may not exist yet)
+			var dbFullName sql.NullString
+			_ = db.QueryRowContext(r.Context(),
+				`SELECT full_name FROM user_profiles WHERE user_id = $1`,
+				loginResp.UserId,
+			).Scan(&dbFullName)
+			fullName = dbFullName.String
+
+			// Try to get virtual_public_id from user_identities
+			var dbVpid sql.NullString
+			_ = db.QueryRowContext(r.Context(),
+				`SELECT virtual_public_id FROM user_identities WHERE user_id = $1 AND is_active = true LIMIT 1`,
+				loginResp.UserId,
+			).Scan(&dbVpid)
+			virtualPublicID = dbVpid.String
+
+			// Backfill user_profiles row if it doesn't exist and we have a name
+			if fullName == "" && email != "" {
+				// Use username as fallback for full_name (NOT NULL column)
+				fallbackName := username
+				if fallbackName == "" {
+					fallbackName = email
+				}
+				_, _ = db.ExecContext(r.Context(),
+					`INSERT INTO user_profiles (user_id, full_name) VALUES ($1, $2) ON CONFLICT (user_id) DO NOTHING`,
+					loginResp.UserId, fallbackName,
+				)
+				fullName = fallbackName
+			}
+			log.Warn("user-service GetUserProfile failed, backfilled from users table", zap.Error(profileErr))
 		} else {
 			email = profileResp.Email
 			fullName = profileResp.FullName
@@ -514,7 +554,7 @@ func generateVirtualPublicID() string {
 	return "TI-" + string(b)
 }
 
-func handleRegister(svc *clients.ServiceClients, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
+func handleRegister(svc *clients.ServiceClients, db *sql.DB, tokenSvc *jwt.TokenService, jwtSecret string, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -561,11 +601,46 @@ func handleRegister(svc *clients.ServiceClients, tokenSvc *jwt.TokenService, log
 			return
 		}
 
+		// Create user_profiles row (user-service GetUserProfile queries this table)
+		_, profileErr := db.ExecContext(r.Context(),
+			`INSERT INTO user_profiles (user_id, full_name) VALUES ($1, $2) ON CONFLICT (user_id) DO NOTHING`,
+			regResp.UserId, req.FullName,
+		)
+		if profileErr != nil {
+			log.Warn("failed to create user_profiles row", zap.Error(profileErr))
+		}
+
+		// Generate XMPP JWT (same as handleLogin)
+		xmppJid := regResp.UserId + "@" + xmppDomain
+		xmppClaims := gojwt.MapClaims{
+			"sub": regResp.UserId,
+			"jid": xmppJid,
+			"iat": time.Now().Unix(),
+			"exp": time.Now().Add(24 * time.Hour).Unix(),
+		}
+		xmppJWTObj := gojwt.NewWithClaims(gojwt.SigningMethodHS256, xmppClaims)
+		xmppToken, xmppErr := xmppJWTObj.SignedString([]byte(jwtSecret))
+		if xmppErr != nil {
+			log.Error("failed to generate xmpp jwt for registration", zap.Error(xmppErr))
+		}
+
+		// Persist XMPP JID and token hash
+		if xmppToken != "" {
+			xmppTokenHash := sha256.Sum256([]byte(xmppToken))
+			xmppTokenHashHex := hex.EncodeToString(xmppTokenHash[:])
+			_, _ = db.ExecContext(r.Context(),
+				`UPDATE users SET xmpp_jid = $1, xmpp_token_hash = $2 WHERE id = $3`,
+				xmppJid, xmppTokenHashHex, regResp.UserId,
+			)
+		}
+
 		log.Info("user registered", zap.String("user_id", regResp.UserId), zap.String("username", regResp.Username))
 
 		writeJSON(w, http.StatusCreated, authResponse{
 			AccessToken:  regResp.AccessToken,
 			RefreshToken: regResp.RefreshToken,
+			XMPPToken:    xmppToken,
+			XMPPJid:      xmppJid,
 			User: userResponse{
 				ID:              regResp.UserId,
 				Email:           req.Email,
@@ -621,7 +696,7 @@ type refreshRequest struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
-func handleRefresh(svc *clients.ServiceClients, tokenSvc *jwt.TokenService, log *zap.Logger) http.HandlerFunc {
+func handleRefresh(svc *clients.ServiceClients, db *sql.DB, tokenSvc *jwt.TokenService, jwtSecret string, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -643,11 +718,40 @@ func handleRefresh(svc *clients.ServiceClients, tokenSvc *jwt.TokenService, log 
 			return
 		}
 
+		// Extract user ID from the new access token to regenerate XMPP token
+		claims, claimsErr := tokenSvc.ValidateAccessToken(resp.AccessToken)
+		var xmppToken, xmppJid string
+		if claimsErr == nil {
+			xmppJid = claims.UserID + "@" + xmppDomain
+			xmppClaims := gojwt.MapClaims{
+				"sub": claims.UserID,
+				"jid": xmppJid,
+				"iat": time.Now().Unix(),
+				"exp": time.Now().Add(24 * time.Hour).Unix(),
+			}
+			xmppJWTObj := gojwt.NewWithClaims(gojwt.SigningMethodHS256, xmppClaims)
+			xmppToken, _ = xmppJWTObj.SignedString([]byte(jwtSecret))
+
+			if xmppToken != "" {
+				xmppTokenHash := sha256.Sum256([]byte(xmppToken))
+				xmppTokenHashHex := hex.EncodeToString(xmppTokenHash[:])
+				_, _ = db.ExecContext(r.Context(),
+					`UPDATE users SET xmpp_jid = $1, xmpp_token_hash = $2 WHERE id = $3`,
+					xmppJid, xmppTokenHashHex, claims.UserID,
+				)
+			}
+		}
+
 		log.Info("token refreshed via gRPC")
-		writeJSON(w, http.StatusOK, map[string]string{
+		result := map[string]string{
 			"accessToken":  resp.AccessToken,
 			"refreshToken": resp.RefreshToken,
-		})
+		}
+		if xmppToken != "" {
+			result["xmppToken"] = xmppToken
+			result["xmppJid"] = xmppJid
+		}
+		writeJSON(w, http.StatusOK, result)
 	}
 }
 

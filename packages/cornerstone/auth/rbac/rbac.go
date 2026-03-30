@@ -128,8 +128,8 @@ var rolePermissions = map[Role][]Permission{
 	},
 	RoleCustomer: {
 		PermNotificationView,
-		PermCallbackView,
-		PermConversationView,
+		PermCallbackView, PermCallbackCreate,
+		PermConversationView, PermConversationCreate,
 		PermDocumentView,
 	},
 }

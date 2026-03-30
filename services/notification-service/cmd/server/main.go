@@ -2,18 +2,21 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
+	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
 	"github.com/trustinbox/notification-service/internal/consumer"
 	grpcdelivery "github.com/trustinbox/notification-service/internal/delivery/grpc"
+	"github.com/trustinbox/notification-service/internal/infra/postgres"
 	"github.com/trustinbox/notification-service/internal/usecase"
 	pb "github.com/trustinbox/proto/gen/notification/v1"
 	"go.uber.org/zap"
@@ -29,6 +32,17 @@ func main() {
 	defer log.Sync()
 
 	log.Info("starting notification service", zap.String("grpc_port", cfg.GRPCPort))
+
+	// Database connection
+	db, err := sql.Open("postgres", cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal("failed to open database", zap.Error(err))
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		log.Fatal("failed to ping database", zap.Error(err))
+	}
+	log.Info("connected to database")
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.GRPCPort))
 	if err != nil {
@@ -46,8 +60,12 @@ func main() {
 	publisher := events.NewRedisStreamPublisher(rdb, log, "trustinbox:events")
 	defer publisher.Close()
 
-	// TODO: Replace nil with PostgreSQL repository implementations and real PolicyChecker/QueuePublisher
-	notifUC := usecase.NewNotificationUseCase(nil, nil, nil, nil, publisher, log)
+	// PostgreSQL repository implementations
+	notifRepo := postgres.NewNotificationRepository(db)
+	deliveryRepo := postgres.NewDeliveryRepository(db)
+
+	// PolicyChecker and QueuePublisher left nil for now — will be wired when policy integration is ready
+	notifUC := usecase.NewNotificationUseCase(notifRepo, deliveryRepo, nil, nil, publisher, log)
 	handler := grpcdelivery.NewNotificationHandler(notifUC)
 
 	// Event consumer for real-time push notifications

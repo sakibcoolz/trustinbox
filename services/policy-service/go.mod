@@ -3,6 +3,7 @@ module github.com/trustinbox/policy-service
 go 1.24.0
 
 require (
+	github.com/lib/pq v1.10.9
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/trustinbox/cornerstone v0.0.0
 	github.com/trustinbox/proto v0.0.0

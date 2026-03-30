@@ -166,6 +166,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
       setToken(data.accessToken);
+      // Refresh also returns a fresh XMPP token when available
+      if (data.xmppToken) {
+        localStorage.setItem('xmppToken', data.xmppToken);
+        setXmppToken(data.xmppToken);
+      }
+      if (data.xmppJid) {
+        localStorage.setItem('xmppJid', data.xmppJid);
+        setXmppJid(data.xmppJid);
+      }
       return true;
     } catch {
       return false;

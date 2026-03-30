@@ -1,17 +1,20 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
+	_ "github.com/lib/pq"
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/crypto"
 	logger "github.com/trustinbox/cornerstone/logging"
 	pb "github.com/trustinbox/proto/gen/user/v1"
 	grpcdelivery "github.com/trustinbox/user-service/internal/delivery/grpc"
+	"github.com/trustinbox/user-service/internal/infra/postgres"
 	"github.com/trustinbox/user-service/internal/usecase"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -27,6 +30,17 @@ func main() {
 
 	log.Info("starting user service", zap.String("grpc_port", cfg.GRPCPort))
 
+	// Database connection
+	db, err := sql.Open("postgres", cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal("failed to open database", zap.Error(err))
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		log.Fatal("failed to ping database", zap.Error(err))
+	}
+	log.Info("connected to database")
+
 	// Field-level encryption for PII data.
 	// The master key MUST be injected via ENCRYPTION_MASTER_KEY env var in
 	// production.  A deterministic dev-only fallback is used when unset.
@@ -41,12 +55,15 @@ func main() {
 		log.Fatal("failed to listen", zap.Error(err))
 	}
 
-	// TODO: Replace nil with PostgreSQL repository implementations.
-	// When ready, wrap profile and identity repos with encryption:
-	//   profileRepo = encryption.NewEncryptedUserProfileRepository(pgProfileRepo, encryptor)
-	//   identityRepo = encryption.NewEncryptedUserIdentityRepository(pgIdentityRepo, encryptor)
-	_ = encryptor // will be used when repo implementations are wired
-	userUC := usecase.NewUserUseCase(nil, nil, nil, nil, nil, log)
+	// PostgreSQL repository implementations
+	_ = encryptor // will be used when encryption wrappers are wired
+	profileRepo := postgres.NewUserProfileRepository(db)
+	privacyRepo := postgres.NewPrivacyPreferenceRepository(db)
+	dndRepo := postgres.NewDNDRuleRepository(db)
+	availRepo := postgres.NewAvailabilitySlotRepository(db)
+	blockRepo := postgres.NewBlockedServiceProviderRepository(db)
+
+	userUC := usecase.NewUserUseCase(profileRepo, privacyRepo, dndRepo, availRepo, blockRepo, log)
 	handler := grpcdelivery.NewUserHandler(userUC)
 
 	srv := grpc.NewServer()

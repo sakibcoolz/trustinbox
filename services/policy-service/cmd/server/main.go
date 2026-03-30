@@ -1,17 +1,20 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
+	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
 	grpcdelivery "github.com/trustinbox/policy-service/internal/delivery/grpc"
+	"github.com/trustinbox/policy-service/internal/infra/postgres"
 	"github.com/trustinbox/policy-service/internal/usecase"
 	pb "github.com/trustinbox/proto/gen/policy/v1"
 	"go.uber.org/zap"
@@ -30,6 +33,17 @@ func main() {
 		zap.String("grpc_port", cfg.GRPCPort),
 	)
 
+	// Database connection
+	db, err := sql.Open("postgres", cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal("failed to open database", zap.Error(err))
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		log.Fatal("failed to ping database", zap.Error(err))
+	}
+	log.Info("connected to database")
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.GRPCPort))
 	if err != nil {
 		log.Fatal("failed to listen", zap.Error(err))
@@ -46,8 +60,12 @@ func main() {
 	publisher := events.NewRedisStreamPublisher(rdb, log, "trustinbox:events")
 	defer publisher.Close()
 
-	// TODO: Replace nil with PostgreSQL repository implementations
-	evaluator := usecase.NewPolicyEvaluator(nil, nil, nil, publisher, log)
+	// PostgreSQL repository implementations
+	userRepo := postgres.NewUserPreferenceRepository(db)
+	spRepo := postgres.NewServiceProviderRepository(db)
+	freqRepo := postgres.NewFrequencyRepository(db)
+
+	evaluator := usecase.NewPolicyEvaluator(userRepo, spRepo, freqRepo, publisher, log)
 	handler := grpcdelivery.NewPolicyHandler(evaluator)
 
 	srv := grpc.NewServer()
