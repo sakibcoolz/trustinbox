@@ -12,7 +12,8 @@ The repository is architected around a GraphQL BFF plus gRPC services, but the g
 
 ## Base URLs
 
-- Web app local URL: `http://localhost:3000`
+- Web app (web-app) local URL: `http://localhost:3000`
+- Provider portal (provider-ui) local URL: `http://localhost:6060`
 - Gateway local URL: `http://localhost:4000`
 - Placeholder GraphQL endpoint: `http://localhost:4000/graphql`
 

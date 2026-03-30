@@ -339,6 +339,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 		"http://localhost:3000": true,
 		"http://localhost:3001": true,
 		"http://localhost:3002": true,
+		"http://localhost:6060": true,
 	}
 	if extra := os.Getenv("CORS_ALLOWED_ORIGINS"); extra != "" {
 		for _, o := range strings.Split(extra, ",") {

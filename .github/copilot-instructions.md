@@ -59,6 +59,12 @@ Act as a Principal Engineer building a privacy-first enterprise communication pl
 - Prioritize readability, hierarchy, and fast navigation
 - Support realtime updates for inbox and callback requests
 
+## Frontend App Labels
+- Customer web app: `[web-app]` — apps/web on port 3000
+- Provider portal: `[provider-ui]` — apps/provider on port 6060
+- Admin dashboard: `[admin]` — apps/admin (port TBD)
+- Always use these labels in logs, scripts, and documentation
+
 ## Testing Standards
 - Add unit tests for use cases
 - Add integration tests for policy evaluation and delivery workflows

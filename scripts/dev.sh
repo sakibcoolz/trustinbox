@@ -117,16 +117,16 @@ echo "[graphql-gateway]      → :4000"
 
 # ── 9. Start Next.js frontend ────────────────────────────────────────────────
 (cd "$ROOT/apps/web" && GATEWAY_URL="$GATEWAY_URL" npm run dev) &
-echo "[frontend]             → :3000"
+echo "[web-app]              → :3000"
 
 # ── 10. Start Provider portal ────────────────────────────────────────────────
 (cd "$ROOT/apps/provider" && GATEWAY_URL="$GATEWAY_URL" npm run dev -- --port 6060) &
-echo "[provider]             → :6060"
+echo "[provider-ui]          → :6060"
 
 echo ""
 echo "┌─────────────────────────────────────────┐"
-echo "│  App       http://localhost:3000         │"
-echo "│  Provider  http://localhost:6060         │"
+echo "│  web-app       http://localhost:3000     │"
+echo "│  provider-ui   http://localhost:6060     │"
 echo "│  GraphQL   http://localhost:4000/graphql │"
 echo "│  Jaeger    http://localhost:16686        │"
 echo "│  MinIO     http://localhost:9001         │"

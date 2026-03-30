@@ -159,8 +159,9 @@ If chat is failing locally, check:
 ## Recommended Workflow For New Contributors
 
 1. Start with `sh scripts/dev.sh`
-2. Use the customer web app on `http://localhost:3000`
-3. Use the seeded users from the SQL seed file if you need sample data
+2. Use the customer web app (web-app) on `http://localhost:3000`
+3. Use the provider portal (provider-ui) on `http://localhost:6060`
+4. Use the seeded users from the SQL seed file if you need sample data
 4. Inspect gateway handlers before changing frontend API calls
 5. Inspect migrations before changing domain assumptions
 
