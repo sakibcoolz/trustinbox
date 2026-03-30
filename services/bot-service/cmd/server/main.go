@@ -9,10 +9,12 @@ import (
 	"syscall"
 
 	_ "github.com/lib/pq"
+	"github.com/redis/go-redis/v9"
 	grpcdelivery "github.com/trustinbox/bot-service/internal/delivery/grpc"
 	"github.com/trustinbox/bot-service/internal/infra/postgres"
 	"github.com/trustinbox/bot-service/internal/usecase"
 	"github.com/trustinbox/cornerstone/config"
+	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
 	pb "github.com/trustinbox/proto/gen/bot/v1"
 	"go.uber.org/zap"
@@ -47,8 +49,19 @@ func main() {
 	actionRepo := postgres.NewBotActionLogRepository(db)
 	statsRepo := postgres.NewBotAnalyticsRepository(db)
 
+	// Redis for event publishing
+	redisOpts, err := redis.ParseURL(cfg.RedisURL)
+	if err != nil {
+		log.Fatal("invalid redis url", zap.Error(err))
+	}
+	rdb := redis.NewClient(redisOpts)
+	defer rdb.Close()
+
+	publisher := events.NewRedisStreamPublisher(rdb, log, "trustinbox:events")
+	defer publisher.Close()
+
 	// Use case
-	botUC := usecase.NewBotUseCase(botRepo, configRepo, permRepo, sourceRepo, actionRepo, statsRepo, nil)
+	botUC := usecase.NewBotUseCase(botRepo, configRepo, permRepo, sourceRepo, actionRepo, statsRepo, nil, publisher, log)
 
 	// gRPC handler
 	handler := grpcdelivery.NewBotHandler(botUC)

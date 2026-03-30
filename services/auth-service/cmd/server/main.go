@@ -7,9 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/redis/go-redis/v9"
 	grpcdelivery "github.com/trustinbox/auth-service/internal/delivery/grpc"
 	"github.com/trustinbox/auth-service/internal/usecase"
 	"github.com/trustinbox/cornerstone/config"
+	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
 	pb "github.com/trustinbox/proto/gen/auth/v1"
 	"go.uber.org/zap"
@@ -31,8 +33,19 @@ func main() {
 		log.Fatal("failed to listen", zap.Error(err))
 	}
 
+	// Redis for event publishing
+	redisOpts, err := redis.ParseURL(cfg.RedisURL)
+	if err != nil {
+		log.Fatal("invalid redis url", zap.Error(err))
+	}
+	rdb := redis.NewClient(redisOpts)
+	defer rdb.Close()
+
+	publisher := events.NewRedisStreamPublisher(rdb, log, "trustinbox:events")
+	defer publisher.Close()
+
 	// TODO: Replace nil with PostgreSQL repository implementations
-	authUC := usecase.NewAuthUseCase(nil, nil, nil, log)
+	authUC := usecase.NewAuthUseCase(nil, nil, nil, publisher, log)
 	handler := grpcdelivery.NewAuthHandler(authUC)
 
 	srv := grpc.NewServer()

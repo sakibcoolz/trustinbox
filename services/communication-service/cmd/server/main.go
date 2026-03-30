@@ -7,9 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/redis/go-redis/v9"
 	grpcdelivery "github.com/trustinbox/communication-service/internal/delivery/grpc"
 	"github.com/trustinbox/communication-service/internal/usecase"
 	"github.com/trustinbox/cornerstone/config"
+	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
 	pb "github.com/trustinbox/proto/gen/communication/v1"
 	"go.uber.org/zap"
@@ -31,8 +33,19 @@ func main() {
 		log.Fatal("failed to listen", zap.Error(err))
 	}
 
+	// Redis for event publishing
+	redisOpts, err := redis.ParseURL(cfg.RedisURL)
+	if err != nil {
+		log.Fatal("invalid redis url", zap.Error(err))
+	}
+	rdb := redis.NewClient(redisOpts)
+	defer rdb.Close()
+
+	publisher := events.NewRedisStreamPublisher(rdb, log, "trustinbox:events")
+	defer publisher.Close()
+
 	// TODO: Replace nil with PostgreSQL repository implementations and real PolicyChecker
-	commUC := usecase.NewCommunicationUseCase(nil, nil, nil, nil, nil, log)
+	commUC := usecase.NewCommunicationUseCase(nil, nil, nil, nil, nil, publisher, log)
 	handler := grpcdelivery.NewCommunicationHandler(commUC)
 
 	srv := grpc.NewServer()

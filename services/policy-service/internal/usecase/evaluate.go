@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/trustinbox/cornerstone/events"
 	"github.com/trustinbox/cornerstone/tracing"
 	"github.com/trustinbox/policy-service/internal/domain/entity"
 	"github.com/trustinbox/policy-service/internal/domain/repository"
@@ -22,23 +23,26 @@ const (
 
 // PolicyEvaluator implements the core policy evaluation logic.
 type PolicyEvaluator struct {
-	userRepo repository.UserPreferenceRepository
-	spRepo   repository.ServiceProviderRepository
-	freqRepo repository.FrequencyRepository
-	log      *zap.Logger
+	userRepo  repository.UserPreferenceRepository
+	spRepo    repository.ServiceProviderRepository
+	freqRepo  repository.FrequencyRepository
+	publisher events.Publisher
+	log       *zap.Logger
 }
 
 func NewPolicyEvaluator(
 	userRepo repository.UserPreferenceRepository,
 	spRepo repository.ServiceProviderRepository,
 	freqRepo repository.FrequencyRepository,
+	publisher events.Publisher,
 	log *zap.Logger,
 ) *PolicyEvaluator {
 	return &PolicyEvaluator{
-		userRepo: userRepo,
-		spRepo:   spRepo,
-		freqRepo: freqRepo,
-		log:      log,
+		userRepo:  userRepo,
+		spRepo:    spRepo,
+		freqRepo:  freqRepo,
+		publisher: publisher,
+		log:       log,
 	}
 }
 
@@ -165,7 +169,36 @@ func (e *PolicyEvaluator) Evaluate(ctx context.Context, req entity.EvaluationReq
 	result.Allowed = true
 	result.DecisionCode = entity.DecisionAllowStandard
 	result.Reason = "all policy checks passed"
+
+	// Publish policy evaluated event
+	e.publishPolicyEvent(ctx, req, result)
+
 	return result, nil
+}
+
+// publishPolicyEvent fires a policy.evaluated event asynchronously.
+func (e *PolicyEvaluator) publishPolicyEvent(ctx context.Context, req entity.EvaluationRequest, result *entity.EvaluationResult) {
+	if e.publisher == nil {
+		return
+	}
+	evt, err := events.NewEvent(events.PolicyEvaluated, map[string]interface{}{
+		"user_id":             req.UserID,
+		"service_provider_id": req.ServiceProviderID,
+		"category":            string(req.Category),
+		"communication_type":  string(req.CommunicationType),
+		"allowed":             result.Allowed,
+		"decision_code":       string(result.DecisionCode),
+		"reason":              result.Reason,
+		"applied_rules":       result.AppliedRules,
+	})
+	if err != nil {
+		e.log.Error("failed to create policy event", zap.Error(err))
+		return
+	}
+	evt.WithUser(req.UserID).WithServiceProvider(req.ServiceProviderID)
+	if err := e.publisher.Publish(ctx, evt); err != nil {
+		e.log.Error("failed to publish policy event", zap.Error(err))
+	}
 }
 
 func (e *PolicyEvaluator) isCategoryAllowed(prefs *entity.UserPreferences, category entity.Category, commType entity.CommunicationType) bool {

@@ -72,6 +72,9 @@ d.WebhooksFailed = 1
 case events.PolicyEvaluated:
 d.PolicyApprovals = 1
 
+case events.SpamReported:
+d.PolicyApprovals = 0 // Track as separate metric via spam counter in future
+
 default:
 c.logger.Debug("unhandled event type", zap.String("type", string(event.Type)))
 return nil

@@ -8,8 +8,10 @@ import (
 	"github.com/trustinbox/bot-service/internal/domain/entity"
 	"github.com/trustinbox/bot-service/internal/domain/repository"
 	bizerr "github.com/trustinbox/cornerstone/errors"
+	"github.com/trustinbox/cornerstone/events"
 	"github.com/trustinbox/cornerstone/tracing"
 	"go.opentelemetry.io/otel/attribute"
+	"go.uber.org/zap"
 )
 
 // PolicyChecker evaluates whether a bot action is allowed.
@@ -26,6 +28,8 @@ type BotUseCase struct {
 	actionRepo repository.BotActionLogRepository
 	statsRepo  repository.BotAnalyticsRepository
 	policy     PolicyChecker
+	publisher  events.Publisher
+	log        *zap.Logger
 }
 
 // NewBotUseCase creates a new BotUseCase.
@@ -37,6 +41,8 @@ func NewBotUseCase(
 	actionRepo repository.BotActionLogRepository,
 	statsRepo repository.BotAnalyticsRepository,
 	policy PolicyChecker,
+	publisher events.Publisher,
+	log *zap.Logger,
 ) *BotUseCase {
 	return &BotUseCase{
 		botRepo:    botRepo,
@@ -46,6 +52,8 @@ func NewBotUseCase(
 		actionRepo: actionRepo,
 		statsRepo:  statsRepo,
 		policy:     policy,
+		publisher:  publisher,
+		log:        log,
 	}
 }
 
@@ -107,6 +115,14 @@ func (uc *BotUseCase) CreateBot(ctx context.Context, spID, name, purpose, depart
 			return nil, bizerr.Internal("failed to set bot permission", err)
 		}
 	}
+
+	// Publish bot.created event
+	uc.publishEvent(ctx, events.BotCreated, bot.ID, createdByUserID, spID, map[string]interface{}{
+		"bot_id":              bot.ID,
+		"service_provider_id": spID,
+		"name":                name,
+		"purpose":             purpose,
+	})
 
 	return bot, nil
 }
@@ -265,6 +281,16 @@ func (uc *BotUseCase) ExecuteAction(ctx context.Context, botID, spID, conversati
 
 	// Update analytics
 	uc.statsRepo.IncrementActions(ctx, botID)
+
+	// Publish bot.action.executed event
+	uc.publishEvent(ctx, events.BotActionExecuted, botID, userID, spID, map[string]interface{}{
+		"bot_id":          botID,
+		"conversation_id": conversationID,
+		"user_id":         userID,
+		"action_type":     actionType,
+		"tool_name":       toolName,
+		"duration_ms":     actionLog.DurationMS,
+	})
 
 	return outputJSON, false, nil
 }
@@ -465,4 +491,20 @@ func truncate(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen]
+}
+
+// publishEvent fires a domain event asynchronously.
+func (uc *BotUseCase) publishEvent(ctx context.Context, eventType events.EventType, entityID, userID, spID string, payload interface{}) {
+	if uc.publisher == nil {
+		return
+	}
+	evt, err := events.NewEvent(eventType, payload)
+	if err != nil {
+		uc.log.Error("failed to create event", zap.String("event_type", string(eventType)), zap.Error(err))
+		return
+	}
+	evt.WithEntity(entityID).WithUser(userID).WithServiceProvider(spID)
+	if err := uc.publisher.Publish(ctx, evt); err != nil {
+		uc.log.Error("failed to publish event", zap.String("event_type", string(eventType)), zap.Error(err))
+	}
 }

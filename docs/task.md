@@ -142,19 +142,19 @@
 - [x] **4.1 Event Catalog Definition**
   - [x] 25+ event types defined in `packages/cornerstone/events/event.go`
 
-- [ ] **4.2 Event Publishing Integration**
-  - [ ] Add EventPublisher to policy-service UseCases
-  - [ ] Add EventPublisher to notification-service UseCases
-  - [ ] Add EventPublisher to communication-service UseCases
-  - [ ] Add EventPublisher to organization-service UseCases
-  - [ ] Add EventPublisher to bot-service UseCases
-  - [ ] Add EventPublisher to auth-service UseCases
+- [x] **4.2 Event Publishing Integration**
+  - [x] Add EventPublisher to policy-service UseCases
+  - [x] Add EventPublisher to notification-service UseCases
+  - [x] Add EventPublisher to communication-service UseCases
+  - [x] Add EventPublisher to organization-service UseCases
+  - [x] Add EventPublisher to bot-service UseCases
+  - [x] Add EventPublisher to auth-service UseCases
 
-- [ ] **4.3 Event Consumers**
-  - [ ] Worker service consumes delivery + campaign + cleanup events
-  - [ ] Webhook service consumes all subscribed events
-  - [ ] Analytics service consumes events for aggregation
-  - [ ] Notification service consumes events for real-time push
+- [x] **4.3 Event Consumers**
+  - [x] Worker service consumes delivery + campaign + cleanup events
+  - [x] Webhook service consumes all subscribed events
+  - [x] Analytics service consumes events for aggregation
+  - [x] Notification service consumes events for real-time push
 
 ---
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	bzerr "github.com/trustinbox/cornerstone/errors"
+	"github.com/trustinbox/cornerstone/events"
 	"github.com/trustinbox/cornerstone/tracing"
 	"github.com/trustinbox/organization-service/internal/domain/entity"
 	"github.com/trustinbox/organization-service/internal/domain/repository"
@@ -15,15 +16,17 @@ import (
 type SPUseCase struct {
 	spRepo     repository.ServiceProviderRepository
 	spUserRepo repository.ServiceProviderUserRepository
+	publisher  events.Publisher
 	log        *zap.Logger
 }
 
 func NewSPUseCase(
 	spRepo repository.ServiceProviderRepository,
 	spUserRepo repository.ServiceProviderUserRepository,
+	publisher events.Publisher,
 	log *zap.Logger,
 ) *SPUseCase {
-	return &SPUseCase{spRepo: spRepo, spUserRepo: spUserRepo, log: log}
+	return &SPUseCase{spRepo: spRepo, spUserRepo: spUserRepo, publisher: publisher, log: log}
 }
 
 func (uc *SPUseCase) CreateServiceProvider(ctx context.Context, sp *entity.ServiceProvider, adminUserID string) (*entity.ServiceProvider, error) {
@@ -52,6 +55,13 @@ func (uc *SPUseCase) CreateServiceProvider(ctx context.Context, sp *entity.Servi
 		return nil, bzerr.Internal("failed to add admin user to service provider", err)
 	}
 
+	// Publish service_provider.created event
+	uc.publishEvent(ctx, events.ServiceProviderCreated, sp.ID, adminUserID, sp.ID, map[string]interface{}{
+		"service_provider_id": sp.ID,
+		"name":                sp.Name,
+		"admin_user_id":       adminUserID,
+	})
+
 	return sp, nil
 }
 
@@ -79,11 +89,49 @@ func (uc *SPUseCase) VerifyServiceProvider(ctx context.Context, spID, decision, 
 		status = "REJECTED"
 	}
 
-	return uc.spRepo.UpdateVerificationStatus(ctx, spID, status)
+	if err := uc.spRepo.UpdateVerificationStatus(ctx, spID, status); err != nil {
+		return err
+	}
+
+	// Publish service_provider.verified event
+	uc.publishEvent(ctx, events.ServiceProviderVerified, spID, adminUserID, spID, map[string]interface{}{
+		"service_provider_id": spID,
+		"decision":            decision,
+		"reason":              reason,
+		"status":              status,
+	})
+
+	return nil
 }
 
 func (uc *SPUseCase) SuspendServiceProvider(ctx context.Context, spID, reason, adminUserID string) error {
-	return uc.spRepo.UpdateStatus(ctx, spID, "SUSPENDED")
+	if err := uc.spRepo.UpdateStatus(ctx, spID, "SUSPENDED"); err != nil {
+		return err
+	}
+
+	// Publish service_provider.suspended event
+	uc.publishEvent(ctx, events.ServiceProviderSuspended, spID, adminUserID, spID, map[string]interface{}{
+		"service_provider_id": spID,
+		"reason":              reason,
+	})
+
+	return nil
+}
+
+// publishEvent fires a domain event asynchronously.
+func (uc *SPUseCase) publishEvent(ctx context.Context, eventType events.EventType, entityID, actorID, spID string, payload interface{}) {
+	if uc.publisher == nil {
+		return
+	}
+	evt, err := events.NewEvent(eventType, payload)
+	if err != nil {
+		uc.log.Error("failed to create event", zap.String("event_type", string(eventType)), zap.Error(err))
+		return
+	}
+	evt.WithEntity(entityID).WithActor(actorID).WithServiceProvider(spID)
+	if err := uc.publisher.Publish(ctx, evt); err != nil {
+		uc.log.Error("failed to publish event", zap.String("event_type", string(eventType)), zap.Error(err))
+	}
 }
 
 func (uc *SPUseCase) AddSPUser(ctx context.Context, spUser *entity.ServiceProviderUser) (*entity.ServiceProviderUser, error) {

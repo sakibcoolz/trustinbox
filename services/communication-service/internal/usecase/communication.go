@@ -8,6 +8,7 @@ import (
 	"github.com/trustinbox/communication-service/internal/domain/entity"
 	"github.com/trustinbox/communication-service/internal/domain/repository"
 	bzerr "github.com/trustinbox/cornerstone/errors"
+	"github.com/trustinbox/cornerstone/events"
 	"github.com/trustinbox/cornerstone/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
@@ -23,6 +24,7 @@ type CommunicationUseCase struct {
 	msgRepo      repository.MessageRepository
 	spamRepo     repository.SpamReportRepository
 	policy       PolicyChecker
+	publisher    events.Publisher
 	log          *zap.Logger
 }
 
@@ -32,6 +34,7 @@ func NewCommunicationUseCase(
 	msgRepo repository.MessageRepository,
 	spamRepo repository.SpamReportRepository,
 	policy PolicyChecker,
+	publisher events.Publisher,
 	log *zap.Logger,
 ) *CommunicationUseCase {
 	return &CommunicationUseCase{
@@ -40,6 +43,7 @@ func NewCommunicationUseCase(
 		msgRepo:      msgRepo,
 		spamRepo:     spamRepo,
 		policy:       policy,
+		publisher:    publisher,
 		log:          log,
 	}
 }
@@ -69,6 +73,14 @@ func (uc *CommunicationUseCase) CreateCallbackRequest(ctx context.Context, req *
 		return nil, bzerr.Internal("failed to create callback request", err)
 	}
 
+	// Publish callback.requested event
+	uc.publishEvent(ctx, events.CallbackRequested, req.ID, req.UserID, req.ServiceProviderID, map[string]interface{}{
+		"callback_request_id": req.ID,
+		"user_id":             req.UserID,
+		"service_provider_id": req.ServiceProviderID,
+		"status":              req.Status,
+	})
+
 	return req, nil
 }
 
@@ -90,7 +102,20 @@ func (uc *CommunicationUseCase) ApproveCallbackRequest(ctx context.Context, requ
 		return bzerr.InvalidInput("callback request is not in PENDING status")
 	}
 
-	return uc.callbackRepo.Approve(ctx, requestID, slotStart, slotEnd)
+	if err := uc.callbackRepo.Approve(ctx, requestID, slotStart, slotEnd); err != nil {
+		return err
+	}
+
+	// Publish callback.approved event
+	uc.publishEvent(ctx, events.CallbackApproved, requestID, userID, req.ServiceProviderID, map[string]interface{}{
+		"callback_request_id": requestID,
+		"user_id":             userID,
+		"service_provider_id": req.ServiceProviderID,
+		"slot_start":          slotStart,
+		"slot_end":            slotEnd,
+	})
+
+	return nil
 }
 
 // RejectCallbackRequest rejects a callback request.
@@ -103,7 +128,19 @@ func (uc *CommunicationUseCase) RejectCallbackRequest(ctx context.Context, reque
 		return bzerr.Forbidden("not authorized to reject this callback request")
 	}
 
-	return uc.callbackRepo.Reject(ctx, requestID, reason)
+	if err := uc.callbackRepo.Reject(ctx, requestID, reason); err != nil {
+		return err
+	}
+
+	// Publish callback.rejected event
+	uc.publishEvent(ctx, events.CallbackRejected, requestID, userID, req.ServiceProviderID, map[string]interface{}{
+		"callback_request_id": requestID,
+		"user_id":             userID,
+		"service_provider_id": req.ServiceProviderID,
+		"reason":              reason,
+	})
+
+	return nil
 }
 
 // SendMessage sends a message in a conversation.
@@ -120,6 +157,13 @@ func (uc *CommunicationUseCase) SendMessage(ctx context.Context, msg *entity.Mes
 		return nil, bzerr.Internal("failed to send message", err)
 	}
 
+	// Publish message.sent event
+	uc.publishEvent(ctx, events.MessageSent, msg.ID, msg.SenderRefID, "", map[string]interface{}{
+		"message_id":      msg.ID,
+		"conversation_id": msg.ConversationID,
+		"sender_id":       msg.SenderRefID,
+	})
+
 	return msg, nil
 }
 
@@ -127,7 +171,38 @@ func (uc *CommunicationUseCase) SendMessage(ctx context.Context, msg *entity.Mes
 func (uc *CommunicationUseCase) ReportSpam(ctx context.Context, report *entity.SpamReport) error {
 	report.ID = uuid.New().String()
 	report.Status = "OPEN"
-	return uc.spamRepo.Create(ctx, report)
+	if err := uc.spamRepo.Create(ctx, report); err != nil {
+		return err
+	}
+
+	// Publish spam.reported event
+	uc.publishEvent(ctx, events.SpamReported, report.ID, report.UserID, report.ServiceProviderID, map[string]interface{}{
+		"spam_report_id":      report.ID,
+		"reporter_user_id":    report.UserID,
+		"service_provider_id": report.ServiceProviderID,
+		"reason":              report.Reason,
+	})
+
+	return nil
+}
+
+// publishEvent fires a domain event asynchronously.
+func (uc *CommunicationUseCase) publishEvent(ctx context.Context, eventType events.EventType, entityID, userID, spID string, payload interface{}) {
+	if uc.publisher == nil {
+		return
+	}
+	evt, err := events.NewEvent(eventType, payload)
+	if err != nil {
+		uc.log.Error("failed to create event", zap.String("event_type", string(eventType)), zap.Error(err))
+		return
+	}
+	evt.WithEntity(entityID).WithUser(userID)
+	if spID != "" {
+		evt.WithServiceProvider(spID)
+	}
+	if err := uc.publisher.Publish(ctx, evt); err != nil {
+		uc.log.Error("failed to publish event", zap.String("event_type", string(eventType)), zap.Error(err))
+	}
 }
 
 // ListCallbackRequests lists callback requests for a user.

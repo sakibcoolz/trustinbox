@@ -70,7 +70,7 @@ func SubscribedEventTypes() []events.EventType {
 }
 
 // StreamName is the Redis Stream the worker consumes from.
-const StreamName = "trustinbox:worker"
+const StreamName = "trustinbox:events"
 
 // ConsumerGroup is the consumer group name for the worker.
 const ConsumerGroup = "worker-service"

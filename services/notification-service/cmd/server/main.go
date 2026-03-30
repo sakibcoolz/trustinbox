@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/trustinbox/cornerstone/config"
+	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
+	"github.com/trustinbox/notification-service/internal/consumer"
 	grpcdelivery "github.com/trustinbox/notification-service/internal/delivery/grpc"
 	"github.com/trustinbox/notification-service/internal/usecase"
 	pb "github.com/trustinbox/proto/gen/notification/v1"
@@ -31,9 +35,41 @@ func main() {
 		log.Fatal("failed to listen", zap.Error(err))
 	}
 
+	// Redis for event publishing + consuming
+	redisOpts, err := redis.ParseURL(cfg.RedisURL)
+	if err != nil {
+		log.Fatal("invalid redis url", zap.Error(err))
+	}
+	rdb := redis.NewClient(redisOpts)
+	defer rdb.Close()
+
+	publisher := events.NewRedisStreamPublisher(rdb, log, "trustinbox:events")
+	defer publisher.Close()
+
 	// TODO: Replace nil with PostgreSQL repository implementations and real PolicyChecker/QueuePublisher
-	notifUC := usecase.NewNotificationUseCase(nil, nil, nil, nil, log)
+	notifUC := usecase.NewNotificationUseCase(nil, nil, nil, nil, publisher, log)
 	handler := grpcdelivery.NewNotificationHandler(notifUC)
+
+	// Event consumer for real-time push notifications
+	hostname, _ := os.Hostname()
+	ec := consumer.NewEventConsumer(nil, log) // TODO: Replace nil with real PushNotifier
+	streamConsumer := events.NewRedisStreamConsumer(
+		rdb, log,
+		consumer.StreamName,
+		consumer.ConsumerGroup,
+		fmt.Sprintf("notification-%s", hostname),
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err := streamConsumer.Start(ctx, ec.Handle); err != nil {
+		log.Fatal("start stream consumer", zap.Error(err))
+	}
+	log.Info("event consumer started",
+		zap.String("stream", consumer.StreamName),
+		zap.String("group", consumer.ConsumerGroup),
+	)
 
 	srv := grpc.NewServer()
 	pb.RegisterNotificationServiceServer(srv, handler)
@@ -54,5 +90,6 @@ func main() {
 	<-quit
 
 	log.Info("shutting down notification service")
+	cancel()
 	srv.GracefulStop()
 }

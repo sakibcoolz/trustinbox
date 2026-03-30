@@ -91,12 +91,36 @@ func mapEventType(et events.EventType) string {
 		return "bot.escalated"
 
 	case events.PolicyEvaluated:
-		return "policy.denied"
+		return "policy.evaluated"
 
 	case events.CustomerBlockedSP:
 		return "customer.opted_out"
 	case events.CustomerUnblockedSP:
 		return "customer.opted_in"
+
+	case events.MessageSent:
+		return "message.sent"
+	case events.MessageRead:
+		return "message.read"
+
+	case events.SpamReported:
+		return "spam.reported"
+
+	case events.ServiceProviderCreated:
+		return "service_provider.created"
+	case events.ServiceProviderVerified:
+		return "service_provider.verified"
+	case events.ServiceProviderSuspended:
+		return "service_provider.suspended"
+
+	case events.BotCreated:
+		return "bot.created"
+
+	case events.DocumentShared:
+		return "document.shared"
+
+	case events.CustomerSynced:
+		return "customer.synced"
 
 	default:
 		return ""
