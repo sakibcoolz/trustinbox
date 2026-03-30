@@ -443,9 +443,13 @@ func TestGetSeedProfiles_ReturnsDefensiveCopies(t *testing.T) {
 
 	profiles1 := uc.GetSeedProfiles(ctx)
 	profiles1[0].DisplayName = "MODIFIED"
+	profiles1[0].DefaultCategories[0] = "MODIFIED_CATEGORY"
 
 	profiles2 := uc.GetSeedProfiles(ctx)
 	if profiles2[0].DisplayName == "MODIFIED" {
-		t.Error("GetSeedProfiles should return defensive copies, not shared references")
+		t.Error("GetSeedProfiles should return defensive copies for struct fields")
+	}
+	if profiles2[0].DefaultCategories[0] == "MODIFIED_CATEGORY" {
+		t.Error("GetSeedProfiles should return defensive copies for slice fields")
 	}
 }
