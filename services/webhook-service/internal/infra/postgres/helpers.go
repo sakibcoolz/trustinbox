@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 )
 
-// mapToJSON serialises a string map to a JSON string for storage.
+// mapToJSON serializes a string map to a JSON string for storage.
 // Returns "{}" for nil or empty maps.
 func mapToJSON(m map[string]string) string {
 	if len(m) == 0 {
@@ -17,7 +17,7 @@ func mapToJSON(m map[string]string) string {
 	return string(data)
 }
 
-// jsonToMap deserialises a JSON string into a string map.
+// jsonToMap deserializes a JSON string into a string map.
 // Returns nil for empty or invalid JSON.
 func jsonToMap(s string) map[string]string {
 	if s == "" || s == "{}" {

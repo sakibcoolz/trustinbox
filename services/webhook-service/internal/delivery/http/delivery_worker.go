@@ -96,7 +96,9 @@ func (w *DeliveryWorker) deliver(ctx context.Context, d *entity.WebhookDelivery)
 	req.Header.Set("X-Webhook-Event", d.EventType)
 	req.Header.Set("X-Webhook-Delivery", d.ID)
 
-	// HMAC signature
+	// HMAC signature using the signing secret stored in SecretHash.
+	// Note: SecretHash stores the plaintext signing secret (hex-encoded) for
+	// HMAC computation. In production this would be encrypted at rest.
 	if sub.SecretHash != "" {
 		sig := computeHMAC(body, sub.SecretHash)
 		req.Header.Set("X-Webhook-Signature-256", "sha256="+sig)
