@@ -206,41 +206,41 @@
   - [x] `/customers` — Customer table with relationship filters
   - [x] `/settings` — Org profile, API keys, defaults
 
-- [ ] **6.3 Full Provider Portal Routes (remaining)**
-  - [ ] `/auth/login` — SP user login
-  - [ ] `/auth/register` — SP onboarding + org creation
-  - [ ] `/customers/[virtualId]` — Customer detail view
-  - [ ] `/notifications` — Notification center (compose + history)
-  - [ ] `/notifications/compose` — Notification composer
-  - [ ] `/conversations` — Conversation center with bot assist
-  - [ ] `/conversations/[id]` — Conversation detail
-  - [ ] `/callbacks` — Callback center (pending, approved, missed)
-  - [ ] `/documents` — Document center (upload, share, audit)
-  - [ ] `/campaigns/[id]` — Campaign detail
-  - [ ] `/campaigns/new` — Campaign builder wizard
-  - [ ] `/bots/[id]` — Bot detail/config editor
-  - [ ] `/bots/new` — Bot creator wizard
-  - [ ] `/bots/[id]/knowledge` — Knowledge source manager
-  - [ ] `/bots/[id]/analytics` — Bot performance dashboard
-  - [ ] `/compliance` — Compliance center (policy logs, audit, spam)
-  - [ ] `/integrations` — Integration center (API keys, webhooks, service accounts)
-  - [ ] `/settings/team` — Agent/team management
-  - [ ] `/settings/industry` — Industry profile configuration
+- [x] **6.3 Full Provider Portal Routes (remaining)**
+  - [x] `/auth/login` — SP user login
+  - [x] `/auth/register` — SP onboarding + org creation
+  - [x] `/customers/[virtualId]` — Customer detail view
+  - [x] `/notifications` — Notification center (compose + history)
+  - [x] `/notifications/compose` — Notification composer
+  - [x] `/conversations` — Conversation center with bot assist
+  - [x] `/conversations/[id]` — Conversation detail
+  - [x] `/callbacks` — Callback center (pending, approved, missed)
+  - [x] `/documents` — Document center (upload, share, audit)
+  - [x] `/campaigns/[id]` — Campaign detail
+  - [x] `/campaigns/new` — Campaign builder wizard
+  - [x] `/bots/[id]` — Bot detail/config editor
+  - [x] `/bots/new` — Bot creator wizard
+  - [x] `/bots/[id]/knowledge` — Knowledge source manager
+  - [x] `/bots/[id]/analytics` — Bot performance dashboard
+  - [x] `/compliance` — Compliance center (policy logs, audit, spam)
+  - [x] `/integrations` — Integration center (API keys, webhooks, service accounts)
+  - [x] `/settings/team` — Agent/team management
+  - [x] `/settings/industry` — Industry profile configuration
 
-- [ ] **6.4 Key Provider UI Components**
-  - [ ] DashboardSummary — live stat cards connected to analytics API
-  - [ ] CustomerLookup — search by virtual ID + consent summary
-  - [ ] NotificationComposer — category, priority, channel, template, schedule, policy preview
-  - [ ] ConversationPanel — chat + bot assist toggle + handoff button
-  - [ ] CallbackRequestTable — filterable + approve/reject/reschedule actions
-  - [ ] DocumentManager — upload, classify, share, version, audit trail
-  - [ ] CampaignBuilder — segment, schedule, preview policy impact, launch
-  - [ ] BotStudioWizard — multi-step bot creation
-  - [ ] BotConfigEditor — structured settings form
-  - [ ] ComplianceViewer — policy decision log + audit log + export
-  - [ ] WebhookManager — subscription CRUD + delivery history + test
-  - [ ] APIKeyManager — create/revoke keys + view scopes
-  - [ ] TeamManager — invite users + assign roles + manage permissions
+- [x] **6.4 Key Provider UI Components**
+  - [x] DashboardSummary — live stat cards connected to analytics API
+  - [x] CustomerLookup — search by virtual ID + consent summary
+  - [x] NotificationComposer — category, priority, channel, template, schedule, policy preview
+  - [x] ConversationPanel — chat + bot assist toggle + handoff button
+  - [x] CallbackRequestTable — filterable + approve/reject/reschedule actions
+  - [x] DocumentManager — upload, classify, share, version, audit trail
+  - [x] CampaignBuilder — segment, schedule, preview policy impact, launch
+  - [x] BotStudioWizard — multi-step bot creation
+  - [x] BotConfigEditor — structured settings form
+  - [x] ComplianceViewer — policy decision log + audit log + export
+  - [x] WebhookManager — subscription CRUD + delivery history + test
+  - [x] APIKeyManager — create/revoke keys + view scopes
+  - [x] TeamManager — invite users + assign roles + manage permissions
 
 ---
 
