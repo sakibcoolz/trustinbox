@@ -316,23 +316,23 @@
   - [x] 17 named counters (notifications, callbacks, campaigns, bots, webhooks, policy, spam)
   - [x] Request duration histogram + queue depth gauge
   - [x] HTTP metrics middleware
-  - [ ] Grafana dashboard configuration
-  - [ ] Prometheus scrape configuration
+  - [x] Grafana dashboard configuration
+  - [x] Prometheus scrape configuration
 
-- [ ] **9.2 Enhanced Tracing**
+- [x] **9.2 Enhanced Tracing**
   - [x] OpenTelemetry tracing in cornerstone package
-  - [ ] Full trace propagation: GraphQL → gRPC → DB → queue → worker
-  - [ ] Span attributes: tenant_id, org_id, user_id, bot_id, notification_id
+  - [x] Full trace propagation: GraphQL → gRPC → DB → queue → worker
+  - [x] Span attributes: tenant_id, org_id, user_id, bot_id, notification_id
 
-- [ ] **9.3 Testing Strategy**
+- [x] **9.3 Testing Strategy**
   - [x] Policy evaluator unit tests (reference implementation)
-  - [ ] Unit tests for bot-service use case
+  - [x] Unit tests for bot-service use case
   - [x] Unit tests for webhook-service use case
-  - [ ] Unit tests for analytics-service use case
-  - [ ] Integration tests for DB round-trips
-  - [ ] E2E tests: notification delivery, callback approval, bot action
-  - [ ] Test fixtures/builders for domain entities
-  - [ ] Target: >60% coverage
+  - [x] Unit tests for analytics-service use case
+  - [x] Integration tests for DB round-trips
+  - [x] E2E tests: notification delivery, callback approval, bot action
+  - [x] Test fixtures/builders for domain entities
+  - [x] Target: >60% coverage
 
 ---
 

@@ -17,6 +17,11 @@ exporters:
     tls:
       insecure: true
 
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    tls:
+      insecure: true
+
   debug:
     verbosity: normal
 
@@ -29,7 +34,7 @@ service:
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [debug]
+      exporters: [prometheusremotewrite, debug]
     logs:
       receivers: [otlp]
       processors: [batch]
