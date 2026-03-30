@@ -83,6 +83,16 @@ const (
 )
 
 // ──────────────────────────────────────────────
+// Bot events
+// ──────────────────────────────────────────────
+const (
+	BotCreated        EventType = "bot.created"
+	BotActivated      EventType = "bot.activated"
+	BotArchived       EventType = "bot.archived"
+	BotActionExecuted EventType = "bot.action_executed"
+)
+
+// ──────────────────────────────────────────────
 // System / worker events
 // ──────────────────────────────────────────────
 const (
@@ -110,6 +120,8 @@ func AllEventTypes() []EventType {
 		DeliveryAttempted, DeliverySucceeded, DeliveryFailed,
 		// campaign
 		CampaignStarted, CampaignCompleted, CampaignPaused,
+		// bot
+		BotCreated, BotActivated, BotArchived, BotActionExecuted,
 		// system
 		CleanupStarted, CleanupCompleted,
 	}
