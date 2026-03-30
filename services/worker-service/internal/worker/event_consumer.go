@@ -69,12 +69,18 @@ func (c *EventConsumer) Handle(ctx context.Context, evt events.Event) error {
 			Status:  "PENDING",
 		})
 	case events.DeliveryAttempted, events.DeliveryFailed:
+		jobID := evt.Data["delivery_id"]
+		if jobID == "" {
+			jobID = evt.ID
+		}
 		return c.delivery.Process(ctx, &Job{
-			ID:      evt.ID,
+			ID:      jobID,
 			Type:    "DELIVERY",
 			Payload: evt.Data,
 			Status:  "RETRY",
 		})
+	case events.DeliverySucceeded:
+		c.log.Info("delivery succeeded", zap.String("event_id", evt.ID))
 
 	// Campaign events → DeliveryProcessor (campaigns are batch deliveries)
 	case events.CampaignStarted:
@@ -84,6 +90,8 @@ func (c *EventConsumer) Handle(ctx context.Context, evt events.Event) error {
 			Payload: evt.Data,
 			Status:  "PENDING",
 		})
+	case events.CampaignCompleted, events.CampaignPaused:
+		c.log.Info("campaign status change", zap.String("event_type", string(evt.Type)))
 
 	// Callback expiry → CallbackReminderProcessor
 	case events.CallbackRequestExpired:
@@ -102,9 +110,11 @@ func (c *EventConsumer) Handle(ctx context.Context, evt events.Event) error {
 			Payload: evt.Data,
 			Status:  "PENDING",
 		})
+	case events.CleanupCompleted:
+		c.log.Info("cleanup completed", zap.String("event_id", evt.ID))
 
 	default:
-		c.log.Debug("unhandled event type in worker", zap.String("type", string(evt.Type)))
+		c.log.Warn("unexpected event type in worker consumer", zap.String("type", string(evt.Type)))
 	}
 	return nil
 }
