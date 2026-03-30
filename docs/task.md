@@ -127,13 +127,13 @@
   - [x] gRPC handler
   - [x] Repository implementation
 
-- [ ] **3.6 AI Orchestration Layer**
-  - [ ] LLM integration abstraction (OpenAI/Anthropic)
-  - [ ] Tool execution framework for bot actions
-  - [ ] Knowledge source RAG pipeline
-  - [ ] Conversation summarization
-  - [ ] Smart categorization
-  - [ ] Spam detection model integration
+- [x] **3.6 AI Orchestration Layer**
+  - [x] LLM integration abstraction (OpenAI/Anthropic)
+  - [x] Tool execution framework for bot actions
+  - [x] Knowledge source RAG pipeline
+  - [x] Conversation summarization
+  - [x] Smart categorization
+  - [x] Spam detection model integration
 
 ---
 

@@ -79,7 +79,7 @@ proto: ## Generate Go code from proto files
 	@echo "Generating proto..."
 	@cd packages/proto && \
 	for dir in auth/v1 user/v1 policy/v1 notification/v1 communication/v1 organization/v1 \
-		bot/v1 webhook/v1 analytics/v1 industry/v1 document/v1; do \
+		bot/v1 webhook/v1 analytics/v1 industry/v1 document/v1 ai/v1; do \
 		protoc --go_out=gen --go_opt=paths=source_relative \
 			--go-grpc_out=gen --go-grpc_opt=paths=source_relative \
 			$$dir/*.proto; \
