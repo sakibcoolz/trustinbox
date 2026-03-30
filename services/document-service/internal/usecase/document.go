@@ -192,6 +192,10 @@ func (uc *DocumentUseCase) GeneratePresignedURL(ctx context.Context, docID, spID
 		return "", time.Time{}, bizerr.InvalidInput("cannot generate URL for non-active document")
 	}
 
+	if uc.presigner == nil {
+		return "", time.Time{}, bizerr.InvalidInput("presigned URL generation is not configured")
+	}
+
 	expiry := time.Duration(expiryMinutes) * time.Minute
 	url, expiresAt, err := uc.presigner.GeneratePresignedURL(ctx, doc.S3Key, expiry)
 	if err != nil {

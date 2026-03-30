@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -311,7 +312,7 @@ func TestGeneratePresignedURL_Success(t *testing.T) {
 	if expiresAt.IsZero() {
 		t.Error("expected non-zero expiry time")
 	}
-	if !containsString(url, "docs/file.pdf") {
+	if !strings.Contains(url, "docs/file.pdf") {
 		t.Errorf("expected URL to contain s3 key, got %s", url)
 	}
 }
@@ -370,6 +371,21 @@ func TestGeneratePresignedURL_PresignerError(t *testing.T) {
 	_, _, err := uc.GeneratePresignedURL(context.Background(), doc.ID, "sp-1", 15)
 	if err == nil {
 		t.Fatal("expected error from presigner")
+	}
+}
+
+func TestGeneratePresignedURL_NilPresigner(t *testing.T) {
+	docRepo := newMockDocRepo()
+	versionRepo := newMockVersionRepo()
+	classRepo := newMockClassRepo()
+	downloadRepo := newMockDownloadRepo()
+	uc := NewDocumentUseCase(docRepo, versionRepo, classRepo, downloadRepo, nil)
+
+	doc, _ := uc.CreateDocument(context.Background(), "sp-1", "user-1", "file.pdf", "application/pdf", "key", 1024, "")
+
+	_, _, err := uc.GeneratePresignedURL(context.Background(), doc.ID, "sp-1", 15)
+	if err == nil {
+		t.Fatal("expected error when presigner is not configured")
 	}
 }
 
@@ -650,19 +666,4 @@ func TestListDocuments_FilterByClassification(t *testing.T) {
 	if len(docs) != 1 {
 		t.Errorf("expected 1 doc, got %d", len(docs))
 	}
-}
-
-// --- Helper ---
-
-func containsString(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsSubstr(s, substr))
-}
-
-func containsSubstr(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
