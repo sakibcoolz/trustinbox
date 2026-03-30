@@ -1,0 +1,179 @@
+syntax = "proto3";
+
+package ai.v1;
+
+option go_package = "github.com/trustinbox/proto/gen/ai/v1;aiv1";
+
+import "google/protobuf/timestamp.proto";
+
+service AIService {
+  // LLM integration
+  rpc ChatCompletion(ChatCompletionRequest) returns (ChatCompletionResponse);
+
+  // Tool execution framework
+  rpc ExecuteTool(ExecuteToolRequest) returns (ExecuteToolResponse);
+
+  // Knowledge source RAG pipeline
+  rpc QueryKnowledge(QueryKnowledgeRequest) returns (QueryKnowledgeResponse);
+
+  // Conversation summarization
+  rpc SummarizeConversation(SummarizeConversationRequest) returns (SummarizeConversationResponse);
+
+  // Smart categorization
+  rpc CategorizeMessage(CategorizeMessageRequest) returns (CategorizeMessageResponse);
+
+  // Spam detection
+  rpc DetectSpam(DetectSpamRequest) returns (DetectSpamResponse);
+}
+
+// ─── LLM Messages ──────────────────────────────────────────
+
+message ChatMessage {
+  string role = 1;    // system, user, assistant, tool
+  string content = 2;
+  string name = 3;    // optional tool name
+  string tool_call_id = 4;
+}
+
+message ToolDefinition {
+  string name = 1;
+  string description = 2;
+  string parameters_json = 3; // JSON Schema
+}
+
+message ToolCall {
+  string id = 1;
+  string name = 2;
+  string arguments_json = 3;
+}
+
+message ChatCompletionRequest {
+  string provider = 1; // openai, anthropic
+  string model = 2;
+  repeated ChatMessage messages = 3;
+  repeated ToolDefinition tools = 4;
+  double temperature = 5;
+  int32 max_tokens = 6;
+  string bot_id = 7;
+  string service_provider_id = 8;
+}
+
+message ChatCompletionResponse {
+  string content = 1;
+  repeated ToolCall tool_calls = 2;
+  string finish_reason = 3; // stop, tool_calls, length
+  int32 prompt_tokens = 4;
+  int32 completion_tokens = 5;
+  string model = 6;
+  string provider = 7;
+}
+
+// ─── Tool Execution ────────────────────────────────────────
+
+message ExecuteToolRequest {
+  string bot_id = 1;
+  string service_provider_id = 2;
+  string conversation_id = 3;
+  string user_id = 4;
+  string tool_name = 5;
+  string arguments_json = 6;
+}
+
+message ExecuteToolResponse {
+  bool success = 1;
+  string result_json = 2;
+  string error_message = 3;
+  int32 duration_ms = 4;
+}
+
+// ─── Knowledge RAG Pipeline ────────────────────────────────
+
+message QueryKnowledgeRequest {
+  string bot_id = 1;
+  string query = 2;
+  int32 top_k = 3;
+  double min_score = 4;
+}
+
+message KnowledgeChunk {
+  string chunk_id = 1;
+  string source_id = 2;
+  string source_name = 3;
+  string content = 4;
+  double relevance_score = 5;
+  map<string, string> metadata = 6;
+}
+
+message QueryKnowledgeResponse {
+  repeated KnowledgeChunk chunks = 1;
+  string augmented_prompt = 2;
+  int32 total_chunks_searched = 3;
+}
+
+// ─── Conversation Summarization ────────────────────────────
+
+message ConversationMessage {
+  string role = 1;
+  string content = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+message SummarizeConversationRequest {
+  string bot_id = 1;
+  string conversation_id = 2;
+  repeated ConversationMessage messages = 3;
+  string summary_type = 4; // brief, detailed, action_items
+}
+
+message SummarizeConversationResponse {
+  string summary = 1;
+  repeated string key_topics = 2;
+  repeated string action_items = 3;
+  string sentiment = 4; // positive, neutral, negative
+  int32 message_count = 5;
+}
+
+// ─── Smart Categorization ──────────────────────────────────
+
+message CategorizeMessageRequest {
+  string content = 1;
+  string sender_id = 2;
+  string sender_type = 3; // user, service_provider, bot
+  map<string, string> context_metadata = 4;
+}
+
+message CategoryResult {
+  string category = 1;       // PERSONAL, ORGANIZATIONAL, ADVERTISEMENT
+  double confidence = 2;
+  string subcategory = 3;
+}
+
+message CategorizeMessageResponse {
+  CategoryResult primary_category = 1;
+  repeated CategoryResult all_categories = 2;
+  string reasoning = 3;
+}
+
+// ─── Spam Detection ────────────────────────────────────────
+
+message DetectSpamRequest {
+  string content = 1;
+  string sender_id = 2;
+  string sender_type = 3;
+  map<string, string> metadata = 4;
+  repeated string recent_messages = 5;
+}
+
+message SpamSignal {
+  string signal_type = 1;   // repetition, urgency, link_density, known_pattern
+  double weight = 2;
+  string description = 3;
+}
+
+message DetectSpamResponse {
+  bool is_spam = 1;
+  double spam_score = 2;     // 0.0 to 1.0
+  string decision = 3;       // ALLOW, FLAG, BLOCK
+  repeated SpamSignal signals = 4;
+  string explanation = 5;
+}
