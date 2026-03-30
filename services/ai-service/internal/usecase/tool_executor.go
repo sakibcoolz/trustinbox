@@ -159,12 +159,12 @@ func RegisterDefaultTools(registry *ToolRegistry) {
 	}
 
 	for _, t := range tools {
-		name := t.Name
+		toolName := t.Name // capture in local variable for closure
 		registry.Register(t, func(ctx context.Context, args json.RawMessage) (json.RawMessage, error) {
 			// Default stub handler — real implementations would call downstream services via gRPC.
 			result := map[string]interface{}{
 				"status": "executed",
-				"tool":   name,
+				"tool":   toolName,
 				"args":   json.RawMessage(args),
 			}
 			out, _ := json.Marshal(result)

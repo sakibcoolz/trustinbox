@@ -207,15 +207,27 @@ func (sd *SpamDetector) aggregateScore(signals []entity.SpamSignal) float64 {
 	if len(signals) == 0 {
 		return 0
 	}
-	var total float64
+	// Use a weighted approach: take the maximum individual signal weight,
+	// then boost it slightly based on number of additional signals.
+	maxWeight := 0.0
 	for _, s := range signals {
-		total += s.Weight
+		if s.Weight > maxWeight {
+			maxWeight = s.Weight
+		}
 	}
-	avg := total / float64(len(signals))
-	if avg > 1.0 {
-		avg = 1.0
+	// Each additional signal beyond the first adds a small boost (up to 0.2 total).
+	boost := 0.0
+	if len(signals) > 1 {
+		boost = float64(len(signals)-1) * 0.05
+		if boost > 0.2 {
+			boost = 0.2
+		}
 	}
-	return avg
+	score := maxWeight + boost
+	if score > 1.0 {
+		score = 1.0
+	}
+	return score
 }
 
 func (sd *SpamDetector) makeDecision(score float64) entity.SpamDecision {

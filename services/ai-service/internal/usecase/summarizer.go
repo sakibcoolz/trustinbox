@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -83,18 +84,41 @@ func formatConversation(messages []entity.ConversationMessage) string {
 }
 
 func parseSummarizationResponse(content string, messageCount int) *entity.SummarizeResponse {
-	// The LLM should respond with structured JSON, but we handle fallback gracefully.
 	resp := &entity.SummarizeResponse{
 		Summary:      content,
 		MessageCount: messageCount,
 		Sentiment:    "neutral",
+		KeyTopics:    []string{},
+		ActionItems:  []string{},
 	}
 
-	// Attempt to extract key topics from content if it appears to be structured.
-	if strings.Contains(content, "key_topics") {
-		// Best-effort: leave full content as summary, topics can be parsed by caller.
-		resp.KeyTopics = []string{}
-		resp.ActionItems = []string{}
+	// Try to extract JSON from the response (may be wrapped in markdown code blocks).
+	jsonStr := content
+	if idx := strings.Index(content, "{"); idx >= 0 {
+		if end := strings.LastIndex(content, "}"); end > idx {
+			jsonStr = content[idx : end+1]
+		}
+	}
+
+	var parsed struct {
+		Summary     string   `json:"summary"`
+		KeyTopics   []string `json:"key_topics"`
+		ActionItems []string `json:"action_items"`
+		Sentiment   string   `json:"sentiment"`
+	}
+	if err := json.Unmarshal([]byte(jsonStr), &parsed); err == nil {
+		if parsed.Summary != "" {
+			resp.Summary = parsed.Summary
+		}
+		if len(parsed.KeyTopics) > 0 {
+			resp.KeyTopics = parsed.KeyTopics
+		}
+		if len(parsed.ActionItems) > 0 {
+			resp.ActionItems = parsed.ActionItems
+		}
+		if parsed.Sentiment != "" {
+			resp.Sentiment = parsed.Sentiment
+		}
 	}
 
 	return resp
