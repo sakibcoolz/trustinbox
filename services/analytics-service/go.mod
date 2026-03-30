@@ -1,4 +1,4 @@
-module github.com/trustinbox/worker-service
+module github.com/trustinbox/analytics-service
 
 go 1.23
 

@@ -6,30 +6,25 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/trustinbox/analytics-service/internal/consumer"
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
-	"github.com/trustinbox/worker-service/internal/worker"
 )
 
 func main() {
-	cfg := config.LoadServiceConfig("worker-service")
+	cfg := config.LoadServiceConfig("analytics-service")
 	log := logger.New(cfg.ServiceName)
 	defer log.Sync()
 
-	log.Info("starting worker service")
-
-	// Initialize job processors
-	deliveryProc := worker.NewDeliveryProcessor(log)
-	callbackProc := worker.NewCallbackReminderProcessor(log)
-	cleanupProc := worker.NewCleanupProcessor(log)
+	log.Info("starting analytics service")
 
 	// Initialize event router
 	router := events.NewEventRouter(256, log)
 
-	// Initialize and register event consumer
-	consumer := worker.NewEventConsumer(deliveryProc, callbackProc, cleanupProc, log)
-	consumer.Register(router)
+	// Initialize and register analytics event consumer
+	analyticsConsumer := consumer.NewEventConsumer(log)
+	analyticsConsumer.Register(router)
 
 	// Start event router
 	ctx, cancel := context.WithCancel(context.Background())
@@ -37,13 +32,13 @@ func main() {
 
 	go router.Start(ctx)
 
-	log.Info("worker service ready, consuming events")
+	log.Info("analytics service ready, aggregating events")
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Info("shutting down worker service")
+	log.Info("shutting down analytics service")
 	cancel()
 	router.Stop()
 }
