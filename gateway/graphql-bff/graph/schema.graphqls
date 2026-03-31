@@ -182,59 +182,6 @@ type PolicyCheckResult {
 }
 
 # ============================================================
-# QUERIES
-# ============================================================
-
-type Query {
-  # User
-  me: User!
-  dashboardSummary: DashboardSummary!
-
-  # Notifications
-  notifications(
-    category: NotificationCategory
-    status: String
-    limit: Int
-    offset: Int
-  ): NotificationConnection!
-
-  notification(id: ID!): Notification!
-
-  # Callback Requests
-  callbackRequests(
-    status: CallbackRequestStatus
-    limit: Int
-    offset: Int
-  ): CallbackRequestConnection!
-
-  callbackRequest(id: ID!): CallbackRequest!
-
-  # Conversations
-  conversations(
-    limit: Int
-    offset: Int
-  ): ConversationConnection!
-
-  conversation(id: ID!): Conversation!
-
-  # Service Providers
-  serviceProviders(
-    search: String
-    limit: Int
-    offset: Int
-  ): [ServiceProvider!]!
-
-  serviceProvider(id: ID!): ServiceProvider!
-
-  # Policy
-  checkCommunicationPolicy(
-    serviceProviderId: ID!
-    category: NotificationCategory!
-    channel: String!
-  ): PolicyCheckResult!
-}
-
-# ============================================================
 # INPUTS
 # ============================================================
 
@@ -830,6 +777,77 @@ input PreviewCampaignPolicyInput {
 }
 
 # ============================================================
+# TEAM MANAGEMENT TYPES
+# ============================================================
+
+type TeamMember {
+  id: ID!
+  userId: ID!
+  serviceProviderId: ID!
+  username: String!
+  email: String!
+  fullName: String!
+  role: TeamRole!
+  status: String!
+  createdAt: DateTime!
+}
+
+enum TeamRole {
+  SP_ADMIN
+  AGENT
+  ANALYST
+}
+
+type TeamMemberConnection {
+  items: [TeamMember!]!
+  total: Int!
+}
+
+type TeamInvitation {
+  id: ID!
+  email: String!
+  serviceProviderId: ID!
+  role: TeamRole!
+  status: InvitationStatus!
+  invitedBy: ID!
+  expiresAt: DateTime!
+  createdAt: DateTime!
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+type InvitationConnection {
+  items: [TeamInvitation!]!
+  total: Int!
+}
+
+type InviteTeamMemberResult {
+  invitationId: ID!
+}
+
+input InviteTeamMemberInput {
+  serviceProviderId: ID!
+  email: String!
+  role: TeamRole!
+}
+
+input ChangeTeamMemberRoleInput {
+  serviceProviderId: ID!
+  targetUserId: ID!
+  newRole: TeamRole!
+}
+
+input RemoveTeamMemberInput {
+  serviceProviderId: ID!
+  targetUserId: ID!
+}
+
+# ============================================================
 # QUERIES
 # ============================================================
 
@@ -971,6 +989,21 @@ type Query {
     from: DateTime
     to: DateTime
   ): BotPerformanceAnalytics!
+
+  # Team Management
+  teamMembers(
+    serviceProviderId: ID!
+    limit: Int
+    offset: Int
+  ): TeamMemberConnection!
+
+  pendingInvitations(
+    serviceProviderId: ID!
+    limit: Int
+    offset: Int
+  ): InvitationConnection!
+
+  myServiceProviders: [ServiceProvider!]!
 }
 
 # ============================================================
@@ -1032,6 +1065,13 @@ type Mutation {
   updateCampaign(input: UpdateCampaignInput!): Campaign!
   cancelCampaign(campaignId: ID!, serviceProviderId: ID!): Boolean!
   launchCampaign(campaignId: ID!, serviceProviderId: ID!): Campaign!
+
+  # Team Management
+  inviteTeamMember(input: InviteTeamMemberInput!): InviteTeamMemberResult!
+  acceptInvitation(token: String!): Boolean!
+  revokeInvitation(invitationId: ID!, serviceProviderId: ID!): Boolean!
+  changeTeamMemberRole(input: ChangeTeamMemberRoleInput!): Boolean!
+  removeTeamMember(input: RemoveTeamMemberInput!): Boolean!
 }
 
 # ============================================================

@@ -4,12 +4,14 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/trustinbox/auth-service/internal/domain/entity"
 	"github.com/trustinbox/auth-service/internal/domain/repository"
 	"github.com/trustinbox/cornerstone/auth/jwt"
+	"github.com/trustinbox/cornerstone/auth/username"
 	bzerr "github.com/trustinbox/cornerstone/errors"
 	"github.com/trustinbox/cornerstone/events"
 	"go.uber.org/zap"
@@ -44,6 +46,8 @@ type LoginResult struct {
 	AccessToken  string
 	RefreshToken string
 	UserID       string
+	Username     string
+	Role         string
 	ExpiresAt    int64
 }
 
@@ -61,7 +65,8 @@ func (uc *AuthUseCase) Login(ctx context.Context, email, password string) (*Logi
 		return nil, bzerr.Unauthorized("account is not active")
 	}
 
-	accessToken, err := uc.tokenSvc.GenerateAccessToken(user.ID, "CUSTOMER", "")
+	role := "CUSTOMER"
+	accessToken, err := uc.tokenSvc.GenerateAccessToken(user.ID, role, "")
 	if err != nil {
 		return nil, bzerr.Internal("failed to generate access token", err)
 	}
@@ -86,11 +91,14 @@ func (uc *AuthUseCase) Login(ctx context.Context, email, password string) (*Logi
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		UserID:       user.ID,
+		Username:     user.Username,
+		Role:         role,
 		ExpiresAt:    time.Now().Add(15 * time.Minute).Unix(),
 	}, nil
 }
 
 type RegisterInput struct {
+	Username string
 	Email    string
 	Mobile   string
 	Password string
@@ -99,6 +107,7 @@ type RegisterInput struct {
 
 type RegisterResult struct {
 	UserID          string
+	Username        string
 	VirtualPublicID string
 	AccessToken     string
 	RefreshToken    string
@@ -110,9 +119,27 @@ func (uc *AuthUseCase) Register(ctx context.Context, input RegisterInput) (*Regi
 		return nil, bzerr.Internal("failed to hash password", err)
 	}
 
+	// Generate username if not provided
+	uname := input.Username
+	if uname == "" {
+		uname = username.GenerateCustomerUsername(input.Email)
+	}
+
+	// Validate username format
+	if err := username.Validate(uname); err != nil {
+		return nil, bzerr.InvalidInput(fmt.Sprintf("invalid username: %s", err.Error()))
+	}
+
+	// Resolve uniqueness conflicts by appending suffix
+	resolvedName, err := uc.resolveUniqueUsername(ctx, uname)
+	if err != nil {
+		return nil, bzerr.Internal("failed to resolve username", err)
+	}
+
 	userID := uuid.New().String()
 	user := &entity.User{
 		ID:           userID,
+		Username:     resolvedName,
 		Email:        input.Email,
 		Mobile:       input.Mobile,
 		PasswordHash: string(hash),
@@ -136,16 +163,61 @@ func (uc *AuthUseCase) Register(ctx context.Context, input RegisterInput) (*Regi
 
 	// Publish customer.synced event (new user registration)
 	uc.publishEvent(ctx, events.CustomerSynced, userID, map[string]interface{}{
-		"user_id": userID,
-		"email":   input.Email,
+		"user_id":  userID,
+		"username": resolvedName,
+		"email":    input.Email,
 	})
 
 	return &RegisterResult{
 		UserID:          userID,
+		Username:        resolvedName,
 		VirtualPublicID: "TI-" + userID[:8],
 		AccessToken:     accessToken,
 		RefreshToken:    refreshToken,
 	}, nil
+}
+
+// resolveUniqueUsername tries the base username, then appends -2, -3, etc. on conflict.
+func (uc *AuthUseCase) resolveUniqueUsername(ctx context.Context, base string) (string, error) {
+	candidate := base
+	for i := 2; i <= 100; i++ {
+		exists, err := uc.userRepo.UsernameExists(ctx, candidate)
+		if err != nil {
+			return "", err
+		}
+		if !exists {
+			return candidate, nil
+		}
+		candidate = username.AppendSuffix(base, i)
+	}
+	return "", fmt.Errorf("could not resolve unique username for %s", base)
+}
+
+// ChangeUsername changes a user's username (admin-only, audit logged).
+func (uc *AuthUseCase) ChangeUsername(ctx context.Context, adminUserID, targetUserID, newUsername string) error {
+	if err := username.Validate(newUsername); err != nil {
+		return bzerr.InvalidInput(fmt.Sprintf("invalid username: %s", err.Error()))
+	}
+
+	exists, err := uc.userRepo.UsernameExists(ctx, newUsername)
+	if err != nil {
+		return bzerr.Internal("failed to check username", err)
+	}
+	if exists {
+		return bzerr.Wrap(bzerr.CodeAlreadyExists, "username already taken", nil)
+	}
+
+	if err := uc.userRepo.UpdateUsername(ctx, targetUserID, newUsername); err != nil {
+		return bzerr.Internal("failed to update username", err)
+	}
+
+	uc.log.Info("username changed",
+		zap.String("admin_user_id", adminUserID),
+		zap.String("target_user_id", targetUserID),
+		zap.String("new_username", newUsername),
+	)
+
+	return nil
 }
 
 // publishEvent fires a domain event asynchronously.

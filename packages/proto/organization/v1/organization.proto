@@ -19,6 +19,14 @@ service ServiceProviderService {
   rpc RemoveServiceProviderUser(RemoveServiceProviderUserRequest) returns (RemoveServiceProviderUserResponse);
   rpc ListServiceProviderUsers(ListServiceProviderUsersRequest) returns (ListServiceProviderUsersResponse);
   rpc GetServiceProviderUser(GetServiceProviderUserRequest) returns (ServiceProviderUser);
+
+  // Invitations & Team management
+  rpc InviteTeamMember(InviteTeamMemberRequest) returns (InviteTeamMemberResponse);
+  rpc AcceptInvitation(AcceptInvitationRequest) returns (AcceptInvitationResponse);
+  rpc RevokeInvitation(RevokeInvitationRequest) returns (RevokeInvitationResponse);
+  rpc ListInvitations(ListInvitationsRequest) returns (ListInvitationsResponse);
+  rpc ChangeTeamMemberRole(ChangeTeamMemberRoleRequest) returns (ChangeTeamMemberRoleResponse);
+  rpc RemoveTeamMember(RemoveTeamMemberRequest) returns (RemoveTeamMemberResponse);
 }
 
 message CreateServiceProviderRequest {
@@ -126,4 +134,81 @@ message ListServiceProviderUsersResponse {
 
 message GetServiceProviderUserRequest {
   string service_provider_user_id = 1;
+}
+
+// --- Invitation & Team management messages ---
+
+message InviteTeamMemberRequest {
+  string service_provider_id = 1;
+  string email = 2;
+  string role = 3; // SP_ADMIN, AGENT, ANALYST
+  string invited_by_user_id = 4;
+}
+
+message InviteTeamMemberResponse {
+  string invitation_id = 1;
+  string token = 2;
+}
+
+message AcceptInvitationRequest {
+  string token = 1;
+  string user_id = 2;
+}
+
+message AcceptInvitationResponse {
+  bool success = 1;
+}
+
+message RevokeInvitationRequest {
+  string invitation_id = 1;
+  string service_provider_id = 2;
+  string actor_user_id = 3;
+}
+
+message RevokeInvitationResponse {
+  bool success = 1;
+}
+
+message ListInvitationsRequest {
+  string service_provider_id = 1;
+  string status = 2; // PENDING, ACCEPTED, EXPIRED, REVOKED (empty = all)
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListInvitationsResponse {
+  repeated Invitation invitations = 1;
+  int32 total = 2;
+}
+
+message Invitation {
+  string id = 1;
+  string email = 2;
+  string service_provider_id = 3;
+  string role = 4;
+  string status = 5;
+  string invited_by = 6;
+  google.protobuf.Timestamp expires_at = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message ChangeTeamMemberRoleRequest {
+  string service_provider_id = 1;
+  string target_user_id = 2;
+  string new_role = 3; // SP_ADMIN, AGENT, ANALYST
+  string actor_user_id = 4;
+}
+
+message ChangeTeamMemberRoleResponse {
+  bool success = 1;
+}
+
+message RemoveTeamMemberRequest {
+  string service_provider_id = 1;
+  string target_user_id = 2;
+  string actor_user_id = 3;
+}
+
+message RemoveTeamMemberResponse {
+  bool success = 1;
 }

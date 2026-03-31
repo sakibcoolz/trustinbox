@@ -394,81 +394,81 @@
 > Covers team/user management features within the Service Provider Portal, including
 > invitation flows, role assignment, profile management, and the username system.
 
-- [ ] **12.1 Username System & Identity**
+- [x] **12.1 Username System & Identity**
   - [x] DB column `users.username` VARCHAR(100), UNIQUE, NOT NULL
   - [x] Username patterns defined:
     - Customers: `c/<username>` (e.g. `c/alice`, `c/bob`) — derived from email local part
     - Service Providers: `o/<slug>` (e.g. `o/acmebank`, `o/cityhospital`) — derived from org name
   - [x] `virtual_public_id` format: `TI-<first-8-chars-of-uuid>` (never exposes real identity)
   - [x] `masked_phone` field on `user_identities` (real phone never exposed to SP)
-  - [ ] Username validation regex enforcement in auth-service (`^(c|o)/[a-z0-9._-]{2,50}$`)
-  - [ ] Username uniqueness conflict handling (append suffix: `c/alice-2`)
-  - [ ] Username change/rename flow (admin-only, audit logged)
-  - [ ] Display username in provider UI header and sidebar profile
+  - [x] Username validation regex enforcement in auth-service (`^(c|o)/[a-z0-9._-]{2,50}$`)
+  - [x] Username uniqueness conflict handling (append suffix: `c/alice-2`)
+  - [x] Username change/rename flow (admin-only, audit logged)
+  - [x] Display username in provider UI header and sidebar profile
 
-- [ ] **12.2 Team Member Invitation Flow**
+- [x] **12.2 Team Member Invitation Flow**
   - [x] `service_provider_users` table with `(service_provider_id, user_id)` UNIQUE
   - [x] `AddServiceProviderUser` gRPC RPC in organization proto
   - [x] `OrgUseCase.AddOrgUser()` creates user with ACTIVE status
-  - [ ] Email invitation endpoint (generate invite token, send email)
-  - [ ] Invite acceptance page (`/auth/invite/[token]`) — register or link existing account
-  - [ ] Invitation expiry (48h) + resend capability
-  - [ ] Invitation status tracking (PENDING, ACCEPTED, EXPIRED, REVOKED)
-  - [ ] Migration: add `invitations` table (token_hash, email, role, sp_id, status, expires_at)
+  - [x] Email invitation endpoint (generate invite token, send email)
+  - [x] Invite acceptance page (`/auth/invite/[token]`) — register or link existing account
+  - [x] Invitation expiry (48h) + resend capability
+  - [x] Invitation status tracking (PENDING, ACCEPTED, EXPIRED, REVOKED)
+  - [x] Migration: add `invitations` table (token_hash, email, role, sp_id, status, expires_at)
 
-- [ ] **12.3 Provider User Roles & Permissions**
+- [x] **12.3 Provider User Roles & Permissions**
   - [x] 3 SP roles defined: `SP_ADMIN`, `AGENT`, `ANALYST`
   - [x] RBAC permission matrix in `packages/cornerstone/auth/rbac/rbac.go`
   - [x] SP_ADMIN: full access (team.manage, org.settings.manage, integration.manage, etc.)
   - [x] AGENT: create/view notifications, callbacks, conversations, documents; view campaigns, bots, analytics
   - [x] ANALYST: read-only analytics, compliance, and view all entities
-  - [ ] Role change mutation (SP_ADMIN only → change another user's role)
-  - [ ] Role-based UI feature gating in provider app (hide menu items per role)
-  - [ ] Prevent last SP_ADMIN from being demoted or removed
+  - [x] Role change mutation (SP_ADMIN only → change another user's role)
+  - [x] Role-based UI feature gating in provider app (hide menu items per role)
+  - [x] Prevent last SP_ADMIN from being demoted or removed
 
-- [ ] **12.4 Provider `/settings/team` Page**
-  - [ ] Team member list table (name, email, username `o/<slug>`, role badge, status, joined date)
-  - [ ] "Invite Team Member" modal (email input + role selector: SP_ADMIN / AGENT / ANALYST)
-  - [ ] Inline role change dropdown (SP_ADMIN only)
-  - [ ] Remove/deactivate team member action with confirmation dialog
-  - [ ] Pending invitations section (email, role, sent date, status, resend/revoke actions)
-  - [ ] Activity log per user (last login, actions performed)
+- [x] **12.4 Provider `/settings/team` Page**
+  - [x] Team member list table (name, email, username `o/<slug>`, role badge, status, joined date)
+  - [x] "Invite Team Member" modal (email input + role selector: SP_ADMIN / AGENT / ANALYST)
+  - [x] Inline role change dropdown (SP_ADMIN only)
+  - [x] Remove/deactivate team member action with confirmation dialog
+  - [x] Pending invitations section (email, role, sent date, status, resend/revoke actions)
+  - [x] Activity log per user (last login, actions performed)
 
-- [ ] **12.5 Provider User Profile Page**
-  - [ ] `/settings/profile` — current SP user's own profile
-  - [ ] Edit full name, avatar, timezone, language
-  - [ ] Change password form (current + new + confirm)
-  - [ ] View own role and permissions (read-only)
-  - [ ] Session management (list active sessions, revoke)
+- [x] **12.5 Provider User Profile Page**
+  - [x] `/settings/profile` — current SP user's own profile
+  - [x] Edit full name, avatar, timezone, language
+  - [x] Change password form (current + new + confirm)
+  - [x] View own role and permissions (read-only)
+  - [x] Session management (list active sessions, revoke)
 
-- [ ] **12.6 SP Onboarding Flow**
+- [x] **12.6 SP Onboarding Flow**
   - [x] `CreateOrganization` use case auto-creates ORG_ADMIN user for founding member
   - [x] Auth `RegisterRequest` proto includes username, email, mobile, password, full_name
-  - [ ] `/auth/register` page wizard:
+  - [x] `/auth/register` page wizard:
     - Step 1: Personal info (name, email, password) → creates user with `c/<username>`
     - Step 2: Organization info (name, industry, website) → creates SP with `o/<slug>`
     - Step 3: Verification submission (documents, legal name)
-  - [ ] Auto-assign `SP_ADMIN` role to founding user
-  - [ ] Generate `o/<slug>` from org name (lowercase, strip special chars, deduplicate)
-  - [ ] JWT claims include `service_provider_id` after SP context is selected
+  - [x] Auto-assign `SP_ADMIN` role to founding user
+  - [x] Generate `o/<slug>` from org name (lowercase, strip special chars, deduplicate)
+  - [x] JWT claims include `service_provider_id` after SP context is selected
 
-- [ ] **12.7 Multi-SP User Support**
+- [x] **12.7 Multi-SP User Support**
   - [x] `service_provider_users` allows one user in multiple SPs
   - [x] JWT `Claims.ServiceProviderID` field for active SP context
-  - [ ] SP switcher component in provider sidebar (list user's SPs)
-  - [ ] SP selection on login (if user belongs to multiple SPs)
-  - [ ] Context switch API (re-issue JWT with different `service_provider_id`)
+  - [x] SP switcher component in provider sidebar (list user's SPs)
+  - [x] SP selection on login (if user belongs to multiple SPs)
+  - [x] Context switch API (re-issue JWT with different `service_provider_id`)
 
-- [ ] **12.8 Backend Implementation**
+- [x] **12.8 Backend Implementation**
   - [x] `OrganizationUserRepository` interface (Add, Remove, GetByID, ListByOrg, GetByOrgAndUser)
-  - [ ] PostgreSQL repository implementation for `service_provider_users`
-  - [ ] `InvitationRepository` interface + PostgreSQL implementation
-  - [ ] `InviteUser` use case (validate email, check duplicates, create invitation, send email)
-  - [ ] `AcceptInvitation` use case (validate token, create/link user, add to SP)
-  - [ ] `ChangeUserRole` use case (validate caller is SP_ADMIN, prevent last-admin removal)
-  - [ ] `DeactivateUser` use case (soft-delete from SP, revoke sessions)
-  - [ ] GraphQL mutations: `inviteTeamMember`, `acceptInvitation`, `changeTeamMemberRole`, `removeTeamMember`
-  - [ ] GraphQL queries: `teamMembers`, `pendingInvitations`, `myServiceProviders`
+  - [x] PostgreSQL repository implementation for `service_provider_users`
+  - [x] `InvitationRepository` interface + PostgreSQL implementation
+  - [x] `InviteUser` use case (validate email, check duplicates, create invitation, send email)
+  - [x] `AcceptInvitation` use case (validate token, create/link user, add to SP)
+  - [x] `ChangeUserRole` use case (validate caller is SP_ADMIN, prevent last-admin removal)
+  - [x] `DeactivateUser` use case (soft-delete from SP, revoke sessions)
+  - [x] GraphQL mutations: `inviteTeamMember`, `acceptInvitation`, `changeTeamMemberRole`, `removeTeamMember`
+  - [x] GraphQL queries: `teamMembers`, `pendingInvitations`, `myServiceProviders`
 
 ---
 

@@ -91,3 +91,37 @@ func (r *spUserRepo) GetBySPAndUser(ctx context.Context, spID, userID string) (*
 	}
 	return &u, nil
 }
+
+func (r *spUserRepo) UpdateRole(ctx context.Context, id, spID, role string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE service_provider_users SET role = $1 WHERE id = $2 AND service_provider_id = $3`,
+		role, id, spID,
+	)
+	if err != nil {
+		return fmt.Errorf("update sp user role: %w", err)
+	}
+	return nil
+}
+
+func (r *spUserRepo) UpdateStatus(ctx context.Context, id, spID, status string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE service_provider_users SET status = $1 WHERE id = $2 AND service_provider_id = $3`,
+		status, id, spID,
+	)
+	if err != nil {
+		return fmt.Errorf("update sp user status: %w", err)
+	}
+	return nil
+}
+
+func (r *spUserRepo) CountByRole(ctx context.Context, spID, role string) (int, error) {
+	var count int
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM service_provider_users WHERE service_provider_id = $1 AND role = $2`,
+		spID, role,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count sp users by role: %w", err)
+	}
+	return count, nil
+}

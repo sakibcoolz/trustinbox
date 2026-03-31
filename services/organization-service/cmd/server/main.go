@@ -61,9 +61,11 @@ func main() {
 	// PostgreSQL repository implementations
 	spRepo := postgres.NewServiceProviderRepository(db)
 	spUserRepo := postgres.NewServiceProviderUserRepository(db)
+	invRepo := postgres.NewInvitationRepository(db)
 
 	spUC := usecase.NewSPUseCase(spRepo, spUserRepo, publisher, log)
-	handler := grpcdelivery.NewServiceProviderHandler(spUC)
+	teamUC := usecase.NewTeamUseCase(spUserRepo, invRepo, spRepo, publisher, log)
+	handler := grpcdelivery.NewServiceProviderHandler(spUC, teamUC)
 
 	srv := grpc.NewServer()
 	pb.RegisterServiceProviderServiceServer(srv, handler)

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Building2, Check } from 'lucide-react';
+import { auth, profile as profileApi, type ProfileSP, ApiError } from '@/lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -9,29 +10,84 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // SP selection state
+  const [spList, setSPList] = useState<ProfileSP[]>([]);
+  const [showSPPicker, setShowSPPicker] = useState(false);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Login failed');
-      }
-      const data = await res.json();
+      const data = await auth.login(email, password);
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
+
+      // Check if user belongs to multiple SPs
+      try {
+        const spRes = await profileApi.serviceProviders();
+        const sps = spRes.serviceProviders || [];
+        if (sps.length > 1) {
+          setSPList(sps);
+          localStorage.setItem('userSPs', JSON.stringify(sps));
+          setShowSPPicker(true);
+          return;
+        }
+        if (sps.length === 1) {
+          localStorage.setItem('activeSpId', sps[0].id);
+          localStorage.setItem('userSPs', JSON.stringify(sps));
+        }
+      } catch {
+        // SP fetch failed — proceed without SP context
+      }
+
       window.location.href = '/';
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
+  }
+
+  function selectSP(sp: ProfileSP) {
+    localStorage.setItem('activeSpId', sp.id);
+    window.location.href = '/';
+  }
+
+  if (showSPPicker) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg-primary">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-semibold text-accent-blue">TrustInbox</h1>
+            <p className="text-text-muted text-sm mt-1">Provider Portal</p>
+          </div>
+
+          <div className="bg-bg-card border border-border-primary rounded-xl p-8">
+            <h2 className="text-lg font-semibold mb-1">Select Organization</h2>
+            <p className="text-sm text-text-muted mb-6">You belong to multiple organizations. Choose one to continue.</p>
+
+            <div className="space-y-2">
+              {spList.map((sp) => (
+                <button key={sp.id} onClick={() => selectSP(sp)}
+                  className="w-full flex items-center gap-3 px-4 py-3 border border-border-secondary rounded-lg hover:bg-bg-hover hover:border-accent-blue/30 transition-colors text-left group">
+                  <div className="w-10 h-10 rounded-full bg-accent-blue/20 flex items-center justify-center text-accent-blue text-sm font-semibold shrink-0">
+                    {sp.name.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-text-primary truncate">{sp.name}</p>
+                    <p className="text-xs text-text-muted">
+                      {sp.industry} · <span className="capitalize">{sp.role.replace('_', ' ').toLowerCase()}</span>
+                    </p>
+                  </div>
+                  <ArrowRight size={16} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

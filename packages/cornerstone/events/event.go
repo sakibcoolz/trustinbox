@@ -64,6 +64,13 @@ const (
 
 	// Spam events
 	SpamReported EventType = "spam.reported"
+
+	// Team / Invitation events
+	TeamMemberInvited     EventType = "team.member.invited"
+	TeamMemberRoleChanged EventType = "team.member.role_changed"
+	TeamMemberRemoved     EventType = "team.member.removed"
+	InvitationAccepted    EventType = "invitation.accepted"
+	InvitationRevoked     EventType = "invitation.revoked"
 )
 
 // Event is the standard domain event envelope.

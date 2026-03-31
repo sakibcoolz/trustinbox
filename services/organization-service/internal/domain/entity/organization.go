@@ -35,3 +35,16 @@ type ServiceProviderVerification struct {
 	Notes             string
 	CreatedAt         time.Time
 }
+
+type Invitation struct {
+	ID                string
+	TokenHash         string
+	Email             string
+	ServiceProviderID string
+	Role              string // SP_ADMIN, AGENT, ANALYST
+	Status            string // PENDING, ACCEPTED, EXPIRED, REVOKED
+	InvitedBy         string
+	ExpiresAt         time.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}

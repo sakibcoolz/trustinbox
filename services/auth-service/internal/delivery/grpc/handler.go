@@ -30,12 +30,15 @@ func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		AccessToken:  result.AccessToken,
 		RefreshToken: result.RefreshToken,
 		UserId:       result.UserID,
+		Username:     result.Username,
+		Role:         result.Role,
 		ExpiresAt:    result.ExpiresAt,
 	}, nil
 }
 
 func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
 	result, err := h.uc.Register(ctx, usecase.RegisterInput{
+		Username: req.Username,
 		Email:    req.Email,
 		Mobile:   req.Mobile,
 		Password: req.Password,
@@ -46,6 +49,7 @@ func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 	}
 	return &pb.RegisterResponse{
 		UserId:          result.UserID,
+		Username:        result.Username,
 		VirtualPublicId: result.VirtualPublicID,
 		AccessToken:     result.AccessToken,
 		RefreshToken:    result.RefreshToken,

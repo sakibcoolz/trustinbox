@@ -29,6 +29,12 @@ const (
 	ServiceProviderService_RemoveServiceProviderUser_FullMethodName = "/organization.v1.ServiceProviderService/RemoveServiceProviderUser"
 	ServiceProviderService_ListServiceProviderUsers_FullMethodName  = "/organization.v1.ServiceProviderService/ListServiceProviderUsers"
 	ServiceProviderService_GetServiceProviderUser_FullMethodName    = "/organization.v1.ServiceProviderService/GetServiceProviderUser"
+	ServiceProviderService_InviteTeamMember_FullMethodName          = "/organization.v1.ServiceProviderService/InviteTeamMember"
+	ServiceProviderService_AcceptInvitation_FullMethodName          = "/organization.v1.ServiceProviderService/AcceptInvitation"
+	ServiceProviderService_RevokeInvitation_FullMethodName          = "/organization.v1.ServiceProviderService/RevokeInvitation"
+	ServiceProviderService_ListInvitations_FullMethodName           = "/organization.v1.ServiceProviderService/ListInvitations"
+	ServiceProviderService_ChangeTeamMemberRole_FullMethodName      = "/organization.v1.ServiceProviderService/ChangeTeamMemberRole"
+	ServiceProviderService_RemoveTeamMember_FullMethodName          = "/organization.v1.ServiceProviderService/RemoveTeamMember"
 )
 
 // ServiceProviderServiceClient is the client API for ServiceProviderService service.
@@ -46,6 +52,13 @@ type ServiceProviderServiceClient interface {
 	RemoveServiceProviderUser(ctx context.Context, in *RemoveServiceProviderUserRequest, opts ...grpc.CallOption) (*RemoveServiceProviderUserResponse, error)
 	ListServiceProviderUsers(ctx context.Context, in *ListServiceProviderUsersRequest, opts ...grpc.CallOption) (*ListServiceProviderUsersResponse, error)
 	GetServiceProviderUser(ctx context.Context, in *GetServiceProviderUserRequest, opts ...grpc.CallOption) (*ServiceProviderUser, error)
+	// Invitations & Team management
+	InviteTeamMember(ctx context.Context, in *InviteTeamMemberRequest, opts ...grpc.CallOption) (*InviteTeamMemberResponse, error)
+	AcceptInvitation(ctx context.Context, in *AcceptInvitationRequest, opts ...grpc.CallOption) (*AcceptInvitationResponse, error)
+	RevokeInvitation(ctx context.Context, in *RevokeInvitationRequest, opts ...grpc.CallOption) (*RevokeInvitationResponse, error)
+	ListInvitations(ctx context.Context, in *ListInvitationsRequest, opts ...grpc.CallOption) (*ListInvitationsResponse, error)
+	ChangeTeamMemberRole(ctx context.Context, in *ChangeTeamMemberRoleRequest, opts ...grpc.CallOption) (*ChangeTeamMemberRoleResponse, error)
+	RemoveTeamMember(ctx context.Context, in *RemoveTeamMemberRequest, opts ...grpc.CallOption) (*RemoveTeamMemberResponse, error)
 }
 
 type serviceProviderServiceClient struct {
@@ -156,6 +169,66 @@ func (c *serviceProviderServiceClient) GetServiceProviderUser(ctx context.Contex
 	return out, nil
 }
 
+func (c *serviceProviderServiceClient) InviteTeamMember(ctx context.Context, in *InviteTeamMemberRequest, opts ...grpc.CallOption) (*InviteTeamMemberResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InviteTeamMemberResponse)
+	err := c.cc.Invoke(ctx, ServiceProviderService_InviteTeamMember_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serviceProviderServiceClient) AcceptInvitation(ctx context.Context, in *AcceptInvitationRequest, opts ...grpc.CallOption) (*AcceptInvitationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AcceptInvitationResponse)
+	err := c.cc.Invoke(ctx, ServiceProviderService_AcceptInvitation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serviceProviderServiceClient) RevokeInvitation(ctx context.Context, in *RevokeInvitationRequest, opts ...grpc.CallOption) (*RevokeInvitationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevokeInvitationResponse)
+	err := c.cc.Invoke(ctx, ServiceProviderService_RevokeInvitation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serviceProviderServiceClient) ListInvitations(ctx context.Context, in *ListInvitationsRequest, opts ...grpc.CallOption) (*ListInvitationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListInvitationsResponse)
+	err := c.cc.Invoke(ctx, ServiceProviderService_ListInvitations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serviceProviderServiceClient) ChangeTeamMemberRole(ctx context.Context, in *ChangeTeamMemberRoleRequest, opts ...grpc.CallOption) (*ChangeTeamMemberRoleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChangeTeamMemberRoleResponse)
+	err := c.cc.Invoke(ctx, ServiceProviderService_ChangeTeamMemberRole_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serviceProviderServiceClient) RemoveTeamMember(ctx context.Context, in *RemoveTeamMemberRequest, opts ...grpc.CallOption) (*RemoveTeamMemberResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveTeamMemberResponse)
+	err := c.cc.Invoke(ctx, ServiceProviderService_RemoveTeamMember_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ServiceProviderServiceServer is the server API for ServiceProviderService service.
 // All implementations must embed UnimplementedServiceProviderServiceServer
 // for forward compatibility.
@@ -171,6 +244,13 @@ type ServiceProviderServiceServer interface {
 	RemoveServiceProviderUser(context.Context, *RemoveServiceProviderUserRequest) (*RemoveServiceProviderUserResponse, error)
 	ListServiceProviderUsers(context.Context, *ListServiceProviderUsersRequest) (*ListServiceProviderUsersResponse, error)
 	GetServiceProviderUser(context.Context, *GetServiceProviderUserRequest) (*ServiceProviderUser, error)
+	// Invitations & Team management
+	InviteTeamMember(context.Context, *InviteTeamMemberRequest) (*InviteTeamMemberResponse, error)
+	AcceptInvitation(context.Context, *AcceptInvitationRequest) (*AcceptInvitationResponse, error)
+	RevokeInvitation(context.Context, *RevokeInvitationRequest) (*RevokeInvitationResponse, error)
+	ListInvitations(context.Context, *ListInvitationsRequest) (*ListInvitationsResponse, error)
+	ChangeTeamMemberRole(context.Context, *ChangeTeamMemberRoleRequest) (*ChangeTeamMemberRoleResponse, error)
+	RemoveTeamMember(context.Context, *RemoveTeamMemberRequest) (*RemoveTeamMemberResponse, error)
 	mustEmbedUnimplementedServiceProviderServiceServer()
 }
 
@@ -210,6 +290,24 @@ func (UnimplementedServiceProviderServiceServer) ListServiceProviderUsers(contex
 }
 func (UnimplementedServiceProviderServiceServer) GetServiceProviderUser(context.Context, *GetServiceProviderUserRequest) (*ServiceProviderUser, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetServiceProviderUser not implemented")
+}
+func (UnimplementedServiceProviderServiceServer) InviteTeamMember(context.Context, *InviteTeamMemberRequest) (*InviteTeamMemberResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InviteTeamMember not implemented")
+}
+func (UnimplementedServiceProviderServiceServer) AcceptInvitation(context.Context, *AcceptInvitationRequest) (*AcceptInvitationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AcceptInvitation not implemented")
+}
+func (UnimplementedServiceProviderServiceServer) RevokeInvitation(context.Context, *RevokeInvitationRequest) (*RevokeInvitationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RevokeInvitation not implemented")
+}
+func (UnimplementedServiceProviderServiceServer) ListInvitations(context.Context, *ListInvitationsRequest) (*ListInvitationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListInvitations not implemented")
+}
+func (UnimplementedServiceProviderServiceServer) ChangeTeamMemberRole(context.Context, *ChangeTeamMemberRoleRequest) (*ChangeTeamMemberRoleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ChangeTeamMemberRole not implemented")
+}
+func (UnimplementedServiceProviderServiceServer) RemoveTeamMember(context.Context, *RemoveTeamMemberRequest) (*RemoveTeamMemberResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveTeamMember not implemented")
 }
 func (UnimplementedServiceProviderServiceServer) mustEmbedUnimplementedServiceProviderServiceServer() {
 }
@@ -413,6 +511,114 @@ func _ServiceProviderService_GetServiceProviderUser_Handler(srv interface{}, ctx
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ServiceProviderService_InviteTeamMember_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InviteTeamMemberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceProviderServiceServer).InviteTeamMember(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ServiceProviderService_InviteTeamMember_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceProviderServiceServer).InviteTeamMember(ctx, req.(*InviteTeamMemberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ServiceProviderService_AcceptInvitation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcceptInvitationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceProviderServiceServer).AcceptInvitation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ServiceProviderService_AcceptInvitation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceProviderServiceServer).AcceptInvitation(ctx, req.(*AcceptInvitationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ServiceProviderService_RevokeInvitation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeInvitationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceProviderServiceServer).RevokeInvitation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ServiceProviderService_RevokeInvitation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceProviderServiceServer).RevokeInvitation(ctx, req.(*RevokeInvitationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ServiceProviderService_ListInvitations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInvitationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceProviderServiceServer).ListInvitations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ServiceProviderService_ListInvitations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceProviderServiceServer).ListInvitations(ctx, req.(*ListInvitationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ServiceProviderService_ChangeTeamMemberRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangeTeamMemberRoleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceProviderServiceServer).ChangeTeamMemberRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ServiceProviderService_ChangeTeamMemberRole_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceProviderServiceServer).ChangeTeamMemberRole(ctx, req.(*ChangeTeamMemberRoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ServiceProviderService_RemoveTeamMember_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveTeamMemberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceProviderServiceServer).RemoveTeamMember(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ServiceProviderService_RemoveTeamMember_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceProviderServiceServer).RemoveTeamMember(ctx, req.(*RemoveTeamMemberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ServiceProviderService_ServiceDesc is the grpc.ServiceDesc for ServiceProviderService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -459,6 +665,30 @@ var ServiceProviderService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetServiceProviderUser",
 			Handler:    _ServiceProviderService_GetServiceProviderUser_Handler,
+		},
+		{
+			MethodName: "InviteTeamMember",
+			Handler:    _ServiceProviderService_InviteTeamMember_Handler,
+		},
+		{
+			MethodName: "AcceptInvitation",
+			Handler:    _ServiceProviderService_AcceptInvitation_Handler,
+		},
+		{
+			MethodName: "RevokeInvitation",
+			Handler:    _ServiceProviderService_RevokeInvitation_Handler,
+		},
+		{
+			MethodName: "ListInvitations",
+			Handler:    _ServiceProviderService_ListInvitations_Handler,
+		},
+		{
+			MethodName: "ChangeTeamMemberRole",
+			Handler:    _ServiceProviderService_ChangeTeamMemberRole_Handler,
+		},
+		{
+			MethodName: "RemoveTeamMember",
+			Handler:    _ServiceProviderService_RemoveTeamMember_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

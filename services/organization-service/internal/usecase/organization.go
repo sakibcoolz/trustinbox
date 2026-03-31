@@ -142,3 +142,11 @@ func (uc *SPUseCase) AddSPUser(ctx context.Context, spUser *entity.ServiceProvid
 	}
 	return spUser, nil
 }
+
+func (uc *SPUseCase) GetSPUserByID(ctx context.Context, id string) (*entity.ServiceProviderUser, error) {
+	u, err := uc.spUserRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, bzerr.NotFound("service_provider_user", id)
+	}
+	return u, nil
+}

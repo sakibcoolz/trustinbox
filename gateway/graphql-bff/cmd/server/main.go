@@ -283,6 +283,13 @@ func main() {
 	mux.HandleFunc("/internal/ejabberd/check_password", handleEjabberdCheckPassword(ejHookDeps))
 	mux.HandleFunc("/internal/ejabberd/is_user", handleEjabberdIsUser(ejHookDeps))
 
+	// ─── Team Management endpoints (JWT-authenticated) ──────────────────────
+	mux.HandleFunc("/api/team/members", handleTeamMembers(svc, tokenSvc, log))
+	mux.HandleFunc("/api/team/invitations", handleTeamInvitations(svc, tokenSvc, log))
+	mux.HandleFunc("/api/team/invitations/revoke", handleRevokeInvitation(svc, tokenSvc, log))
+	mux.HandleFunc("/api/team/invitations/accept", handleAcceptInvitation(svc, tokenSvc, log))
+	mux.HandleFunc("/api/team/members/role", handleChangeTeamMemberRole(svc, tokenSvc, log))
+
 	// GraphQL placeholder (will be replaced with gqlgen)
 	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
