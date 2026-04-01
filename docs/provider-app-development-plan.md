@@ -123,27 +123,27 @@
 
 ### Route: `/customers`
 
-- [ ] **4.1** Customer list table — virtual ID (never real phone), name, last contact date, status, category
-- [ ] **4.2** Search bar — search by virtual ID or name
-- [ ] **4.3** Filter chips — by category (Personal, Organizational, Advertisement), by status (Active, Blocked, DND)
-- [ ] **4.4** Sort by — last contacted, name, total interactions
-- [ ] **4.5** Pagination — cursor-based with page size selector (10, 25, 50)
-- [ ] **4.6** Bulk actions toolbar — appears on multi-select: "Send Notification", "Add to Campaign"
+- [x] **4.1** Customer list table — virtual ID (never real phone), name, last contact date, status, category
+- [x] **4.2** Search bar — search by virtual ID or name
+- [x] **4.3** Filter chips — by category (Personal, Organizational, Advertisement), by status (Active, Blocked, DND)
+- [x] **4.4** Sort by — last contacted, name, total interactions
+- [x] **4.5** Pagination — cursor-based with page size selector (10, 25, 50)
+- [x] **4.6** Bulk actions toolbar — appears on multi-select: "Send Notification", "Add to Campaign"
 
 ### Route: `/customers/[virtualId]`
 
-- [ ] **4.7** Customer detail drawer/page — profile card with virtual ID, display name, avatar
-- [ ] **4.8** Privacy status display — shows user's preference category for this org (allowed, restricted, blocked)
-- [ ] **4.9** Communication timeline — chronological list of all notifications, callbacks, messages, documents shared
-- [ ] **4.10** Quick actions — "Send Notification", "Request Callback", "Start Conversation", "Share Document"
-- [ ] **4.11** Policy check indicator — shows if current communication would be allowed before sending
-- [ ] **4.12** Notes/tags — internal org notes on customer (local to org, never shared with user)
+- [x] **4.7** Customer detail drawer/page — profile card with virtual ID, display name, avatar
+- [x] **4.8** Privacy status display — shows user's preference category for this org (allowed, restricted, blocked)
+- [x] **4.9** Communication timeline — chronological list of all notifications, callbacks, messages, documents shared
+- [x] **4.10** Quick actions — "Send Notification", "Request Callback", "Start Conversation", "Share Document"
+- [x] **4.11** Policy check indicator — shows if current communication would be allowed before sending
+- [x] **4.12** Notes/tags — internal org notes on customer (local to org, never shared with user)
 
 ### Connected Backend
 
-- [ ] **4.13** GraphQL query: `conversations(spId, filters, pagination)` → customer list derived from conversation participants
-- [ ] **4.14** GraphQL query: `checkCommunicationPolicy(spId, userId, category, channel)` → real-time policy check
-- [ ] **4.15** CustomerLookup component — integrated with `serviceProvider(id)` context
+- [x] **4.13** GraphQL query: `conversations(spId, filters, pagination)` → customer list derived from conversation participants
+- [x] **4.14** GraphQL query: `checkCommunicationPolicy(spId, userId, category, channel)` → real-time policy check
+- [x] **4.15** CustomerLookup component — integrated with `serviceProvider(id)` context
 
 ---
 
@@ -151,16 +151,16 @@
 
 ### Route: `/notifications`
 
-- [ ] **5.1** Notification history table — columns: recipient (virtual ID), subject, category, channel, status, sent_at
-- [ ] **5.2** Status badges — Delivered (green), Pending (yellow), Failed (red), Blocked (gray), Rate-limited (orange)
-- [ ] **5.3** Filter bar — by status, category (Personal/Org/Ad), channel (push/sms/email), date range
-- [ ] **5.4** Click-to-expand row — shows full notification body, delivery attempts, policy decision details
-- [ ] **5.5** Retry action — for failed notifications, re-trigger with policy re-evaluation
-- [ ] **5.6** Export — CSV download of filtered notification logs
+- [x] **5.1** Notification history table — columns: recipient (virtual ID), subject, category, channel, status, sent_at
+- [x] **5.2** Status badges — Delivered (green), Pending (yellow), Failed (red), Blocked (gray), Rate-limited (orange)
+- [x] **5.3** Filter bar — by status, category (Personal/Org/Ad), channel (push/sms/email), date range
+- [x] **5.4** Click-to-expand row — shows full notification body, delivery attempts, policy decision details
+- [x] **5.5** Retry action — for failed notifications, re-trigger with policy re-evaluation
+- [x] **5.6** Export — CSV download of filtered notification logs
 
 ### Route: `/notifications/compose`
 
-- [ ] **5.7** NotificationComposer component:
+- [x] **5.7** NotificationComposer component:
   - Recipient selector — search by virtual ID, multi-select
   - Category dropdown — Personal, Organizational, Advertisement
   - Channel selector — push notification, SMS, email
@@ -168,17 +168,17 @@
   - Body editor — rich text or plain text toggle
   - Priority selector — low, normal, high, urgent
   - Schedule toggle — send now or schedule future delivery
-- [ ] **5.8** Policy pre-check — before send, call `checkCommunicationPolicy` and show result
-- [ ] **5.9** Preview panel — shows how notification appears on user's device
-- [ ] **5.10** Send confirmation modal — summary of recipients, policy verdicts, "Send" or "Schedule" CTA
-- [ ] **5.11** Draft save — auto-save drafts to localStorage, restore on revisit
+- [x] **5.8** Policy pre-check — before send, call `checkCommunicationPolicy` and show result
+- [x] **5.9** Preview panel — shows how notification appears on user's device
+- [x] **5.10** Send confirmation modal — summary of recipients, policy verdicts, "Send" or "Schedule" CTA
+- [x] **5.11** Draft save — auto-save drafts to localStorage, restore on revisit
 
 ### Connected Backend
 
-- [ ] **5.12** GraphQL query: `notifications(spId, filters, pagination)` → history
-- [ ] **5.13** GraphQL mutation: `sendNotification(input)` → create + enqueue through policy engine
-- [ ] **5.14** GraphQL query: `checkCommunicationPolicy(...)` → pre-send validation
-- [ ] **5.15** GraphQL subscription: `providerNotificationDelivered(spId)` → live status updates in table
+- [x] **5.12** GraphQL query: `notifications(spId, filters, pagination)` → history
+- [x] **5.13** GraphQL mutation: `sendNotification(input)` → create + enqueue through policy engine
+- [x] **5.14** GraphQL query: `checkCommunicationPolicy(...)` → pre-send validation
+- [x] **5.15** GraphQL subscription: `providerNotificationDelivered(spId)` → live status updates in table
 
 ---
 

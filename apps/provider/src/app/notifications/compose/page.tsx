@@ -1,188 +1,181 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowLeft, Send, Eye, AlertTriangle } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
+import NotificationComposer, { type ComposeForm, DEFAULT_COMPOSE_FORM } from '@/components/NotificationComposer';
+import { NotificationPreviewPanel } from '@/components/notifications/NotificationPreviewPanel';
+import { SendConfirmModal } from '@/components/notifications/SendConfirmModal';
+import { useDraftSave } from '@/hooks/useDraftSave';
+import { useCheckPolicy, type PolicyCheckResult } from '@/lib/graphql/customers';
+import { useSendNotification } from '@/lib/graphql/notifications';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/Toast';
+import { formatRelativeTime } from '@/lib/format';
+
+const DRAFT_KEY = 'provider:notification:compose:draft';
 
 export default function ComposeNotificationPage() {
-  const [form, setForm] = useState({
-    category: 'Personal',
-    priority: 'Normal',
-    channel: 'SMS',
-    subject: '',
-    body: '',
-    targetType: 'individual',
-    targetId: '',
-    scheduleType: 'now',
-    scheduledAt: '',
-  });
-  const [policyPreview, setPolicyPreview] = useState<null | { allowed: boolean; reason: string }>(null);
-  const [sending, setSending] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { activeServiceProvider } = useAuth();
+  const toast = useToast();
 
-  function update(field: string, value: string) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    setPolicyPreview(null);
+  // ── Pre-fill recipients from URL ──
+  const urlRecipients = searchParams.get('recipients')?.split(',').filter(Boolean) ?? [];
+
+  // ── Draft auto-save (5.11) ──
+  const {
+    form,
+    setForm,
+    hasDraft,
+    restore: restoreDraft,
+    discard: discardDraft,
+    clear: clearDraft,
+    lastSaved,
+  } = useDraftSave<ComposeForm>(DRAFT_KEY, {
+    ...DEFAULT_COMPOSE_FORM,
+    recipients: urlRecipients.length > 0 ? urlRecipients : DEFAULT_COMPOSE_FORM.recipients,
+  });
+
+  // ── Policy check (5.8) ──
+  const { checkPolicy, result: policyResult, loading: policyLoading } = useCheckPolicy();
+  const [policyState, setPolicyState] = useState<PolicyCheckResult | null>(null);
+
+  const handlePolicyCheck = useCallback(() => {
+    if (form.recipients.length === 0 || !activeServiceProvider) return;
+    checkPolicy(activeServiceProvider.id, form.category, form.channel);
+  }, [form.recipients, form.category, form.channel, activeServiceProvider, checkPolicy]);
+
+  // Sync policy result
+  useEffect(() => {
+    if (policyResult) setPolicyState(policyResult);
+  }, [policyResult]);
+
+  // Clear policy result when key fields change
+  useEffect(() => {
+    setPolicyState(null);
+  }, [form.category, form.channel, form.recipients.length]);
+
+  // ── Send (5.13) ──
+  const { send: sendNotification, loading: sendLoading } = useSendNotification();
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  function handleSendClick() {
+    if (!form.subject || !form.body || form.recipients.length === 0) {
+      toast.error('Please fill in subject, body, and at least one recipient.');
+      return;
+    }
+    setShowConfirm(true);
   }
 
-  function checkPolicy() {
-    // Mock policy check
-    if (form.category === 'Advertisement') {
-      setPolicyPreview({ allowed: false, reason: 'User has opted out of advertisement notifications.' });
-    } else {
-      setPolicyPreview({ allowed: true, reason: 'Notification passes all policy checks.' });
+  async function handleConfirmSend() {
+    try {
+      await sendNotification({
+        recipientIds: form.recipients,
+        category: form.category,
+        channel: form.channel,
+        title: form.subject,
+        body: form.body,
+        priority: form.priority,
+        scheduledAt: form.scheduleType === 'scheduled' && form.scheduledAt ? form.scheduledAt : undefined,
+      });
+      clearDraft();
+      toast.success('Notification sent successfully.');
+      router.push('/notifications');
+    } catch {
+      toast.error('Failed to send notification. Please try again.');
+    } finally {
+      setShowConfirm(false);
     }
   }
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
-    setSending(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setSending(false);
-    window.location.href = '/notifications';
-  }
-
   return (
-    <div className="p-8 space-y-6 max-w-3xl">
+    <div className="p-8 space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-3">
         <Link href="/notifications" className="p-2 rounded-lg hover:bg-bg-hover transition-colors">
           <ArrowLeft size={18} className="text-text-muted" />
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-semibold">Compose Notification</h1>
-          <p className="text-text-secondary text-sm mt-0.5">Create and send a notification through the policy engine</p>
+          <p className="text-text-secondary text-sm mt-0.5">
+            Create and send a notification through the policy engine
+          </p>
+        </div>
+        {lastSaved && (
+          <span className="text-[10px] text-text-muted">
+            Draft saved {formatRelativeTime(lastSaved)}
+          </span>
+        )}
+      </div>
+
+      {/* Draft recovery banner */}
+      {hasDraft && (
+        <div className="flex items-center gap-3 p-3 bg-accent-blue/5 border border-accent-blue/20 rounded-lg">
+          <p className="text-sm text-text-secondary flex-1">You have an unsaved draft. Would you like to restore it?</p>
+          <button
+            onClick={restoreDraft}
+            className="px-3 py-1.5 text-xs font-medium text-accent-blue hover:bg-accent-blue/10 rounded-lg transition-colors"
+          >
+            Restore
+          </button>
+          <button
+            onClick={discardDraft}
+            className="px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-secondary rounded-lg transition-colors"
+          >
+            Discard
+          </button>
+        </div>
+      )}
+
+      {/* Two-column layout: Composer + Preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Composer (5.7 + 5.8) */}
+        <div className="lg:col-span-2">
+          <NotificationComposer
+            form={form}
+            setForm={setForm}
+            policyResult={policyState}
+            policyLoading={policyLoading}
+            onPolicyCheck={handlePolicyCheck}
+            disabled={sendLoading}
+          />
+        </div>
+
+        {/* Preview sidebar (5.9) */}
+        <div className="space-y-4">
+          <NotificationPreviewPanel form={form} />
         </div>
       </div>
 
-      <form onSubmit={handleSend} className="space-y-6">
-        {/* Type & Priority */}
-        <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-semibold">Classification</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs text-text-muted mb-1.5">Category</label>
-              <select value={form.category} onChange={(e) => update('category', e.target.value)}
-                className="w-full px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-active">
-                <option>Personal</option>
-                <option>Organizational</option>
-                <option>Advertisement</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-text-muted mb-1.5">Priority</label>
-              <select value={form.priority} onChange={(e) => update('priority', e.target.value)}
-                className="w-full px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-active">
-                <option>Low</option>
-                <option>Normal</option>
-                <option>High</option>
-                <option>Urgent</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-text-muted mb-1.5">Channel</label>
-              <select value={form.channel} onChange={(e) => update('channel', e.target.value)}
-                className="w-full px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-active">
-                <option>SMS</option>
-                <option>Email</option>
-                <option>Push</option>
-                <option>In-App</option>
-              </select>
-            </div>
-          </div>
-        </div>
+      {/* Actions */}
+      <div className="flex justify-end gap-3 border-t border-border-primary pt-6">
+        <Link
+          href="/notifications"
+          className="px-4 py-2.5 border border-border-secondary rounded-lg text-sm text-text-secondary hover:text-text-primary transition-colors"
+        >
+          Cancel
+        </Link>
+        <button
+          onClick={handleSendClick}
+          disabled={sendLoading || !form.subject || !form.body || form.recipients.length === 0}
+          className="flex items-center gap-2 px-6 py-2.5 bg-accent-blue text-white rounded-lg text-sm font-medium hover:bg-accent-blue/90 transition-colors disabled:opacity-50"
+        >
+          {form.scheduleType === 'scheduled' ? 'Schedule Notification' : 'Send Notification'}
+        </button>
+      </div>
 
-        {/* Target */}
-        <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-semibold">Target</h3>
-          <div className="flex gap-2">
-            {['individual', 'segment', 'all'].map((t) => (
-              <button type="button" key={t} onClick={() => update('targetType', t)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${form.targetType === t ? 'bg-accent-blue/10 text-accent-blue' : 'text-text-muted hover:text-text-secondary hover:bg-bg-hover'}`}>
-                {t}
-              </button>
-            ))}
-          </div>
-          {form.targetType === 'individual' && (
-            <div>
-              <label className="block text-xs text-text-muted mb-1.5">Virtual ID</label>
-              <input type="text" value={form.targetId} onChange={(e) => update('targetId', e.target.value)}
-                className="w-full px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active"
-                placeholder="VID-xxxxxxxx" />
-            </div>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-semibold">Content</h3>
-          <div>
-            <label className="block text-xs text-text-muted mb-1.5">Subject</label>
-            <input type="text" value={form.subject} onChange={(e) => update('subject', e.target.value)} required
-              className="w-full px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active"
-              placeholder="Notification subject" />
-          </div>
-          <div>
-            <label className="block text-xs text-text-muted mb-1.5">Body</label>
-            <textarea value={form.body} onChange={(e) => update('body', e.target.value)} required rows={5}
-              className="w-full px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active resize-none"
-              placeholder="Notification message…" />
-          </div>
-        </div>
-
-        {/* Schedule */}
-        <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-semibold">Schedule</h3>
-          <div className="flex gap-2">
-            {['now', 'scheduled'].map((s) => (
-              <button type="button" key={s} onClick={() => update('scheduleType', s)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${form.scheduleType === s ? 'bg-accent-blue/10 text-accent-blue' : 'text-text-muted hover:text-text-secondary hover:bg-bg-hover'}`}>
-                {s === 'now' ? 'Send Now' : 'Schedule'}
-              </button>
-            ))}
-          </div>
-          {form.scheduleType === 'scheduled' && (
-            <input type="datetime-local" value={form.scheduledAt} onChange={(e) => update('scheduledAt', e.target.value)}
-              className="px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-active" />
-          )}
-        </div>
-
-        {/* Policy Preview */}
-        <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Policy Check</h3>
-            <button type="button" onClick={checkPolicy}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-accent-blue hover:bg-accent-blue/10 rounded-lg transition-colors">
-              <Eye size={14} /> Preview Policy
-            </button>
-          </div>
-          {policyPreview && (
-            <div className={`flex items-start gap-3 p-3 rounded-lg ${policyPreview.allowed ? 'bg-status-success/10 border border-status-success/20' : 'bg-status-error/10 border border-status-error/20'}`}>
-              {policyPreview.allowed ? (
-                <Eye size={16} className="text-status-success mt-0.5" />
-              ) : (
-                <AlertTriangle size={16} className="text-status-error mt-0.5" />
-              )}
-              <div>
-                <p className={`text-sm font-medium ${policyPreview.allowed ? 'text-status-success' : 'text-status-error'}`}>
-                  {policyPreview.allowed ? 'Policy Passed' : 'Policy Blocked'}
-                </p>
-                <p className="text-xs text-text-muted mt-0.5">{policyPreview.reason}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-3">
-          <Link href="/notifications"
-            className="px-4 py-2.5 border border-border-secondary rounded-lg text-sm text-text-secondary hover:text-text-primary transition-colors">
-            Cancel
-          </Link>
-          <button type="submit" disabled={sending}
-            className="flex items-center gap-2 px-6 py-2.5 bg-accent-blue text-white rounded-lg text-sm font-medium hover:bg-accent-blue/90 transition-colors disabled:opacity-50">
-            <Send size={16} /> {sending ? 'Sending…' : 'Send Notification'}
-          </button>
-        </div>
-      </form>
+      {/* Confirm Modal (5.10) */}
+      <SendConfirmModal
+        open={showConfirm}
+        onConfirm={handleConfirmSend}
+        onCancel={() => setShowConfirm(false)}
+        form={form}
+        policyResult={policyState}
+        loading={sendLoading}
+      />
     </div>
   );
 }
