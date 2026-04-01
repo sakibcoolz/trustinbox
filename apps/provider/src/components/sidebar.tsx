@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, Bot, Megaphone, Webhook, BarChart3, Settings,
   Bell, MessageSquare, PhoneCall, FileText, Shield, Plug, ChevronDown, Check,
+  BookOpen, Image, UserCog,
 } from 'lucide-react';
 import { auth } from '@/lib/api';
 
@@ -21,6 +22,12 @@ const mainNav = [
   { label: 'Documents', href: '/documents', icon: FileText },
   { label: 'Campaigns', href: '/campaigns', icon: Megaphone },
   { label: 'Bots', href: '/bots', icon: Bot },
+];
+
+const cmsNav = [
+  { label: 'Content', href: '/cms', icon: BookOpen },
+  { label: 'Media Library', href: '/cms/media', icon: Image },
+  { label: 'CMS Roles', href: '/cms/roles', icon: UserCog },
 ];
 
 const bottomNav = [
@@ -105,6 +112,23 @@ export default function SidebarWrapper() {
         {filterNav(mainNav).map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+          return (
+            <Link key={item.href} href={item.href}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                active
+                  ? 'bg-bg-hover text-text-primary font-medium'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover'
+              }`}>
+              <Icon size={16} className={active ? 'text-accent-blue shrink-0' : 'text-text-muted shrink-0'} />
+              {item.label}
+            </Link>
+          );
+        })}
+
+        <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-muted">Content</p>
+        {cmsNav.map((item) => {
+          const Icon = item.icon;
+          const active = pathname === item.href || (item.href !== '/cms' && pathname.startsWith(item.href));
           return (
             <Link key={item.href} href={item.href}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${

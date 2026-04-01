@@ -570,9 +570,27 @@ func handleRegister(svc *clients.ServiceClients, db *sql.DB, tokenSvc *jwt.Token
 		}
 
 		var req registerRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
-			return
+		ct := r.Header.Get("Content-Type")
+		if strings.HasPrefix(ct, "multipart/form-data") {
+			// Parse multipart: JSON payload is in the "payload" form field
+			if err := r.ParseMultipartForm(32 << 20); err != nil {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid multipart body"})
+				return
+			}
+			payloadStr := r.FormValue("payload")
+			if payloadStr == "" {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "missing payload field"})
+				return
+			}
+			if err := json.Unmarshal([]byte(payloadStr), &req); err != nil {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+				return
+			}
+		} else {
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+				return
+			}
 		}
 
 		if req.Email == "" || req.Password == "" || req.FullName == "" || req.Username == "" {

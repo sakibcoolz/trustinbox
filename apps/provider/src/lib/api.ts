@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 function getHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -37,14 +37,166 @@ export const auth = {
       body: JSON.stringify({ email, password }),
     }),
 
-  register: (data: { email: string; password: string; fullName: string; username: string; orgName?: string; industry?: string }) =>
+  register: (data: RegisterPayload) =>
     request<{ accessToken: string; refreshToken: string; user: { id: string; email: string; fullName: string; username: string } }>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
+  /** Multi-part registration with document upload */
+  registerWithDocuments: async (data: RegisterPayload, documents: File[]): Promise<{ accessToken: string; refreshToken: string; user: { id: string; email: string; fullName: string; username: string } }> => {
+    const formData = new FormData();
+    formData.append('payload', JSON.stringify(data));
+    documents.forEach((file) => formData.append('documents', file));
+
+    const headers: Record<string, string> = {};
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/api/auth/register`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }));
+      throw new ApiError(body.error || 'Registration failed', res.status);
+    }
+    return res.json();
+  },
+
+  forgotPassword: (email: string) =>
+    request<{ message: string }>('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
   me: () =>
     request<{ id: string; email: string; fullName: string; username: string; role: string }>('/api/auth/me'),
+};
+
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  fullName: string;
+  username: string;
+  orgName?: string;
+  industry?: string;
+  legalName?: string;
+  website?: string;
+  registrationNumber?: string;
+  proofIdType?: string;
+  taxId?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  phone?: string;
+  authorizedSignatory?: string;
+  termsAccepted?: boolean;
+}
+
+// ─── CMS ────────────────────────────────────────────────
+export type ContentStatus = 'DRAFT' | 'IN_REVIEW' | 'PUBLISHED' | 'ARCHIVED';
+export type ContentType = 'PAGE' | 'ARTICLE' | 'ANNOUNCEMENT' | 'FAQ' | 'POLICY';
+
+export interface ContentItem {
+  id: string;
+  title: string;
+  slug: string;
+  type: ContentType;
+  status: ContentStatus;
+  body: string;
+  excerpt: string;
+  tags: string[];
+  authorId: string;
+  authorName: string;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MediaItem {
+  id: string;
+  filename: string;
+  url: string;
+  mimeType: string;
+  size: number;
+  uploadedBy: string;
+  createdAt: string;
+}
+
+export const cms = {
+  listContent: (params?: { type?: ContentType; status?: ContentStatus; limit?: number; offset?: number }) => {
+    const p = new URLSearchParams();
+    if (params?.type) p.set('type', params.type);
+    if (params?.status) p.set('status', params.status);
+    p.set('limit', String(params?.limit ?? 50));
+    p.set('offset', String(params?.offset ?? 0));
+    return request<{ items: ContentItem[]; total: number }>(`/api/cms/content?${p}`);
+  },
+
+  getContent: (id: string) =>
+    request<ContentItem>(`/api/cms/content/${encodeURIComponent(id)}`),
+
+  createContent: (data: Partial<ContentItem>) =>
+    request<ContentItem>('/api/cms/content', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateContent: (id: string, data: Partial<ContentItem>) =>
+    request<ContentItem>(`/api/cms/content/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  deleteContent: (id: string) =>
+    request<{ success: boolean }>(`/api/cms/content/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }),
+
+  publishContent: (id: string) =>
+    request<ContentItem>(`/api/cms/content/${encodeURIComponent(id)}/publish`, {
+      method: 'POST',
+    }),
+
+  archiveContent: (id: string) =>
+    request<ContentItem>(`/api/cms/content/${encodeURIComponent(id)}/archive`, {
+      method: 'POST',
+    }),
+
+  // Media
+  listMedia: (limit = 50, offset = 0) =>
+    request<{ items: MediaItem[]; total: number }>(`/api/cms/media?limit=${limit}&offset=${offset}`),
+
+  uploadMedia: async (file: File): Promise<MediaItem> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers: Record<string, string> = {};
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const spId = typeof window !== 'undefined' ? localStorage.getItem('activeSpId') : null;
+    if (spId) headers['X-Service-Provider-Id'] = spId;
+
+    const res = await fetch(`${API_BASE}/api/cms/media`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }));
+      throw new ApiError(body.error || 'Upload failed', res.status);
+    }
+    return res.json();
+  },
+
+  deleteMedia: (id: string) =>
+    request<{ success: boolean }>(`/api/cms/media/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }),
 };
 
 // ─── Team Management ────────────────────────────────────
