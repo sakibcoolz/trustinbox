@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowLeft, User, Mail, AtSign, Shield, Save, Globe, Clock, Key, Monitor } from 'lucide-react';
+import { ArrowLeft, User, Mail, AtSign, Shield, Save, Globe, Clock, Key, Monitor, Building2, Palette, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { profile as profileApi, type ProfileData, type SessionsData, ApiError } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useOrganizationProfile, useUpdateOrganizationProfile, type OrganizationProfile } from '@/lib/graphql/settings';
+import { useToast } from '@/components/Toast';
 
 const timezones = [
   'UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
@@ -27,6 +30,11 @@ const roleLabels: Record<string, string> = {
 };
 
 export default function ProfileSettingsPage() {
+  const { role, activeServiceProvider } = useAuth();
+  const toast = useToast();
+  const isAdmin = role === 'SP_ADMIN';
+  const spId = activeServiceProvider?.id || '';
+
   const [data, setData] = useState<ProfileData | null>(null);
   const [sessions, setSessions] = useState<SessionsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +51,30 @@ export default function ProfileSettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Org profile fields
+  const { data: orgData } = useOrganizationProfile(spId);
+  const { updateProfile, loading: orgSaving } = useUpdateOrganizationProfile(spId);
+  const [orgForm, setOrgForm] = useState({
+    name: '',
+    displayName: '',
+    description: '',
+    websiteUrl: '',
+    contactEmail: '',
+    supportPhone: '',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: '',
+    logoUrl: '',
+  });
+
+  // Branding fields
+  const [primaryColor, setPrimaryColor] = useState('#3b82f6');
+  const [notificationFooter, setNotificationFooter] = useState('');
+  const [emailTemplate, setEmailTemplate] = useState('default');
 
   useEffect(() => {
     async function load() {
@@ -65,6 +97,33 @@ export default function ProfileSettingsPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (orgData?.serviceProvider) {
+      const sp = orgData.serviceProvider;
+      setOrgForm({
+        name: sp.name || '',
+        displayName: sp.displayName || sp.name || '',
+        description: sp.description || '',
+        websiteUrl: sp.website || '',
+        contactEmail: sp.contactEmail || '',
+        supportPhone: sp.supportPhone || '',
+        addressLine1: '',
+        addressLine2: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        country: '',
+        logoUrl: sp.logoUrl || '',
+      });
+      setPrimaryColor(sp.primaryColor || '#3b82f6');
+      setNotificationFooter(sp.notificationFooter || '');
+    }
+  }, [orgData]);
+
+  function updateOrgField(field: string, value: string) {
+    setOrgForm((prev) => ({ ...prev, [field]: value }));
+  }
+
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -73,10 +132,33 @@ export default function ProfileSettingsPage() {
     try {
       await profileApi.update({ fullName, timezone, language });
       setSuccess('Profile updated successfully');
+      toast.success('Profile updated successfully');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to update profile');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSaveOrgProfile(e: React.FormEvent) {
+    e.preventDefault();
+    if (!orgForm.name.trim()) { setError('Organization name is required'); return; }
+    try {
+      await updateProfile({
+        name: orgForm.name,
+        displayName: orgForm.displayName,
+        description: orgForm.description,
+        websiteUrl: orgForm.websiteUrl,
+        contactEmail: orgForm.contactEmail,
+        supportPhone: orgForm.supportPhone,
+        address: [orgForm.addressLine1, orgForm.addressLine2, orgForm.city, orgForm.state, orgForm.postalCode, orgForm.country].filter(Boolean).join(', '),
+        logoUrl: orgForm.logoUrl,
+        primaryColor,
+        notificationFooter,
+      });
+      toast.success('Organization profile saved');
+    } catch (err) {
+      toast.error('Failed to save organization profile');
     }
   }
 
@@ -281,6 +363,162 @@ export default function ProfileSettingsPage() {
           <p className="text-sm text-text-muted">Unable to load session information</p>
         )}
       </div>
+
+      {/* Organization Profile (Admin only) */}
+      {isAdmin && (
+        <form onSubmit={handleSaveOrgProfile} className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-4">
+          <h3 className="text-sm font-semibold flex items-center gap-2"><Building2 size={14} /> Organization Profile</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-text-muted mb-1.5">Organization Name *</label>
+              <input type="text" value={orgForm.name} onChange={(e) => updateOrgField('name', e.target.value)} required maxLength={100}
+                className="w-full px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active" />
+            </div>
+            <div>
+              <label className="block text-xs text-text-muted mb-1.5">Display Name *</label>
+              <input type="text" value={orgForm.displayName} onChange={(e) => updateOrgField('displayName', e.target.value)} required maxLength={50}
+                className="w-full px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted mb-1.5">Description</label>
+            <textarea value={orgForm.description} onChange={(e) => updateOrgField('description', e.target.value)} maxLength={500} rows={3}
+              className="w-full px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active resize-none" />
+            <p className="text-[10px] text-text-muted mt-1">{orgForm.description.length}/500</p>
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted mb-1.5">Logo URL</label>
+            <div className="flex items-center gap-3">
+              {orgForm.logoUrl && (
+                <img src={orgForm.logoUrl} alt="Logo" className="w-12 h-12 rounded-lg object-cover border border-border-secondary" />
+              )}
+              <input type="url" value={orgForm.logoUrl} onChange={(e) => updateOrgField('logoUrl', e.target.value)}
+                className="flex-1 px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active"
+                placeholder="https://example.com/logo.png" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-text-muted mb-1.5">Website URL</label>
+              <input type="url" value={orgForm.websiteUrl} onChange={(e) => updateOrgField('websiteUrl', e.target.value)}
+                className="w-full px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active"
+                placeholder="https://example.com" />
+            </div>
+            <div>
+              <label className="block text-xs text-text-muted mb-1.5">Contact Email</label>
+              <input type="email" value={orgForm.contactEmail} onChange={(e) => updateOrgField('contactEmail', e.target.value)}
+                className="w-full px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active"
+                placeholder="contact@acme.com" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted mb-1.5">Support Phone</label>
+            <input type="tel" value={orgForm.supportPhone} onChange={(e) => updateOrgField('supportPhone', e.target.value)}
+              className="w-full max-w-xs px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active"
+              placeholder="+1 (555) 000-0000" />
+          </div>
+          <div className="border-t border-border-primary pt-4">
+            <p className="text-xs text-text-muted mb-3 font-medium uppercase tracking-wider">Address</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-text-muted mb-1.5">Address Line 1</label>
+                <input type="text" value={orgForm.addressLine1} onChange={(e) => updateOrgField('addressLine1', e.target.value)}
+                  className="w-full px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active" />
+              </div>
+              <div>
+                <label className="block text-xs text-text-muted mb-1.5">Address Line 2</label>
+                <input type="text" value={orgForm.addressLine2} onChange={(e) => updateOrgField('addressLine2', e.target.value)}
+                  className="w-full px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active" />
+              </div>
+              <div>
+                <label className="block text-xs text-text-muted mb-1.5">City</label>
+                <input type="text" value={orgForm.city} onChange={(e) => updateOrgField('city', e.target.value)}
+                  className="w-full px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active" />
+              </div>
+              <div>
+                <label className="block text-xs text-text-muted mb-1.5">State/Region</label>
+                <input type="text" value={orgForm.state} onChange={(e) => updateOrgField('state', e.target.value)}
+                  className="w-full px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active" />
+              </div>
+              <div>
+                <label className="block text-xs text-text-muted mb-1.5">Postal Code</label>
+                <input type="text" value={orgForm.postalCode} onChange={(e) => updateOrgField('postalCode', e.target.value)}
+                  className="w-full px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active" />
+              </div>
+              <div>
+                <label className="block text-xs text-text-muted mb-1.5">Country</label>
+                <select value={orgForm.country} onChange={(e) => updateOrgField('country', e.target.value)}
+                  className="w-full px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-active">
+                  <option value="">Select country</option>
+                  {['United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'India', 'Japan', 'Singapore', 'United Arab Emirates'].map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+          <button type="submit" disabled={orgSaving}
+            className="flex items-center gap-2 px-4 py-2.5 bg-accent-blue text-white rounded-lg text-sm font-medium hover:bg-accent-blue/90 transition-colors disabled:opacity-50">
+            <Save size={16} /> {orgSaving ? 'Saving…' : 'Save Organization Profile'}
+          </button>
+        </form>
+      )}
+
+      {/* Branding Settings (Admin only) */}
+      {isAdmin && (
+        <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-4">
+          <h3 className="text-sm font-semibold flex items-center gap-2"><Palette size={14} /> Branding Settings</h3>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs text-text-muted mb-1.5">Primary Color</label>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="w-10 h-10 rounded-lg border border-border-secondary cursor-pointer" />
+                  <input type="text" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="w-32 px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary font-mono focus:outline-none focus:border-border-active"
+                    placeholder="#3b82f6" maxLength={7} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-text-muted mb-1.5">Email Template</label>
+                <select value={emailTemplate} onChange={(e) => setEmailTemplate(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-active">
+                  <option value="default">Default Template</option>
+                  <option value="minimal">Minimal</option>
+                  <option value="branded">Branded</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-text-muted mb-1.5">Notification Footer</label>
+                <textarea value={notificationFooter} onChange={(e) => setNotificationFooter(e.target.value)} rows={3}
+                  className="w-full px-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active resize-none"
+                  placeholder="This message was sent by Your Organization..." />
+              </div>
+            </div>
+
+            {/* Live Preview */}
+            <div>
+              <label className="flex items-center gap-1.5 text-xs text-text-muted mb-1.5"><Eye size={12} /> Live Preview</label>
+              <div className="border border-border-secondary rounded-lg overflow-hidden">
+                <div className="px-4 py-3" style={{ backgroundColor: primaryColor }}>
+                  <p className="text-white text-sm font-medium">{orgForm.displayName || 'Your Organization'}</p>
+                </div>
+                <div className="px-4 py-4 bg-bg-input">
+                  <p className="text-sm text-text-primary mb-1">Sample Notification</p>
+                  <p className="text-xs text-text-muted">Your callback request has been approved and scheduled for tomorrow at 10:00 AM.</p>
+                </div>
+                {notificationFooter && (
+                  <div className="px-4 py-2 bg-bg-primary border-t border-border-secondary">
+                    <p className="text-[10px] text-text-muted">{notificationFooter}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

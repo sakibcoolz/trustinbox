@@ -1,113 +1,103 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, UserPlus, Shield, Trash2, Mail, X, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
-import { team, profile, type TeamMember, type Invitation, type ActivityItem, ApiError } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/Toast';
+import { formatRelativeTime } from '@/lib/format';
+import {
+  useTeamMembers,
+  usePendingInvitations,
+  useInviteTeamMember,
+  useRevokeInvitation,
+  useChangeTeamMemberRole,
+  useRemoveTeamMember,
+  useTeamActivity,
+  ROLE_LABELS,
+  ROLE_COLORS,
+  INVITATION_STATUS_COLORS,
+  getActivityIcon,
+  type TeamRole,
+  type TeamMember,
+} from '@/lib/graphql/settings';
 
-const roleOptions = ['SP_ADMIN', 'AGENT', 'ANALYST'] as const;
-type Role = (typeof roleOptions)[number];
-
-const roleLabels: Record<string, string> = {
-  SP_ADMIN: 'Admin',
-  AGENT: 'Agent',
-  ANALYST: 'Analyst',
-};
-
-const roleColors: Record<string, string> = {
-  SP_ADMIN: 'bg-accent-purple/10 text-accent-purple',
-  AGENT: 'bg-accent-blue/10 text-accent-blue',
-  ANALYST: 'bg-border-secondary text-text-muted',
-};
-
-const statusColors: Record<string, string> = {
-  ACTIVE: 'bg-status-success/10 text-status-success',
-  PENDING: 'bg-status-warning/10 text-status-warning',
-  EXPIRED: 'bg-status-error/10 text-status-error',
-  REVOKED: 'bg-border-secondary text-text-muted',
-};
+const roleOptions: TeamRole[] = ['SP_ADMIN', 'AGENT', 'ANALYST'];
 
 export default function TeamSettingsPage() {
-  const [members, setMembers] = useState<TeamMember[]>([]);
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
-  const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { activeServiceProvider } = useAuth();
+  const toast = useToast();
+  const spId = activeServiceProvider?.id || '';
+
+  const { data: membersData, loading: membersLoading, refetch: refetchMembers } = useTeamMembers(spId);
+  const { data: invitationsData, loading: invLoading, refetch: refetchInvitations } = usePendingInvitations(spId);
+  const { data: activityData } = useTeamActivity(spId);
+
+  const members = membersData?.teamMembers?.items || [];
+  const invitations = invitationsData?.pendingInvitations?.items || [];
+  const activity = activityData?.teamActivity?.items || [];
+
+  const { inviteTeamMember, loading: inviting } = useInviteTeamMember(spId);
+  const { revokeInvitation } = useRevokeInvitation(spId);
+  const { changeRole } = useChangeTeamMemberRole(spId);
+  const { removeMember } = useRemoveTeamMember(spId);
 
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<Role>('AGENT');
-  const [inviting, setInviting] = useState(false);
-
+  const [inviteRole, setInviteRole] = useState<TeamRole>('AGENT');
+  const [error, setError] = useState('');
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const [membersRes, invRes, actRes] = await Promise.all([
-        team.listMembers(),
-        team.listInvitations('PENDING'),
-        profile.activity(),
-      ]);
-      setMembers(membersRes.items || []);
-      setInvitations(invRes.items || []);
-      setActivity(actRes.activity || []);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load team data');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const loading = membersLoading || invLoading;
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
     if (!inviteEmail) return;
-    setInviting(true);
     setError('');
     try {
-      await team.invite(inviteEmail, inviteRole);
+      await inviteTeamMember(inviteEmail, inviteRole);
       setInviteEmail('');
       setShowInvite(false);
-      await fetchData();
+      toast.success('Invitation sent');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to send invitation');
-    } finally {
-      setInviting(false);
+      setError(err instanceof Error ? err.message : 'Failed to send invitation');
     }
   }
 
   async function handleRoleChange(userId: string, newRole: string) {
     setError('');
     try {
-      await team.changeRole(userId, newRole);
-      await fetchData();
+      await changeRole(userId, newRole as TeamRole);
+      toast.success('Role updated');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to change role');
+      setError(err instanceof Error ? err.message : 'Failed to change role');
     }
   }
 
   async function handleRemove(userId: string) {
     setError('');
     try {
-      await team.removeMember(userId);
+      await removeMember(userId);
       setConfirmRemove(null);
-      await fetchData();
+      toast.success('Member removed');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to remove member');
+      setError(err instanceof Error ? err.message : 'Failed to remove member');
     }
   }
 
   async function handleRevokeInvitation(invitationId: string) {
     setError('');
     try {
-      await team.revokeInvitation(invitationId);
-      await fetchData();
+      await revokeInvitation(invitationId);
+      toast.success('Invitation revoked');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to revoke invitation');
+      setError(err instanceof Error ? err.message : 'Failed to revoke invitation');
     }
+  }
+
+  function handleRefresh() {
+    refetchMembers();
+    refetchInvitations();
   }
 
   const totalMembers = members.length;
@@ -129,7 +119,7 @@ export default function TeamSettingsPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={fetchData} disabled={loading}
+          <button onClick={handleRefresh} disabled={loading}
             className="p-2.5 border border-border-secondary rounded-lg hover:bg-bg-hover transition-colors disabled:opacity-50">
             <RefreshCw size={16} className={`text-text-muted ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -164,9 +154,9 @@ export default function TeamSettingsPage() {
             </div>
             <div>
               <label className="block text-xs text-text-muted mb-1.5">Role</label>
-              <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as Role)}
+              <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as TeamRole)}
                 className="w-full px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-active">
-                {roleOptions.map((r) => <option key={r} value={r}>{roleLabels[r]}</option>)}
+                {roleOptions.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
               </select>
             </div>
           </div>
@@ -211,6 +201,7 @@ export default function TeamSettingsPage() {
                 <th className="px-4 py-3 text-left font-medium">Member</th>
                 <th className="px-4 py-3 text-left font-medium">Role</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
+                <th className="px-4 py-3 text-left font-medium">Joined</th>
                 <th className="px-4 py-3 text-left font-medium">Actions</th>
               </tr>
             </thead>
@@ -220,22 +211,32 @@ export default function TeamSettingsPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-bg-tertiary flex items-center justify-center text-xs font-medium text-text-secondary">
-                        {m.userId.substring(0, 2).toUpperCase()}
+                        {(m.fullName || m.username).substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="text-text-primary">{m.userId}</span>
+                      <div>
+                        <p className="text-text-primary font-medium">{m.fullName || m.username}</p>
+                        <p className="text-xs text-text-muted">{m.email}</p>
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     <select value={m.role}
                       onChange={(e) => handleRoleChange(m.userId, e.target.value)}
                       className="px-2 py-0.5 bg-transparent border border-border-secondary rounded text-xs font-medium focus:outline-none focus:border-border-active">
-                      {roleOptions.map((r) => <option key={r} value={r}>{roleLabels[r]}</option>)}
+                      {roleOptions.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                     </select>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[m.status] || ''}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      m.status === 'ACTIVE' ? 'bg-status-success/10 text-status-success' :
+                      m.status === 'INVITED' ? 'bg-status-warning/10 text-status-warning' :
+                      'bg-border-secondary text-text-muted'
+                    }`}>
                       {m.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-text-muted text-xs">
+                    {m.createdAt ? formatRelativeTime(m.createdAt) : '—'}
                   </td>
                   <td className="px-4 py-3">
                     {confirmRemove === m.userId ? (
@@ -290,12 +291,12 @@ export default function TeamSettingsPage() {
                 <tr key={inv.id} className="border-b border-border-primary last:border-0 hover:bg-bg-hover transition-colors">
                   <td className="px-4 py-3 text-text-primary">{inv.email}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${roleColors[inv.role] || ''}`}>
-                      {roleLabels[inv.role] || inv.role}
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_COLORS[inv.role] || ''}`}>
+                      {ROLE_LABELS[inv.role] || inv.role}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[inv.status] || ''}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${INVITATION_STATUS_COLORS[inv.status] || ''}`}>
                       {inv.status}
                     </span>
                   </td>
@@ -315,35 +316,34 @@ export default function TeamSettingsPage() {
         </div>
       )}
 
-      {/* Activity Log */}
+      {/* Team Activity Log (15.9) */}
       <div className="bg-bg-card border border-border-primary rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-border-primary">
-          <h3 className="text-sm font-semibold">Recent Activity</h3>
+          <h3 className="text-sm font-semibold">Recent Team Activity</h3>
         </div>
         {activity.length === 0 ? (
-          <div className="p-8 text-center text-text-muted text-sm">No recent activity</div>
+          <div className="p-8 text-center text-text-muted text-sm">No recent team activity</div>
         ) : (
           <div className="divide-y divide-border-primary">
-            {activity.slice(0, 10).map((item) => (
-              <div key={item.id} className="px-4 py-3 flex items-center gap-3 hover:bg-bg-hover transition-colors">
-                <div className={`w-2 h-2 rounded-full shrink-0 ${
-                  item.type === 'notification' ? 'bg-accent-blue' :
-                  item.type === 'callback' ? 'bg-accent-purple' : 'bg-text-muted'
-                }`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-text-primary truncate">{item.title}</p>
-                  <p className="text-xs text-text-muted truncate">{item.description}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[item.status] || 'bg-border-secondary text-text-muted'}`}>
-                    {item.status}
-                  </span>
-                  <p className="text-[10px] text-text-muted mt-0.5">
-                    {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}
+            {activity.slice(0, 15).map((item) => {
+              const icon = getActivityIcon(item.type);
+              return (
+                <div key={item.id} className="px-4 py-3 flex items-center gap-3 hover:bg-bg-hover transition-colors">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${icon.color}/10`}>
+                    <span className="text-sm">{icon.icon}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-text-primary truncate">{item.description}</p>
+                    <p className="text-[10px] text-text-muted">
+                      {item.actorName}{item.targetName ? ` → ${item.targetName}` : ''}
+                    </p>
+                  </div>
+                  <p className="text-[10px] text-text-muted shrink-0">
+                    {item.createdAt ? formatRelativeTime(item.createdAt) : ''}
                   </p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
