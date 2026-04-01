@@ -62,11 +62,11 @@ fragment RecentActivityData on DashboardAnalytics {
 | DOCUMENT_SHARED | success | FileText | Navigate to document |
 
 ### 3. Component Features
-- [ ] Use `<Timeline>` component from task 1.19
-- [ ] Show last 10 events by default
-- [ ] "View all" link → navigates to dedicated activity page or expands
-- [ ] Relative timestamps (e.g., "2m ago", "1h ago")
-- [ ] Each event clickable → navigates to relevant entity
+- [x] Use `<Timeline>` component from task 1.19
+- [x] Show last 10 events by default
+- [x] "View all" link → navigates to dedicated activity page or expands
+- [x] Relative timestamps (e.g., "2m ago", "1h ago")
+- [x] Each event clickable → navigates to relevant entity
 
 ### 4. formatRelativeTime Utility
 ```typescript
@@ -135,13 +135,13 @@ export function ActivityTimeline({ activities, loading }: { activities: Activity
 
 ## Acceptance Criteria
 
-- [ ] Timeline renders last 10 events from GraphQL data
-- [ ] Each event type shows correct icon and color
-- [ ] Relative timestamps display correctly
-- [ ] Clicking "View" navigates to the related entity
-- [ ] "View all" link available in card header
-- [ ] Loading state uses skeleton
-- [ ] Empty state shows when no activity
+- [x] Timeline renders last 10 events from GraphQL data
+- [x] Each event type shows correct icon and color
+- [x] Relative timestamps display correctly
+- [x] Clicking "View" navigates to the related entity
+- [x] "View all" link available in card header
+- [x] Loading state uses skeleton
+- [x] Empty state shows when no activity
 
 ---
 

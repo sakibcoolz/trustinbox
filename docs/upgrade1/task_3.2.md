@@ -29,12 +29,12 @@ Recharts `^3.8.1` is already in `package.json`.
 ## Requirements
 
 ### 1. Chart Type
-- [ ] Area chart with gradient fill
-- [ ] Three series: **Sent** (blue), **Delivered** (green), **Failed** (red)
-- [ ] X-axis: dates (daily for 30d, hourly for today)
-- [ ] Y-axis: count with auto-scaling
-- [ ] Tooltip on hover: date + all series values
-- [ ] Legend at bottom: toggleable series
+- [x] Area chart with gradient fill
+- [x] Three series: **Sent** (blue), **Delivered** (green), **Failed** (red)
+- [x] X-axis: dates (daily for 30d, hourly for today)
+- [x] Y-axis: count with auto-scaling
+- [x] Tooltip on hover: date + all series values
+- [x] Legend at bottom: toggleable series
 
 ### 2. Data Source
 ```graphql
@@ -50,17 +50,17 @@ fragment DeliveryChartData on DashboardAnalytics {
 ```
 
 ### 3. Chart Styling (VS Code dark theme)
-- [ ] Background: transparent (card provides bg)
-- [ ] Grid lines: `#1e2228` (border-primary)
-- [ ] Axis labels: `#8b929a` (text-secondary), 10px
-- [ ] Area fills: 20% opacity gradient
-- [ ] Line stroke: 2px
-- [ ] Tooltip: `bg-bg-elevated border-border-secondary` rounded, shadow
+- [x] Background: transparent (card provides bg)
+- [x] Grid lines: `#1e2228` (border-primary)
+- [x] Axis labels: `#8b929a` (text-secondary), 10px
+- [x] Area fills: 20% opacity gradient
+- [x] Line stroke: 2px
+- [x] Tooltip: `bg-bg-elevated border-border-secondary` rounded, shadow
 
 ### 4. Responsive
-- [ ] Chart resizes with container (use `ResponsiveContainer`)
-- [ ] Height: 256px desktop, 200px mobile
-- [ ] Hide legend on mobile (show only in tooltip)
+- [x] Chart resizes with container (use `ResponsiveContainer`)
+- [x] Height: 256px desktop, 200px mobile
+- [x] Hide legend on mobile (show only in tooltip)
 
 ---
 
@@ -146,15 +146,15 @@ function CustomTooltip({ active, payload, label }: any) {
 
 ## Acceptance Criteria
 
-- [ ] Area chart renders with 3 series (sent, delivered, failed)
-- [ ] Gradient fills under each line with correct colors
-- [ ] Hover tooltip shows date + all values
-- [ ] X-axis shows date labels (MMM DD format)
-- [ ] Y-axis auto-scales with formatted numbers
-- [ ] Legend toggles series visibility
-- [ ] Responsive container fills card width
-- [ ] Loading state shows SkeletonChart
-- [ ] Dark theme colors match VS Code palette
+- [x] Area chart renders with 3 series (sent, delivered, failed)
+- [x] Gradient fills under each line with correct colors
+- [x] Hover tooltip shows date + all values
+- [x] X-axis shows date labels (MMM DD format)
+- [x] Y-axis auto-scales with formatted numbers
+- [x] Legend toggles series visibility
+- [x] Responsive container fills card width
+- [x] Loading state shows SkeletonChart
+- [x] Dark theme colors match VS Code palette
 
 ---
 

@@ -98,24 +98,24 @@
 
 ### Route: `/`
 
-- [ ] **3.1** KPI summary cards (DashboardSummary component):
+- [x] **3.1** KPI summary cards (DashboardSummary component):
   - Total notifications sent (today/week/month)
   - Delivery rate percentage with trend arrow
   - Active callback requests count
   - Open conversations count
   - Active campaigns count
   - Bot interactions count
-- [ ] **3.2** Delivery chart — Recharts area/line chart showing notifications sent vs delivered vs failed over last 30 days
-- [ ] **3.3** Policy decision breakdown — pie/donut chart: allowed, blocked by DND, blocked by preference, rate-limited
-- [ ] **3.4** Recent activity timeline — last 10 events (notification delivered, callback approved, campaign launched, etc.)
-- [ ] **3.5** Quick actions panel — "Compose Notification", "Create Campaign", "Create Bot" shortcut buttons
-- [ ] **3.6** Date range selector — today, last 7d, last 30d, custom range
-- [ ] **3.7** Auto-refresh toggle — poll every 30s or use subscription for live updates
+- [x] **3.2** Delivery chart — Recharts area/line chart showing notifications sent vs delivered vs failed over last 30 days
+- [x] **3.3** Policy decision breakdown — pie/donut chart: allowed, blocked by DND, blocked by preference, rate-limited
+- [x] **3.4** Recent activity timeline — last 10 events (notification delivered, callback approved, campaign launched, etc.)
+- [x] **3.5** Quick actions panel — "Compose Notification", "Create Campaign", "Create Bot" shortcut buttons
+- [x] **3.6** Date range selector — today, last 7d, last 30d, custom range
+- [x] **3.7** Auto-refresh toggle — poll every 30s or use subscription for live updates
 
 ### Connected Backend
 
-- [ ] **3.8** GraphQL query: `dashboardAnalytics(spId, dateRange)` → KPIs, charts, timeline
-- [ ] **3.9** GraphQL subscription: `providerNotificationDelivered(spId)` → real-time counter updates
+- [x] **3.8** GraphQL query: `dashboardAnalytics(spId, dateRange)` → KPIs, charts, timeline
+- [x] **3.9** GraphQL subscription: `providerNotificationDelivered(spId)` → real-time counter updates
 
 ---
 

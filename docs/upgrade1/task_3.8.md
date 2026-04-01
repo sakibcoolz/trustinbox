@@ -152,9 +152,9 @@ export function useDashboardAnalytics(spId: string, dateRange: DateRange) {
 ```
 
 ### 5. Schema Alignment Check
-- [ ] Verify `DashboardAnalytics` type exists in gateway schema
-- [ ] Compare fields against `gateway/graphql-bff/graph/schema.graphqls`
-- [ ] Document any discrepancies that need gateway implementation
+- [x] Verify `DashboardAnalytics` type exists in gateway schema
+- [x] Compare fields against `gateway/graphql-bff/graph/schema.graphqls`
+- [x] Document any discrepancies that need gateway implementation
 
 ---
 
@@ -224,13 +224,13 @@ export default function DashboardPage() {
 
 ## Acceptance Criteria
 
-- [ ] `DASHBOARD_ANALYTICS_QUERY` fetches all dashboard data in single request
-- [ ] Types are comprehensive and match component props
-- [ ] `useDashboardAnalytics` hook handles loading, error, skip states
-- [ ] Date range changes trigger refetch
-- [ ] Dashboard page integrates all components with real data
-- [ ] Graceful handling if analytics data is null/empty
-- [ ] Type exports usable by all dashboard components
+- [x] `DASHBOARD_ANALYTICS_QUERY` fetches all dashboard data in single request
+- [x] Types are comprehensive and match component props
+- [x] `useDashboardAnalytics` hook handles loading, error, skip states
+- [x] Date range changes trigger refetch
+- [x] Dashboard page integrates all components with real data
+- [x] Graceful handling if analytics data is null/empty
+- [x] Type exports usable by all dashboard components
 
 ---
 

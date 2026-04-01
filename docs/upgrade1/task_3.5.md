@@ -34,14 +34,14 @@ No quick actions panel exists on the dashboard.
 | View Reports | `BarChart3` | analytics:view | `/analytics` |
 
 ### 2. Permission-Gated
-- [ ] Only show actions the user has permission for
-- [ ] Use `PermissionGate` or `usePermission` to filter
+- [x] Only show actions the user has permission for
+- [x] Use `PermissionGate` or `usePermission` to filter
 
 ### 3. Appearance
-- [ ] Row of pill-shaped buttons with icon + label
-- [ ] Primary blue border/accent for primary action (Send Notification)
-- [ ] Subtle hover effect
-- [ ] Responsive: horizontal scroll on mobile
+- [x] Row of pill-shaped buttons with icon + label
+- [x] Primary blue border/accent for primary action (Send Notification)
+- [x] Subtle hover effect
+- [x] Responsive: horizontal scroll on mobile
 
 ### 4. Component API
 ```typescript
@@ -114,13 +114,13 @@ function QuickActionButton({ label, icon: Icon, href, permission, primary }: Qui
 
 ## Acceptance Criteria
 
-- [ ] Quick action buttons render for permitted actions only
-- [ ] ANALYST sees only "View Reports"
-- [ ] SP_ADMIN sees all 6 actions
-- [ ] Clicking navigates to correct page
-- [ ] Primary action (Send Notification) has blue accent styling
-- [ ] Horizontal scroll on mobile
-- [ ] If no actions are permitted, section is hidden entirely
+- [x] Quick action buttons render for permitted actions only
+- [x] ANALYST sees only "View Reports"
+- [x] SP_ADMIN sees all 6 actions
+- [x] Clicking navigates to correct page
+- [x] Primary action (Send Notification) has blue accent styling
+- [x] Horizontal scroll on mobile
+- [x] If no actions are permitted, section is hidden entirely
 
 ---
 

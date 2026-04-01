@@ -56,14 +56,14 @@ function KPICard({ label, value, change, positive }) {
 | **Bot Interactions** | `Bot` | `dashboardAnalytics.botInteractions` | count change |
 
 ### 2. KPICard Component Upgrade
-- [ ] Add icon (Lucide icon, colored per type)
-- [ ] Add sparkline mini-chart (tiny area chart showing last 7 days, optional)
-- [ ] Trend arrow: `↑` green for positive, `↓` red for negative, `→` neutral
-- [ ] Click card to navigate to feature page (e.g., clicking "Active Callbacks" → `/callbacks`)
-- [ ] Loading state: use SkeletonKPI (task 1.8)
-- [ ] Use `<Card variant="interactive">` (task 1.12)
-- [ ] Format large numbers: `18,542` with comma separator
-- [ ] Format percentages: `89.2%`
+- [x] Add icon (Lucide icon, colored per type)
+- [x] Add sparkline mini-chart (tiny area chart showing last 7 days, optional)
+- [x] Trend arrow: `↑` green for positive, `↓` red for negative, `→` neutral
+- [x] Click card to navigate to feature page (e.g., clicking "Active Callbacks" → `/callbacks`)
+- [x] Loading state: use SkeletonKPI (task 1.8)
+- [x] Use `<Card variant="interactive">` (task 1.12)
+- [x] Format large numbers: `18,542` with comma separator
+- [x] Format percentages: `89.2%`
 
 ### 3. Component API
 ```typescript
@@ -81,8 +81,8 @@ interface KPICardProps {
 ```
 
 ### 4. Grid Layout
-- [ ] 6 cards: 3 columns on desktop (lg:grid-cols-3), 2 on tablet, 1 on mobile
-- [ ] Or: 6 cards in 2x3 grid (lg:grid-cols-3 gap-4)
+- [x] 6 cards: 3 columns on desktop (lg:grid-cols-3), 2 on tablet, 1 on mobile
+- [x] Or: 6 cards in 2x3 grid (lg:grid-cols-3 gap-4)
 
 ---
 
@@ -190,14 +190,14 @@ export function DashboardKPICards({ data, loading }: { data?: DashboardKPIs; loa
 
 ## Acceptance Criteria
 
-- [ ] 6 KPI cards render in 3-column grid
-- [ ] Each card shows: icon, label, formatted value, trend arrow + percentage
-- [ ] Clicking a card navigates to the appropriate feature page
-- [ ] Loading state shows 6 skeleton cards
-- [ ] Numbers formatted with comma separator
-- [ ] Percentages formatted to 1 decimal place
-- [ ] Positive trends show green, negative show red
-- [ ] Responsive: 3 cols desktop, 2 tablet, 1 mobile
+- [x] 6 KPI cards render in 3-column grid
+- [x] Each card shows: icon, label, formatted value, trend arrow + percentage
+- [x] Clicking a card navigates to the appropriate feature page
+- [x] Loading state shows 6 skeleton cards
+- [x] Numbers formatted with comma separator
+- [x] Percentages formatted to 1 decimal place
+- [x] Positive trends show green, negative show red
+- [x] Responsive: 3 cols desktop, 2 tablet, 1 mobile
 
 ---
 

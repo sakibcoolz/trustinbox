@@ -28,9 +28,9 @@ Replace the callbacks chart placeholder with a donut/pie chart showing the polic
 ## Requirements
 
 ### 1. Chart Type
-- [ ] Donut chart (PieChart with inner radius) from Recharts
-- [ ] Center label: total count + "decisions"
-- [ ] 4 segments with colors:
+- [x] Donut chart (PieChart with inner radius) from Recharts
+- [x] Center label: total count + "decisions"
+- [x] 4 segments with colors:
 
 | Segment | Color | Hex |
 |---------|-------|-----|
@@ -53,13 +53,13 @@ fragment PolicyBreakdownData on DashboardAnalytics {
 ```
 
 ### 3. Legend/Labels
-- [ ] Right-side legend with label, count, and percentage
-- [ ] Each legend item: colored dot + label + count (%) 
-- [ ] On mobile: legend below chart
+- [x] Right-side legend with label, count, and percentage
+- [x] Each legend item: colored dot + label + count (%) 
+- [x] On mobile: legend below chart
 
 ### 4. Hover Interaction
-- [ ] Hover segment: enlarge slightly with active shape
-- [ ] Show tooltip with label and count
+- [x] Hover segment: enlarge slightly with active shape
+- [x] Show tooltip with label and count
 
 ---
 
@@ -152,13 +152,13 @@ export function PolicyChart({ data, loading }: { data?: PolicyBreakdown; loading
 
 ## Acceptance Criteria
 
-- [ ] Donut chart with 4 segments renders with correct colors
-- [ ] Center shows total decision count
-- [ ] Legend on right shows label + count + percentage for each segment
-- [ ] Hover shows tooltip
-- [ ] Loading shows skeleton
-- [ ] Handles zero data gracefully
-- [ ] Responsive: legend moves below on small screens
+- [x] Donut chart with 4 segments renders with correct colors
+- [x] Center shows total decision count
+- [x] Legend on right shows label + count + percentage for each segment
+- [x] Hover shows tooltip
+- [x] Loading shows skeleton
+- [x] Handles zero data gracefully
+- [x] Responsive: legend moves below on small screens
 
 ---
 

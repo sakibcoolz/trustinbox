@@ -78,11 +78,11 @@ export function useDashboardLiveUpdates(spId: string, onUpdate: (event: Dashboar
 ```
 
 ### 4. Integration Strategy
-- [ ] On subscription event:
+- [x] On subscription event:
   1. Update KPI counters optimistically (add delta to cached values)
   2. Prepend to recent activity list
   3. Debounce full refetch every 60 seconds to reconcile
-- [ ] Use Apollo cache update for optimistic changes:
+- [x] Use Apollo cache update for optimistic changes:
 ```typescript
 cache.modify({
   fields: {
@@ -97,8 +97,8 @@ cache.modify({
 ```
 
 ### 5. Fallback
-- [ ] If WebSocket connection fails, fall back to polling (task 3.7)
-- [ ] Show "Reconnecting..." status in auto-refresh indicator
+- [x] If WebSocket connection fails, fall back to polling (task 3.7)
+- [x] Show "Reconnecting..." status in auto-refresh indicator
 
 ---
 
@@ -138,12 +138,12 @@ useDashboardLiveUpdates(spId, (event) => {
 
 ## Acceptance Criteria
 
-- [ ] Subscription connects via WebSocket when dashboard mounts
-- [ ] KPI counters update in real-time on new events
-- [ ] New activity appears at top of timeline without full page refresh
-- [ ] Falls back to polling if WebSocket unavailable
-- [ ] Clean disconnection on unmount
-- [ ] No duplicate events in activity list
+- [x] Subscription connects via WebSocket when dashboard mounts
+- [x] KPI counters update in real-time on new events
+- [x] New activity appears at top of timeline without full page refresh
+- [x] Falls back to polling if WebSocket unavailable
+- [x] Clean disconnection on unmount
+- [x] No duplicate events in activity list
 
 ---
 

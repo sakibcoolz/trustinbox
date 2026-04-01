@@ -1,74 +1,88 @@
-export default function DashboardPage() {
+'use client';
+
+import { Suspense } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDashboardAnalytics, useDashboardLiveUpdates } from '@/lib/graphql/dashboard';
+import { useDateRange } from '@/hooks/useDateRange';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import { DashboardKPICards } from '@/components/dashboard/KPICards';
+import { DeliveryChart } from '@/components/dashboard/DeliveryChart';
+import { PolicyChart } from '@/components/dashboard/PolicyChart';
+import { ActivityTimeline } from '@/components/dashboard/ActivityTimeline';
+import { QuickActions } from '@/components/dashboard/QuickActions';
+import { DateRangeSelector } from '@/components/dashboard/DateRangeSelector';
+import { AutoRefresh } from '@/components/dashboard/AutoRefresh';
+
+function DashboardContent() {
+  const { activeServiceProvider } = useAuth();
+  const { range, updateRange } = useDateRange();
+  const spId = activeServiceProvider?.id ?? '';
+
+  const { data, loading, refetch } = useDashboardAnalytics(spId, {
+    from: range.from.toISOString(),
+    to: range.to.toISOString(),
+  });
+  const analytics = data?.dashboardAnalytics;
+  const { enabled: liveEnabled, setEnabled: setLiveEnabled, lastUpdated } = useAutoRefresh(refetch);
+
+  // Real-time subscription — optimistic counter updates
+  useDashboardLiveUpdates(spId);
+
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-text-secondary mt-1">Overview of your communication metrics</p>
+    <div className="p-8 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <p className="text-text-secondary text-sm mt-1">Overview of your communication metrics</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <DateRangeSelector value={range} onChange={updateRange} />
+          <AutoRefresh enabled={liveEnabled} onToggle={setLiveEnabled} lastUpdated={lastUpdated} />
+        </div>
       </div>
+
+      {/* Quick Actions */}
+      <QuickActions />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <KPICard label="Active Customers" value="2,347" change="+12%" positive />
-        <KPICard label="Notifications Sent" value="18,542" change="+8%" positive />
-        <KPICard label="Policy Denials" value="142" change="-3%" positive />
-        <KPICard label="Callback Completion" value="89%" change="+2%" positive />
-      </div>
+      <DashboardKPICards data={analytics} loading={loading} />
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-bg-card border border-border-primary rounded-xl p-6">
-          <h3 className="text-sm font-medium text-text-secondary mb-4">Notifications (30d)</h3>
-          <div className="h-48 flex items-center justify-center text-text-muted text-sm">
-            Chart placeholder — connect to analytics API
-          </div>
-        </div>
-        <div className="bg-bg-card border border-border-primary rounded-xl p-6">
-          <h3 className="text-sm font-medium text-text-secondary mb-4">Callbacks (30d)</h3>
-          <div className="h-48 flex items-center justify-center text-text-muted text-sm">
-            Chart placeholder — connect to analytics API
-          </div>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DeliveryChart data={analytics?.dailyDelivery ?? []} loading={loading} />
+        <PolicyChart data={analytics?.policyBreakdown} loading={loading} />
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-bg-card border border-border-primary rounded-xl p-6">
-        <h3 className="text-sm font-medium text-text-secondary mb-4">Recent Activity</h3>
-        <div className="space-y-3">
-          {[
-            { action: 'Notification delivered', target: 'user_a1b2c3', time: '2m ago', status: 'success' },
-            { action: 'Callback approved', target: 'user_d4e5f6', time: '8m ago', status: 'success' },
-            { action: 'Policy denied', target: 'user_g7h8i9', time: '15m ago', status: 'error' },
-            { action: 'Bot escalated', target: 'conv_j0k1l2', time: '22m ago', status: 'warning' },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between py-2 border-b border-border-primary last:border-0">
-              <div className="flex items-center gap-3">
-                <span className={`w-2 h-2 rounded-full ${
-                  item.status === 'success' ? 'bg-status-success' :
-                  item.status === 'error' ? 'bg-status-error' : 'bg-status-warning'
-                }`} />
-                <span className="text-sm">{item.action}</span>
-                <span className="text-xs text-text-muted font-mono">{item.target}</span>
-              </div>
-              <span className="text-xs text-text-muted">{item.time}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Activity Timeline */}
+      <ActivityTimeline activities={analytics?.recentActivity ?? []} loading={loading} />
     </div>
   );
 }
 
-function KPICard({ label, value, change, positive }: {
-  label: string; value: string; change: string; positive: boolean;
-}) {
+export default function DashboardPage() {
   return (
-    <div className="bg-bg-card border border-border-primary rounded-xl p-5">
-      <p className="text-xs text-text-muted uppercase tracking-wider">{label}</p>
-      <div className="flex items-end justify-between mt-2">
-        <span className="text-2xl font-semibold">{value}</span>
-        <span className={`text-xs font-medium ${positive ? 'text-status-success' : 'text-status-error'}`}>
-          {change}
-        </span>
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="p-8 space-y-6">
+      <div>
+        <div className="h-7 w-32 bg-border-primary rounded animate-pulse" />
+        <div className="h-4 w-64 bg-border-primary rounded animate-pulse mt-2" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="bg-bg-card border border-border-primary rounded-xl p-5 animate-pulse">
+            <div className="h-3 w-24 bg-border-primary rounded" />
+            <div className="h-7 w-20 bg-border-primary rounded mt-3" />
+            <div className="h-3 w-16 bg-border-primary rounded mt-2" />
+          </div>
+        ))}
       </div>
     </div>
   );

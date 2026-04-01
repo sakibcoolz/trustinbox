@@ -23,15 +23,15 @@ No auto-refresh. Dashboard data is fetched once and becomes stale.
 ## Requirements
 
 ### 1. Polling Mode (Default)
-- [ ] Toggle switch: "Live" on/off
-- [ ] When ON: re-trigger `dashboardAnalytics` query every 30 seconds
-- [ ] Visual indicator: pulsing green dot when active
-- [ ] Last updated timestamp: "Updated 15s ago"
+- [x] Toggle switch: "Live" on/off
+- [x] When ON: re-trigger `dashboardAnalytics` query every 30 seconds
+- [x] Visual indicator: pulsing green dot when active
+- [x] Last updated timestamp: "Updated 15s ago"
 
 ### 2. Subscription Mode (Advanced)
-- [ ] When WebSocket available (task 2.6), use subscription instead of polling
-- [ ] `providerNotificationDelivered(spId)` subscription (task 3.9)
-- [ ] On event: increment KPI counters optimistically, refetch analytics every 60s
+- [x] When WebSocket available (task 2.6), use subscription instead of polling
+- [x] `providerNotificationDelivered(spId)` subscription (task 3.9)
+- [x] On event: increment KPI counters optimistically, refetch analytics every 60s
 
 ### 3. Component API
 ```typescript
@@ -44,10 +44,10 @@ interface AutoRefreshProps {
 ```
 
 ### 4. Appearance
-- [ ] Small toggle in dashboard header, next to date range selector
-- [ ] Green pulsing dot + "Live" text when active
-- [ ] Gray dot + "Paused" when inactive
-- [ ] "Updated Xs ago" timestamp below
+- [x] Small toggle in dashboard header, next to date range selector
+- [x] Green pulsing dot + "Live" text when active
+- [x] Gray dot + "Paused" when inactive
+- [x] "Updated Xs ago" timestamp below
 
 ---
 
@@ -116,12 +116,12 @@ const { enabled, setEnabled, lastUpdated } = useAutoRefresh(refetch);
 
 ## Acceptance Criteria
 
-- [ ] Toggle switch enables/disables auto-refresh
-- [ ] When enabled, data refreshes every 30 seconds
-- [ ] Green pulsing dot visible when live
-- [ ] "Updated Xs ago" timestamp shows
-- [ ] No polling when tab is hidden (optimization)
-- [ ] Clean interval on unmount
+- [x] Toggle switch enables/disables auto-refresh
+- [x] When enabled, data refreshes every 30 seconds
+- [x] Green pulsing dot visible when live
+- [x] "Updated Xs ago" timestamp shows
+- [x] No polling when tab is hidden (optimization)
+- [x] Clean interval on unmount
 
 ---
 

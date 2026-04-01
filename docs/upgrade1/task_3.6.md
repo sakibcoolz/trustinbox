@@ -33,15 +33,15 @@ No date range selector. Dashboard would show "last 30 days" by default with no w
 | Custom | `custom` | Calendar date picker for start/end |
 
 ### 2. Appearance
-- [ ] Dropdown/segmented control in dashboard header (right-aligned)
-- [ ] Active preset highlighted with `accent-blue`
-- [ ] Custom range shows small calendar picker (inline or dropdown)
-- [ ] Display selected range as text: "Oct 1 – Oct 31, 2024"
+- [x] Dropdown/segmented control in dashboard header (right-aligned)
+- [x] Active preset highlighted with `accent-blue`
+- [x] Custom range shows small calendar picker (inline or dropdown)
+- [x] Display selected range as text: "Oct 1 – Oct 31, 2024"
 
 ### 3. State Management
-- [ ] Store selected range in URL query param: `?range=7d` or `?from=2024-10-01&to=2024-10-31`
-- [ ] Sync with URL on mount (restore from bookmark/refresh)
-- [ ] `onRangeChange(range)` callback triggers data refetch
+- [x] Store selected range in URL query param: `?range=7d` or `?from=2024-10-01&to=2024-10-31`
+- [x] Sync with URL on mount (restore from bookmark/refresh)
+- [x] `onRangeChange(range)` callback triggers data refetch
 
 ### 4. Component API
 ```typescript
@@ -137,12 +137,12 @@ export function useDateRange() {
 
 ## Acceptance Criteria
 
-- [ ] 5 preset buttons render, default "30d" active
-- [ ] Clicking preset changes active state and updates URL
-- [ ] Range persists across page refresh (URL sync)
-- [ ] Custom shows date picker (basic implementation OK for v1)
-- [ ] `useDateRange` hook provides range to data-fetching logic
-- [ ] All dashboard components re-fetch when range changes
+- [x] 5 preset buttons render, default "30d" active
+- [x] Clicking preset changes active state and updates URL
+- [x] Range persists across page refresh (URL sync)
+- [x] Custom shows date picker (basic implementation OK for v1)
+- [x] `useDateRange` hook provides range to data-fetching logic
+- [x] All dashboard components re-fetch when range changes
 
 ---
 
