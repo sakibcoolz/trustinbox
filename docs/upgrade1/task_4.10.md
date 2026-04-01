@@ -5,6 +5,7 @@
 > **Estimated Scope**: Small  
 > **Route**: `/customers/[virtualId]`  
 > **File**: `apps/provider/src/app/customers/[virtualId]/page.tsx`
+> **Status**: ✅ Complete
 
 ---
 

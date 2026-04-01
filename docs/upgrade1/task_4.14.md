@@ -5,6 +5,7 @@
 > **Estimated Scope**: Small  
 > **Route**: N/A (Data layer, used by multiple components)  
 > **File**: `apps/provider/src/lib/graphql/customers.ts`
+> **Status**: ✅ Complete
 
 ---
 

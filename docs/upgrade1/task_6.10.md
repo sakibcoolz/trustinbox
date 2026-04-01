@@ -62,6 +62,7 @@ mutation AssignConversation($conversationId: ID!, $agentId: ID!) {
 ```
 
 > **Note**: If mutation doesn't exist in schema, define the interface now and mark as backend dependency.
+> **Status**: ✅ Complete
 
 ### 5. Permissions
 - Requires: `conversations:manage` (SP_ADMIN, CONTENT_MANAGER)

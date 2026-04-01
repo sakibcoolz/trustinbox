@@ -87,6 +87,7 @@ conversation(id: $id) {
 ```
 
 > **Note**: If these fields don't exist in schema, the sidebar will use separate queries or derive from existing data.
+> **Status**: ✅ Complete
 
 ---
 

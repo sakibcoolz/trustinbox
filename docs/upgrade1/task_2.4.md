@@ -4,6 +4,7 @@
 > **Priority**: P0 — Must complete first  
 > **Estimated Scope**: Medium  
 > **File**: `apps/provider/src/hooks/useAuth.ts`
+> **Status**: ✅ Complete
 
 ---
 

@@ -5,6 +5,7 @@
 > **Estimated Scope**: Small  
 > **Route**: `/conversations/[id]`  
 > **File**: `apps/provider/src/components/conversations/TypingIndicator.tsx`
+> **Status**: ✅ Complete
 
 ---
 

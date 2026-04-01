@@ -5,6 +5,7 @@
 > **Estimated Scope**: Medium  
 > **Route**: `/conversations/[id]`  
 > **File**: `apps/provider/src/components/conversations/MessageComposer.tsx`
+> **Status**: ✅ Complete
 
 ---
 

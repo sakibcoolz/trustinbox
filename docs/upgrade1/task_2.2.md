@@ -5,6 +5,7 @@
 > **Estimated Scope**: Large (already implemented, needs upgrade)  
 > **Route**: `/auth/register`  
 > **File**: `apps/provider/src/app/auth/register/page.tsx`
+> **Status**: ✅ Complete
 
 ---
 

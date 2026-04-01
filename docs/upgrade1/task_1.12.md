@@ -4,6 +4,7 @@
 > **Priority**: P0 — Must complete first  
 > **Estimated Scope**: Small  
 > **File**: `apps/provider/src/components/ui/Card.tsx`
+> **Status**: ✅ Complete
 
 ---
 

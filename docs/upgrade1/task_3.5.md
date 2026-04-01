@@ -5,6 +5,7 @@
 > **Estimated Scope**: Small  
 > **Route**: `/` (Dashboard)  
 > **File**: `apps/provider/src/components/dashboard/QuickActions.tsx`
+> **Status**: ✅ Complete
 
 ---
 

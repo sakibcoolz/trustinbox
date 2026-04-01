@@ -5,6 +5,7 @@
 > **Estimated Scope**: Medium  
 > **Route**: `/notifications`  
 > **File**: `apps/provider/src/app/notifications/page.tsx`, `apps/provider/src/lib/graphql/notifications.ts`
+> **Status**: ✅ Complete
 
 ---
 

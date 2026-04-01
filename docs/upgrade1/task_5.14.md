@@ -5,6 +5,7 @@
 > **Estimated Scope**: Small  
 > **Route**: N/A (Data layer, shared with Customers section)  
 > **File**: `apps/provider/src/lib/graphql/notifications.ts`
+> **Status**: ✅ Complete
 
 ---
 

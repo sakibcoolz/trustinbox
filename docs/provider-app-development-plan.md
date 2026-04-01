@@ -220,22 +220,22 @@
 
 ### Route: `/callbacks`
 
-- [ ] **7.1** CallbackRequestTable component — columns: customer (virtual ID), requested_at, preferred_time, status, assigned_agent, actions
-- [ ] **7.2** Status badges — Pending (yellow), Approved (green), Rejected (red), Expired (gray), Completed (blue)
-- [ ] **7.3** Filter bar — by status, date range, assigned agent
-- [ ] **7.4** Request detail expansion — shows customer preference, DND windows, policy evaluation result
-- [ ] **7.5** Create callback request — button opens form: select customer, preferred time slots, reason/notes
-- [ ] **7.6** 48-hour expiry indicator — countdown/progress bar showing time remaining for pending requests
-- [ ] **7.7** Assign to agent — dropdown to assign callback to a specific team member
-- [ ] **7.8** Complete callback — mark as completed with notes (call duration, outcome)
-- [ ] **7.9** Bulk actions — approve/reject selected requests
+- [x] **7.1** CallbackRequestTable component — columns: customer (virtual ID), requested_at, preferred_time, status, assigned_agent, actions
+- [x] **7.2** Status badges — Pending (yellow), Approved (green), Rejected (red), Expired (gray), Completed (blue)
+- [x] **7.3** Filter bar — by status, date range, assigned agent
+- [x] **7.4** Request detail expansion — shows customer preference, DND windows, policy evaluation result
+- [x] **7.5** Create callback request — button opens form: select customer, preferred time slots, reason/notes
+- [x] **7.6** 48-hour expiry indicator — countdown/progress bar showing time remaining for pending requests
+- [x] **7.7** Assign to agent — dropdown to assign callback to a specific team member
+- [x] **7.8** Complete callback — mark as completed with notes (call duration, outcome)
+- [x] **7.9** Bulk actions — approve/reject selected requests
 
 ### Connected Backend
 
-- [ ] **7.10** GraphQL query: `callbackRequests(spId, filters, pagination)` → list
-- [ ] **7.11** GraphQL mutation: `approveCallbackRequest(id)` / `rejectCallbackRequest(id, reason)`
-- [ ] **7.12** GraphQL subscription: `providerCallbackRequestCreated(spId)` → real-time new requests
-- [ ] **7.13** Policy integration — `CheckCallbackPermission(userId, spId)` pre-check before creation
+- [x] **7.10** GraphQL query: `callbackRequests(spId, filters, pagination)` → list
+- [x] **7.11** GraphQL mutation: `approveCallbackRequest(id)` / `rejectCallbackRequest(id, reason)`
+- [x] **7.12** GraphQL subscription: `providerCallbackRequestCreated(spId)` → real-time new requests
+- [x] **7.13** Policy integration — `CheckCallbackPermission(userId, spId)` pre-check before creation
 
 ---
 
@@ -243,22 +243,22 @@
 
 ### Route: `/documents`
 
-- [ ] **8.1** DocumentManager component — grid/list toggle view of uploaded documents
-- [ ] **8.2** Upload zone — drag-and-drop area + file picker, multi-file upload with progress bars
-- [ ] **8.3** Document card — thumbnail/icon, filename, size, upload date, classification badge, share count
-- [ ] **8.4** Classification tags — auto-classified (invoice, ID, contract, report, general)
-- [ ] **8.5** Search — by filename, classification, date range
-- [ ] **8.6** Document preview — in-app preview for images/PDFs in modal or drawer
-- [ ] **8.7** Share document — select customer(s), share via conversation with signed URL
-- [ ] **8.8** Version history — show document versions, download previous versions
-- [ ] **8.9** Delete document — soft delete with confirmation modal
-- [ ] **8.10** Bulk download — select multiple documents, download as zip
+- [x] **8.1** DocumentManager component — grid/list toggle view of uploaded documents
+- [x] **8.2** Upload zone — drag-and-drop area + file picker, multi-file upload with progress bars
+- [x] **8.3** Document card — thumbnail/icon, filename, size, upload date, classification badge, share count
+- [x] **8.4** Classification tags — auto-classified (invoice, ID, contract, report, general)
+- [x] **8.5** Search — by filename, classification, date range
+- [x] **8.6** Document preview — in-app preview for images/PDFs in modal or drawer
+- [x] **8.7** Share document — select customer(s), share via conversation with signed URL
+- [x] **8.8** Version history — show document versions, download previous versions
+- [x] **8.9** Delete document — soft delete with confirmation modal
+- [x] **8.10** Bulk download — select multiple documents, download as zip
 
 ### Connected Backend
 
-- [ ] **8.11** Document upload → presigned URL from document-service → direct upload to MinIO
-- [ ] **8.12** GraphQL queries for document listing, versioning, shared documents
-- [ ] **8.13** Signed URL generation for secure document sharing with customers
+- [x] **8.11** Document upload → presigned URL from document-service → direct upload to MinIO
+- [x] **8.12** GraphQL queries for document listing, versioning, shared documents
+- [x] **8.13** Signed URL generation for secure document sharing with customers
 
 ---
 

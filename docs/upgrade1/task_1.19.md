@@ -4,6 +4,7 @@
 > **Priority**: P2 — Nice to Have  
 > **Estimated Scope**: Small  
 > **File**: `apps/provider/src/components/ui/Timeline.tsx`
+> **Status**: ✅ Complete
 
 ---
 

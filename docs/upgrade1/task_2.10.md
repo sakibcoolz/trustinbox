@@ -4,6 +4,7 @@
 > **Priority**: P0 — Must complete first  
 > **Estimated Scope**: Small  
 > **File**: `apps/provider/src/hooks/usePermission.ts`
+> **Status**: ✅ Complete
 
 ---
 

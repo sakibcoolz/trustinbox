@@ -5,6 +5,7 @@
 > **Estimated Scope**: Medium (already implemented, needs upgrade)  
 > **Route**: `/auth/invite/[token]`  
 > **File**: `apps/provider/src/app/auth/invite/[token]/page.tsx`
+> **Status**: ✅ Complete
 
 ---
 

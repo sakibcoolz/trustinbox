@@ -48,6 +48,7 @@ mutation RetryNotification($id: ID!) {
 ```
 
 > **Note**: If `retryNotification` mutation doesn't exist in schema yet, use `sendNotification` with original notification data as a workaround.
+> **Status**: ✅ Complete
 
 ### 4. Conditional Rendering
 - Only show for `FAILED` status

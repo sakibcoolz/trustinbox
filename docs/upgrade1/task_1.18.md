@@ -4,6 +4,7 @@
 > **Priority**: P1 — Important  
 > **Estimated Scope**: Small  
 > **File**: `apps/provider/src/components/ui/Badge.tsx`
+> **Status**: ✅ Complete
 
 ---
 

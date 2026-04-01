@@ -5,6 +5,7 @@
 > **Estimated Scope**: Large  
 > **Route**: `/conversations/[id]`  
 > **File**: `apps/provider/src/app/conversations/[id]/page.tsx`, `apps/provider/src/components/ConversationPanel.tsx`
+> **Status**: ✅ Complete
 
 ---
 

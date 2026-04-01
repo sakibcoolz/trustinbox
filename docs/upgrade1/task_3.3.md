@@ -5,6 +5,7 @@
 > **Estimated Scope**: Medium  
 > **Route**: `/` (Dashboard)  
 > **File**: `apps/provider/src/components/dashboard/PolicyChart.tsx`
+> **Status**: ✅ Complete
 
 ---
 

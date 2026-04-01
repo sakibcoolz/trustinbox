@@ -4,6 +4,7 @@
 > **Priority**: P0 — Must complete first  
 > **Estimated Scope**: Large  
 > **File**: `apps/provider/src/components/ui/Table.tsx`
+> **Status**: ✅ Complete
 
 ---
 

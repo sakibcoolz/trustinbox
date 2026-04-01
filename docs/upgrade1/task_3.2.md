@@ -5,6 +5,7 @@
 > **Estimated Scope**: Medium  
 > **Route**: `/` (Dashboard)  
 > **File**: `apps/provider/src/components/dashboard/DeliveryChart.tsx`
+> **Status**: ✅ Complete
 
 ---
 

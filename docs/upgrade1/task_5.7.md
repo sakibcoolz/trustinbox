@@ -5,6 +5,7 @@
 > **Estimated Scope**: Large  
 > **Route**: `/notifications/compose`  
 > **File**: `apps/provider/src/app/notifications/compose/page.tsx`, `apps/provider/src/components/NotificationComposer.tsx`
+> **Status**: ✅ Complete
 
 ---
 

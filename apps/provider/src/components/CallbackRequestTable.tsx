@@ -1,61 +1,28 @@
 'use client';
 
-import { useState } from 'react';
-import { Clock, CheckCircle2, XCircle, PhoneMissed, Calendar } from 'lucide-react';
-
-interface CallbackRequest {
-  id: string;
-  customerVid: string;
-  topic: string;
-  priority: 'Low' | 'Normal' | 'High' | 'Urgent';
-  status: 'Pending' | 'Approved' | 'Completed' | 'Missed' | 'Rejected';
-  requestedAt: string;
-  scheduledAt: string | null;
-}
+import { Fragment, useState } from 'react';
+import { CallbackRequest, CallbackRequestStatus, getPriorityConfig } from '@/lib/graphql/callbacks';
+import CallbackStatusBadge from '@/components/callbacks/CallbackStatusBadge';
+import ExpiryIndicator from '@/components/callbacks/ExpiryIndicator';
+import { formatRelativeTime } from '@/lib/format';
 
 interface CallbackRequestTableProps {
-  requests?: CallbackRequest[];
+  requests: CallbackRequest[];
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
+  onComplete?: (id: string) => void;
 }
 
-const defaultRequests: CallbackRequest[] = [
-  { id: '1', customerVid: 'VID-8a3f2b', topic: 'Account inquiry', priority: 'High', status: 'Pending', requestedAt: '2024-03-10 11:30', scheduledAt: null },
-  { id: '2', customerVid: 'VID-4c9e1d', topic: 'Billing dispute', priority: 'Urgent', status: 'Pending', requestedAt: '2024-03-10 10:15', scheduledAt: null },
-  { id: '3', customerVid: 'VID-7f2a8c', topic: 'Technical support', priority: 'Normal', status: 'Approved', requestedAt: '2024-03-09 14:30', scheduledAt: '2024-03-10 15:00' },
-];
+export default function CallbackRequestTable({ requests, onApprove, onReject, onComplete }: CallbackRequestTableProps) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-const statusIcons = {
-  Pending: Clock,
-  Approved: Calendar,
-  Completed: CheckCircle2,
-  Missed: PhoneMissed,
-  Rejected: XCircle,
-};
-
-const statusColors: Record<string, string> = {
-  Pending: 'bg-status-warning/10 text-status-warning',
-  Approved: 'bg-accent-blue/10 text-accent-blue',
-  Completed: 'bg-status-success/10 text-status-success',
-  Missed: 'bg-status-error/10 text-status-error',
-  Rejected: 'bg-border-secondary text-text-muted',
-};
-
-const priorityColors: Record<string, string> = {
-  Low: 'text-text-muted',
-  Normal: 'text-text-secondary',
-  High: 'text-accent-orange',
-  Urgent: 'text-status-error',
-};
-
-export default function CallbackRequestTable({ requests = defaultRequests, onApprove, onReject }: CallbackRequestTableProps) {
   return (
     <div className="bg-bg-card border border-border-primary rounded-xl overflow-hidden">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border-primary text-xs text-text-muted">
             <th className="px-4 py-3 text-left font-medium">Customer</th>
-            <th className="px-4 py-3 text-left font-medium">Topic</th>
+            <th className="px-4 py-3 text-left font-medium">Reason</th>
             <th className="px-4 py-3 text-left font-medium">Priority</th>
             <th className="px-4 py-3 text-left font-medium">Status</th>
             <th className="px-4 py-3 text-left font-medium">Requested</th>
@@ -64,35 +31,90 @@ export default function CallbackRequestTable({ requests = defaultRequests, onApp
         </thead>
         <tbody>
           {requests.map((r) => {
-            const StatusIcon = statusIcons[r.status];
+            const priorityCfg = getPriorityConfig(r.priority);
             return (
-              <tr key={r.id} className="border-b border-border-primary last:border-0 hover:bg-bg-hover transition-colors">
-                <td className="px-4 py-3 font-medium">{r.customerVid}</td>
-                <td className="px-4 py-3 text-text-secondary">{r.topic}</td>
-                <td className={`px-4 py-3 font-medium ${priorityColors[r.priority]}`}>{r.priority}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[r.status]}`}>
-                    <StatusIcon size={12} /> {r.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-text-muted">{r.requestedAt}</td>
-                <td className="px-4 py-3">
-                  {r.status === 'Pending' && (
-                    <div className="flex gap-2">
-                      <button onClick={() => onApprove?.(r.id)}
-                        className="px-2.5 py-1 bg-status-success/10 text-status-success rounded text-xs font-medium hover:bg-status-success/20 transition-colors">
-                        Approve
-                      </button>
-                      <button onClick={() => onReject?.(r.id)}
-                        className="px-2.5 py-1 bg-status-error/10 text-status-error rounded text-xs font-medium hover:bg-status-error/20 transition-colors">
-                        Reject
-                      </button>
+              <Fragment key={r.id}>
+                <tr
+                  className={`border-b border-border-primary last:border-0 hover:bg-bg-hover transition-colors cursor-pointer ${
+                    expandedId === r.id ? 'bg-bg-surface' : ''
+                  }`}
+                  onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}
+                >
+                  <td className="px-4 py-3 font-mono text-xs">{r.customerVirtualId}</td>
+                  <td className="px-4 py-3 text-text-secondary max-w-[200px] truncate">{r.reason}</td>
+                  <td className={`px-4 py-3 font-medium ${priorityCfg.color}`}>{priorityCfg.label}</td>
+                  <td className="px-4 py-3"><CallbackStatusBadge status={r.status} /></td>
+                  <td className="px-4 py-3 text-text-muted text-xs">
+                    <div className="space-y-1">
+                      <span title={new Date(r.requestedAt).toLocaleString()}>
+                        {formatRelativeTime(r.requestedAt)}
+                      </span>
+                      {r.status === 'PENDING' && <ExpiryIndicator requestedAt={r.requestedAt} />}
                     </div>
-                  )}
-                </td>
-              </tr>
+                  </td>
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex gap-1.5">
+                      {r.status === 'PENDING' && (
+                        <>
+                          <button
+                            onClick={() => onApprove?.(r.id)}
+                            className="px-2 py-1 bg-status-success/10 text-status-success rounded text-xs font-medium hover:bg-status-success/20 transition-colors"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => onReject?.(r.id)}
+                            className="px-2 py-1 bg-status-error/10 text-status-error rounded text-xs font-medium hover:bg-status-error/20 transition-colors"
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+                      {r.status === 'APPROVED' && (
+                        <button
+                          onClick={() => onComplete?.(r.id)}
+                          className="px-2 py-1 bg-accent-blue/10 text-accent-blue rounded text-xs font-medium hover:bg-accent-blue/20 transition-colors"
+                        >
+                          Complete
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+                {expandedId === r.id && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-4 bg-bg-surface border-b border-border-primary">
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        {r.details && (
+                          <div className="col-span-2">
+                            <p className="text-text-muted mb-0.5">Details</p>
+                            <p className="text-text-secondary">{r.details}</p>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-text-muted mb-0.5">Agent</p>
+                          <p className="text-text-secondary">{r.assignedAgentName || 'Unassigned'}</p>
+                        </div>
+                        {r.approvedSlotStart && (
+                          <div>
+                            <p className="text-text-muted mb-0.5">Scheduled</p>
+                            <p className="text-text-secondary">{new Date(r.approvedSlotStart).toLocaleString()}</p>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             );
           })}
+          {requests.length === 0 && (
+            <tr>
+              <td colSpan={6} className="px-4 py-8 text-center text-text-muted">
+                No callback requests
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

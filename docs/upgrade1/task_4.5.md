@@ -5,6 +5,7 @@
 > **Estimated Scope**: Medium  
 > **Route**: `/customers`  
 > **File**: `apps/provider/src/app/customers/page.tsx`
+> **Status**: ✅ Complete
 
 ---
 

@@ -4,6 +4,7 @@
 > **Priority**: P1 — Important  
 > **Estimated Scope**: Medium  
 > **File**: `apps/provider/src/components/Skeleton.tsx`
+> **Status**: ✅ Complete
 
 ---
 

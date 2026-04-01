@@ -5,6 +5,7 @@
 > **Estimated Scope**: Large  
 > **Route**: `/notifications`  
 > **File**: `apps/provider/src/app/notifications/page.tsx`
+> **Status**: ✅ Complete
 
 ---
 

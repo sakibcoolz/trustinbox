@@ -39,6 +39,7 @@ export function middleware(request: NextRequest) {
 - [x] Middleware checks for the cookie — if absent, redirect to `/auth/login`
 
 > **Note**: We can't read localStorage in middleware (runs on Edge Runtime). The simplest approach is a lightweight `auth-status` cookie set by the client after login.
+> **Status**: ✅ Complete
 
 ### 2. Redirect Logic
 - [x] Unauthenticated → redirect to `/auth/login?redirect={pathname}`

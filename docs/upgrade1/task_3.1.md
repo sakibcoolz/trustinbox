@@ -5,6 +5,7 @@
 > **Estimated Scope**: Medium  
 > **Route**: `/` (Dashboard)  
 > **File**: `apps/provider/src/app/page.tsx`, `apps/provider/src/components/dashboard/KPICards.tsx`
+> **Status**: ✅ Complete
 
 ---
 

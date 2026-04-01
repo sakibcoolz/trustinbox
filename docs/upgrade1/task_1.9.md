@@ -4,6 +4,7 @@
 > **Priority**: P1 — Important  
 > **Estimated Scope**: Small  
 > **File**: `apps/provider/src/components/EmptyState.tsx`
+> **Status**: ✅ Complete
 
 ---
 

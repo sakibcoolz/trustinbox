@@ -5,6 +5,7 @@
 > **Estimated Scope**: Medium  
 > **Route**: `/conversations/[id]`  
 > **File**: `apps/provider/src/lib/graphql/conversations.ts`
+> **Status**: ✅ Complete
 
 ---
 

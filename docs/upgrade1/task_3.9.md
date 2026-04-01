@@ -5,6 +5,7 @@
 > **Estimated Scope**: Small  
 > **Route**: `/` (Dashboard)  
 > **File**: `apps/provider/src/lib/graphql/dashboard.ts`
+> **Status**: ✅ Complete
 
 ---
 

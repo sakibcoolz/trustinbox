@@ -4,6 +4,7 @@
 > **Priority**: P1 — Important  
 > **Estimated Scope**: Small  
 > **File**: `apps/provider/src/components/sidebar.tsx`
+> **Status**: ✅ Complete
 
 ---
 

@@ -5,6 +5,7 @@
 > **Estimated Scope**: Medium (already partially implemented)  
 > **Route**: `/auth/login`  
 > **File**: `apps/provider/src/app/auth/login/page.tsx`
+> **Status**: ✅ Complete
 
 ---
 
