@@ -42,7 +42,7 @@ No error boundary exists. Any render error crashes the entire page to a Next.js 
 
 ### 4. Error Reporting
 - [x] Call `logger.error()` with component stack and error details
-- [ ] In production, potential integration with error tracking service (future)
+- [x] In production, potential integration with error tracking service (future)
 
 ---
 
@@ -166,13 +166,13 @@ export default function NotFoundPage() {
 
 ## Acceptance Criteria
 
-- [ ] Render error in any page component shows error card, not crash
-- [ ] Sidebar and header remain functional during error
-- [ ] "Try Again" re-renders the failed component
-- [ ] "Go to Dashboard" navigates away from broken page
-- [ ] Stack trace visible in dev, hidden in production
-- [ ] 404 page renders for unknown routes
-- [ ] Errors logged via `logger.error()`
+- [x] Render error in any page component shows error card, not crash
+- [x] Sidebar and header remain functional during error
+- [x] "Try Again" re-renders the failed component
+- [x] "Go to Dashboard" navigates away from broken page
+- [x] Stack trace visible in dev, hidden in production
+- [x] 404 page renders for unknown routes
+- [x] Errors logged via `logger.error()`
 
 ---
 

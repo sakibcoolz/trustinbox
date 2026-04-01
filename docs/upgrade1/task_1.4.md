@@ -28,36 +28,36 @@ Header exists at `apps/provider/src/components/Header.tsx` with:
 ### 1. Page Title
 - [x] Dynamic title from pathname map (already done)
 - [x] Add breadcrumb trail below/beside title for nested routes (e.g., `Bots > Bot Name > Knowledge`)
-- [ ] Support dynamic titles for `[id]` routes by reading from page context or prop
+- [x] Support dynamic titles for `[id]` routes by reading from page context or prop
 
 ### 2. Global Search (Cmd+K)
 - [x] Search button opens a command palette / search modal (centered overlay)
 - [x] Keyboard shortcut: `Cmd+K` (Mac) / `Ctrl+K` (Windows/Linux)
-- [ ] Search across: customers, conversations, notifications, campaigns, bots, documents
-- [ ] Fuzzy search with type-ahead results grouped by category
-- [ ] Navigate to result on selection
-- [ ] Recent searches shown when empty
+- [x] Search across: customers, conversations, notifications, campaigns, bots, documents
+- [x] Fuzzy search with type-ahead results grouped by category
+- [x] Navigate to result on selection
+- [x] Recent searches shown when empty
 
 ### 3. Notification Bell
 - [x] Bell icon with red dot indicator (already done)
-- [ ] Replace static dot with dynamic unread count badge (number)
-- [ ] Click opens notification dropdown panel (not full page):
+- [x] Replace static dot with dynamic unread count badge (number)
+- [x] Click opens notification dropdown panel (not full page):
   - Last 5 notifications with type icon, message, timestamp
   - "View All" link → `/notifications`
   - "Mark all read" action
-- [ ] Real-time badge update via GraphQL subscription (`providerNotificationDelivered`)
-- [ ] Animate badge on new notification (pulse effect)
+- [x] Real-time badge update via GraphQL subscription (`providerNotificationDelivered`)
+- [x] Animate badge on new notification (pulse effect)
 
 ### 4. User Profile Dropdown
 - [x] Avatar circle with initials (already done)
 - [x] Dropdown with user info + role badge + profile/settings links + logout (already done)
-- [ ] Add "Switch Organization" option (links to sidebar SP switcher or opens inline)
-- [ ] Add "Keyboard Shortcuts" option → opens shortcut reference modal
-- [ ] Add online status indicator (green dot on avatar)
+- [x] Add "Switch Organization" option (links to sidebar SP switcher or opens inline)
+- [x] Add "Keyboard Shortcuts" option → opens shortcut reference modal
+- [x] Add online status indicator (green dot on avatar)
 
 ### 5. Org Context Display
-- [ ] Show current org name as small text next to or below page title
-- [ ] Org verification badge (checkmark for verified orgs)
+- [x] Show current org name as small text next to or below page title
+- [x] Org verification badge (checkmark for verified orgs)
 
 ---
 
@@ -126,15 +126,15 @@ function NotificationDropdown({ notifications, onMarkRead, onViewAll }) {
 
 ## Acceptance Criteria
 
-- [ ] Page title updates dynamically for every route including nested dynamic routes
-- [ ] `Cmd+K` / `Ctrl+K` opens search modal from any page
-- [ ] Search modal closes on `Escape` or backdrop click
-- [ ] Notification bell shows unread count (number, not just dot)
-- [ ] Clicking bell opens dropdown with recent notifications
-- [ ] "Mark all read" clears badge count
-- [ ] Profile dropdown shows user info, role, and all action links
-- [ ] Logout clears tokens and redirects to `/auth/login`
-- [ ] Header is fixed height (h-14 / 56px) and doesn't scroll
+- [x] Page title updates dynamically for every route including nested dynamic routes
+- [x] `Cmd+K` / `Ctrl+K` opens search modal from any page
+- [x] Search modal closes on `Escape` or backdrop click
+- [x] Notification bell shows unread count (number, not just dot)
+- [x] Clicking bell opens dropdown with recent notifications
+- [x] "Mark all read" clears badge count
+- [x] Profile dropdown shows user info, role, and all action links
+- [x] Logout clears tokens and redirects to `/auth/login`
+- [x] Header is fixed height (h-14 / 56px) and doesn't scroll
 
 ---
 

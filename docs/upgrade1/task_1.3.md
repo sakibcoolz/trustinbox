@@ -36,11 +36,11 @@ The sidebar already exists at `apps/provider/src/components/sidebar.tsx` with:
 *SP_ADMIN only
 
 - [x] All nav items with correct icons and routes (already implemented)
-- [ ] Add unread/notification badges next to relevant items:
+- [x] Add unread/notification badges next to relevant items:
   - Notifications: unread count badge
   - Conversations: unread conversation count
   - Callbacks: pending count
-- [ ] Add tooltip on icon-only (collapsed) state showing label
+- [x] Add tooltip on icon-only (collapsed) state showing label
 
 ### 2. Collapsible Sidebar
 - [x] Toggle button (hamburger / chevron) at bottom or top of sidebar
@@ -48,15 +48,15 @@ The sidebar already exists at `apps/provider/src/components/sidebar.tsx` with:
 - [x] Expanded state: 256px wide, show icon + label
 - [x] Persist collapse state in `localStorage('sidebarCollapsed')`
 - [x] Smooth CSS transition on width change (200ms ease)
-- [ ] Hover on collapsed sidebar temporarily expands with overlay (not pushing content)
+- [x] Hover on collapsed sidebar temporarily expands with overlay (not pushing content)
 
 ### 3. Service Provider Switcher
 - [x] Dropdown at sidebar top showing current SP name (already done)
 - [x] List of available SPs with check mark on active (already done)
-- [ ] Show SP industry badge/icon next to name
-- [ ] Show verification status indicator (green check for verified, yellow for pending)
-- [ ] Handle case: user has no SPs yet (show "Setup required" with link to settings)
-- [ ] Store switch in localStorage and trigger page reload (already done)
+- [x] Show SP industry badge/icon next to name
+- [x] Show verification status indicator (green check for verified, yellow for pending)
+- [x] Handle case: user has no SPs yet (show "Setup required" with link to settings)
+- [x] Store switch in localStorage and trigger page reload (already done)
 
 ### 4. Active Route Highlighting
 - [x] Active item: `bg-bg-hover text-text-primary font-medium` with blue icon (already done)
@@ -71,10 +71,10 @@ The sidebar already exists at `apps/provider/src/components/sidebar.tsx` with:
 - [x] AGENT: show Dashboard, Customers, Conversations, Callbacks, Documents
 
 ### 6. Responsive Behavior
-- [ ] On screens < 1024px: sidebar becomes off-screen drawer
-- [ ] Toggle via hamburger in Header
-- [ ] Backdrop overlay when drawer is open
-- [ ] Swipe-to-close gesture on mobile
+- [x] On screens < 1024px: sidebar becomes off-screen drawer
+- [x] Toggle via hamburger in Header
+- [x] Backdrop overlay when drawer is open
+- [x] Swipe-to-close gesture on mobile
 
 ---
 
@@ -126,16 +126,16 @@ const ROLE_NAV_ACCESS: Record<Role, string[]> = {
 
 ## Acceptance Criteria
 
-- [ ] Sidebar renders all 3 navigation groups with correct icons and labels
-- [ ] Collapse toggle shrinks sidebar to 64px, showing only icons
-- [ ] Collapse state persists across page refreshes (localStorage)
-- [ ] SP switcher shows current org, allows switching, reloads page
-- [ ] Active route has blue left border accent and blue icon
-- [ ] Admin-only items hidden for non-admin roles
-- [ ] AGENT and ANALYST see restricted menu items
-- [ ] Unread badges appear for Notifications, Conversations, Callbacks
-- [ ] Mobile: sidebar becomes drawer with backdrop
-- [ ] Keyboard: `Ctrl+B` toggles sidebar collapse
+- [x] Sidebar renders all 3 navigation groups with correct icons and labels
+- [x] Collapse toggle shrinks sidebar to 64px, showing only icons
+- [x] Collapse state persists across page refreshes (localStorage)
+- [x] SP switcher shows current org, allows switching, reloads page
+- [x] Active route has blue left border accent and blue icon
+- [x] Admin-only items hidden for non-admin roles
+- [x] AGENT and ANALYST see restricted menu items
+- [x] Unread badges appear for Notifications, Conversations, Callbacks
+- [x] Mobile: sidebar becomes drawer with backdrop
+- [x] Keyboard: `Ctrl+B` toggles sidebar collapse
 
 ---
 

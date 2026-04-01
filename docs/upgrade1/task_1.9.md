@@ -104,11 +104,11 @@ export function EmptyState({ icon: Icon, title, description, action, secondaryAc
 
 ## Acceptance Criteria
 
-- [ ] `<EmptyState icon={Bell} title="..." description="..." />` renders correctly
-- [ ] CTA button navigates or fires callback
-- [ ] Visually centered and looks polished in dark theme
-- [ ] Used by all feature pages when data is empty
-- [ ] Accessible: proper heading hierarchy, button semantics
+- [x] `<EmptyState icon={Bell} title="..." description="..." />` renders correctly
+- [x] CTA button navigates or fires callback
+- [x] Visually centered and looks polished in dark theme
+- [x] Used by all feature pages when data is empty
+- [x] Accessible: proper heading hierarchy, button semantics
 
 ---
 

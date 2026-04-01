@@ -22,31 +22,31 @@ No mobile navigation exists. The sidebar is always 256px fixed and does not adap
 ## Requirements
 
 ### 1. Bottom Tab Bar (< 640px / `sm` breakpoint)
-- [ ] Fixed at bottom of viewport, `h-16` with safe area padding for notched devices
+- [x] Fixed at bottom of viewport, `h-16` with safe area padding for notched devices
 - [x] Show top 5 most-used items as icon tabs: Dashboard, Notifications, Conversations, Callbacks, More
 - [x] Active tab: blue icon + label, inactive: muted icon, no label
 - [x] "More" tab opens full-screen menu overlay with all remaining nav items
-- [ ] Tab bar hides when virtual keyboard is open (detect via `visualViewport` API)
+- [x] Tab bar hides when virtual keyboard is open (detect via `visualViewport` API)
 
 ### 2. Slide-Out Drawer (640px–1024px / `sm` to `lg`)
-- [ ] Hamburger button in Header triggers drawer from left
+- [x] Hamburger button in Header triggers drawer from left
 - [x] Drawer overlays content (not pushing) with dark backdrop
-- [ ] Drawer contains full sidebar content (SP switcher, all nav groups)
+- [x] Drawer contains full sidebar content (SP switcher, all nav groups)
 - [x] Backdrop click or swipe-left closes drawer
-- [ ] Transition: `transform translateX` 250ms ease
-- [ ] Closing transitions smoothly (no jump)
+- [x] Transition: `transform translateX` 250ms ease
+- [x] Closing transitions smoothly (no jump)
 
 ### 3. Responsive Layout Coordination
 - [x] Hide desktop sidebar on `< lg` (1024px)
-- [ ] Show hamburger button in Header on `< lg`
+- [x] Show hamburger button in Header on `< lg`
 - [x] Show bottom tab bar on `< sm` (640px)
-- [ ] Show drawer trigger on `sm` to `lg`
-- [ ] Use `useMediaQuery` hook or Tailwind responsive classes for breakpoint detection
+- [x] Show drawer trigger on `sm` to `lg`
+- [x] Use `useMediaQuery` hook or Tailwind responsive classes for breakpoint detection
 
 ### 4. Gesture Support
-- [ ] Swipe right from left edge opens drawer
-- [ ] Swipe left closes drawer
-- [ ] Use touch event handlers with velocity detection (not passive scroll interference)
+- [x] Swipe right from left edge opens drawer
+- [x] Swipe left closes drawer
+- [x] Use touch event handlers with velocity detection (not passive scroll interference)
 
 ---
 
@@ -124,14 +124,14 @@ export function MobileDrawer({ open, onClose, children }: { open: boolean; onClo
 
 ## Acceptance Criteria
 
-- [ ] Desktop (≥1024px): full sidebar visible, no mobile nav
-- [ ] Tablet (640px–1024px): sidebar hidden, hamburger in header, drawer opens on click
-- [ ] Phone (<640px): sidebar hidden, bottom tab bar visible, "More" tab shows full menu
-- [ ] Drawer has backdrop and closes on backdrop click
-- [ ] Swipe gestures work on touch devices
-- [ ] No layout shift when switching between breakpoints
-- [ ] Bottom tab bar respects safe area insets (iPhone notch)
-- [ ] Tab bar hides when keyboard is visible
+- [x] Desktop (≥1024px): full sidebar visible, no mobile nav
+- [x] Tablet (640px–1024px): sidebar hidden, hamburger in header, drawer opens on click
+- [x] Phone (<640px): sidebar hidden, bottom tab bar visible, "More" tab shows full menu
+- [x] Drawer has backdrop and closes on backdrop click
+- [x] Swipe gestures work on touch devices
+- [x] No layout shift when switching between breakpoints
+- [x] Bottom tab bar respects safe area insets (iPhone notch)
+- [x] Tab bar hides when keyboard is visible
 
 ---
 

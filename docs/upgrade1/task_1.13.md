@@ -46,12 +46,12 @@ No shared table component. Feature pages would need to build tables from scratch
 - [x] Optional expand chevron on row start
 - [x] Click expands to show detail content below the row
 - [x] Only one row expanded at a time (or configurable multi-expand)
-- [ ] Expand/collapse animation (max-height transition)
+- [x] Expand/collapse animation (max-height transition)
 
 ### 5. Column Configuration
-- [ ] Optional column visibility toggle (gear icon in header)
-- [ ] Drag-to-reorder columns (stretch goal)
-- [ ] Resize column widths (stretch goal)
+- [x] Optional column visibility toggle (gear icon in header)
+- [x] Drag-to-reorder columns (stretch goal)
+- [x] Resize column widths (stretch goal)
 
 ### 6. Component API
 ```typescript

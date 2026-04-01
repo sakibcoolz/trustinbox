@@ -115,13 +115,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ## Acceptance Criteria
 
-- [ ] Both Inter and JetBrains Mono fonts load correctly
-- [ ] `font-sans` resolves to Inter, `font-mono` resolves to JetBrains Mono
-- [ ] Dark theme applied globally — no white flash on initial load
-- [ ] Browser chrome respects `themeColor` on mobile
-- [ ] ApolloProvider wraps the entire app tree
-- [ ] Page renders without hydration errors
-- [ ] `suppressHydrationWarning` prevents localStorage-driven mismatches
+- [x] Both Inter and JetBrains Mono fonts load correctly
+- [x] `font-sans` resolves to Inter, `font-mono` resolves to JetBrains Mono
+- [x] Dark theme applied globally — no white flash on initial load
+- [x] Browser chrome respects `themeColor` on mobile
+- [x] ApolloProvider wraps the entire app tree
+- [x] Page renders without hydration errors
+- [x] `suppressHydrationWarning` prevents localStorage-driven mismatches
 
 ---
 

@@ -131,13 +131,13 @@ export function SkeletonChart() {
 
 ## Acceptance Criteria
 
-- [ ] Base `<Skeleton>` renders with shimmer animation
-- [ ] `<SkeletonKPI>` matches KPICard layout dimensions
-- [ ] `<SkeletonTable rows={10} cols={6}>` matches real table layout
-- [ ] `<SkeletonChart>` matches chart container dimensions
-- [ ] Shimmer animation is smooth, doesn't cause layout shifts
-- [ ] All skeletons use dark theme colors (no white flash)
-- [ ] Accessible: `aria-hidden="true"` on skeleton elements, `aria-busy="true"` on parent
+- [x] Base `<Skeleton>` renders with shimmer animation
+- [x] `<SkeletonKPI>` matches KPICard layout dimensions
+- [x] `<SkeletonTable rows={10} cols={6}>` matches real table layout
+- [x] `<SkeletonChart>` matches chart container dimensions
+- [x] Shimmer animation is smooth, doesn't cause layout shifts
+- [x] All skeletons use dark theme colors (no white flash)
+- [x] Accessible: `aria-hidden="true"` on skeleton elements, `aria-busy="true"` on parent
 
 ---
 

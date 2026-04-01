@@ -119,12 +119,12 @@ colors: {
 
 ## Acceptance Criteria
 
-- [ ] All defined colors are usable as Tailwind utility classes
-- [ ] No hardcoded hex colors in any component (audit)
-- [ ] Selection highlighting uses blue tint
-- [ ] Focus-visible ring appears on keyboard navigation
-- [ ] Form inputs show muted placeholder text
-- [ ] Dark scrollbar styling works in Chrome, Firefox, Safari
+- [x] All defined colors are usable as Tailwind utility classes
+- [x] No hardcoded hex colors in any component (audit)
+- [x] Selection highlighting uses blue tint
+- [x] Focus-visible ring appears on keyboard navigation
+- [x] Form inputs show muted placeholder text
+- [x] Dark scrollbar styling works in Chrome, Firefox, Safari
 
 ---
 

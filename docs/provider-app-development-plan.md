@@ -36,31 +36,31 @@
 
 ### Layout & Navigation
 
-- [ ] **1.1** Root layout (`layout.tsx`) — dark theme, Inter/JetBrains Mono fonts, global CSS
-- [ ] **1.2** `LayoutShell` component — auth guard wrapper, redirect to `/auth/login` if unauthenticated
-- [ ] **1.3** Sidebar component — collapsible, role-aware navigation with icon + label groups
+- [x] **1.1** Root layout (`layout.tsx`) — dark theme, Inter/JetBrains Mono fonts, global CSS
+- [x] **1.2** `LayoutShell` component — auth guard wrapper, redirect to `/auth/login` if unauthenticated
+- [x] **1.3** Sidebar component — collapsible, role-aware navigation with icon + label groups
   - Main: Dashboard, Customers, Notifications, Conversations, Callbacks, Documents, Campaigns, Bots
   - Platform: Analytics, Webhooks (SP_ADMIN), Compliance, Integrations (SP_ADMIN), Settings
   - Active route highlighting with `border-active` accent
-- [ ] **1.4** Header component — org switcher dropdown, search bar, notification bell with badge, user avatar menu
-- [ ] **1.5** Mobile responsive nav — bottom tab bar for mobile breakpoints, drawer for tablet
-- [ ] **1.6** Breadcrumb component — auto-generated from route segments
-- [ ] **1.7** Toast/notification system — success, error, warning, info stacked toasts with auto-dismiss
-- [ ] **1.8** Loading skeleton components — shimmer cards, table rows, chart placeholders
-- [ ] **1.9** Empty state components — illustration + CTA for each feature area
-- [ ] **1.10** Error boundary — global error page with retry, per-section error cards
+- [x] **1.4** Header component — org switcher dropdown, search bar, notification bell with badge, user avatar menu
+- [x] **1.5** Mobile responsive nav — bottom tab bar for mobile breakpoints, drawer for tablet
+- [x] **1.6** Breadcrumb component — auto-generated from route segments
+- [x] **1.7** Toast/notification system — success, error, warning, info stacked toasts with auto-dismiss
+- [x] **1.8** Loading skeleton components — shimmer cards, table rows, chart placeholders
+- [x] **1.9** Empty state components — illustration + CTA for each feature area
+- [x] **1.10** Error boundary — global error page with retry, per-section error cards
 
 ### Design System Tokens
 
-- [ ] **1.11** Color palette applied — bg-primary (#0b0d0f), bg-surface (#10141a), bg-elevated (#1c2028), accent-blue (#3b82f6)
-- [ ] **1.12** Card component — `bg-surface` with `border-primary` rounded-lg with hover elevation
-- [ ] **1.13** Table component — sortable headers, row hover, pagination, bulk select
-- [ ] **1.14** Filter chip bar — combinable filter pills with clear-all
-- [ ] **1.15** Drawer component — right-slide panel for detail views
-- [ ] **1.16** Modal/Dialog component — centered overlay with backdrop blur
-- [ ] **1.17** Tab component — underline-style tabs with lazy-loaded content
-- [ ] **1.18** Badge/Status pill — color-coded status indicators (delivered, pending, failed, blocked)
-- [ ] **1.19** Timeline component — vertical event timeline for audit/history
+- [x] **1.11** Color palette applied — bg-primary (#0b0d0f), bg-surface (#10141a), bg-elevated (#1c2028), accent-blue (#3b82f6)
+- [x] **1.12** Card component — `bg-surface` with `border-primary` rounded-lg with hover elevation
+- [x] **1.13** Table component — sortable headers, row hover, pagination, bulk select
+- [x] **1.14** Filter chip bar — combinable filter pills with clear-all
+- [x] **1.15** Drawer component — right-slide panel for detail views
+- [x] **1.16** Modal/Dialog component — centered overlay with backdrop blur
+- [x] **1.17** Tab component — underline-style tabs with lazy-loaded content
+- [x] **1.18** Badge/Status pill — color-coded status indicators (delivered, pending, failed, blocked)
+- [x] **1.19** Timeline component — vertical event timeline for audit/history
 
 ---
 

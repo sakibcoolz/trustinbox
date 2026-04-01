@@ -76,23 +76,23 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
 ### 2. Loading State
 - [x] Full-screen centered spinner while auth state resolves (already done)
 - [x] Add TrustInbox logo above spinner for brand recognition during load
-- [ ] Minimum 200ms display to prevent flash-of-loading for fast connections
-- [ ] Use skeleton shimmer (task 1.8) for authenticated layout instead of plain spinner
+- [x] Minimum 200ms display to prevent flash-of-loading for fast connections
+- [x] Use skeleton shimmer (task 1.8) for authenticated layout instead of plain spinner
 
 ### 3. Auth Guard
 - [x] Redirect to `/auth/login` if no user after loading (handled by `useRequireAuth`) (already done)
-- [ ] Preserve attempted URL in query param `?redirect=/attempted-path` for post-login redirect
-- [ ] Handle token expiry mid-session — show toast + redirect instead of blank page
+- [x] Preserve attempted URL in query param `?redirect=/attempted-path` for post-login redirect
+- [x] Handle token expiry mid-session — show toast + redirect instead of blank page
 
 ### 4. Layout Structure
 - [x] Flex row: Sidebar (fixed 256px) + main content column (already done)
 - [x] Main column: Header (h-14 fixed) + scrollable `<main>` (already done)
-- [ ] Add keyboard shortcut overlay (Cmd+K for search) at this level
-- [ ] Support sidebar collapse state (via localStorage persisted preference)
+- [x] Add keyboard shortcut overlay (Cmd+K for search) at this level
+- [x] Support sidebar collapse state (via localStorage persisted preference)
 
 ### 5. Error Handling
 - [x] Wrap `<main>` content in a React Error Boundary (task 1.10)
-- [ ] Catch render errors and show in-place error card without breaking sidebar/header
+- [x] Catch render errors and show in-place error card without breaking sidebar/header
 
 ---
 
@@ -166,13 +166,13 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
 
 ## Acceptance Criteria
 
-- [ ] Auth pages render without sidebar/header
-- [ ] Authenticated pages render with sidebar + header + scrollable main
-- [ ] Loading spinner shows with brand logo during auth resolution
-- [ ] Redirect to login preserves original URL as `?redirect=` param
-- [ ] Render errors in page content caught by error boundary, don't break shell
-- [ ] No flash of unauthenticated content before redirect
-- [ ] Height is exactly viewport — no overflow on body, scrolling only in `<main>`
+- [x] Auth pages render without sidebar/header
+- [x] Authenticated pages render with sidebar + header + scrollable main
+- [x] Loading spinner shows with brand logo during auth resolution
+- [x] Redirect to login preserves original URL as `?redirect=` param
+- [x] Render errors in page content caught by error boundary, don't break shell
+- [x] No flash of unauthenticated content before redirect
+- [x] Height is exactly viewport — no overflow on body, scrolling only in `<main>`
 
 ---
 

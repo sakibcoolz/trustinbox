@@ -133,15 +133,15 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
 
 ## Acceptance Criteria
 
-- [ ] `useToast().success('Saved!')` shows green toast top-right
-- [ ] `useToast().error('Failed', 'Could not send notification')` shows red toast with description
-- [ ] Toasts stack vertically, newest on top
-- [ ] Auto-dismiss works per type, hover pauses timer
-- [ ] Close button dismisses immediately
-- [ ] Action button fires callback
-- [ ] Max 5 visible at once
-- [ ] Animations are smooth (no layout shift)
-- [ ] Accessible: `role="alert"` and `aria-live="polite"` on toast container
+- [x] `useToast().success('Saved!')` shows green toast top-right
+- [x] `useToast().error('Failed', 'Could not send notification')` shows red toast with description
+- [x] Toasts stack vertically, newest on top
+- [x] Auto-dismiss works per type, hover pauses timer
+- [x] Close button dismisses immediately
+- [x] Action button fires callback
+- [x] Max 5 visible at once
+- [x] Animations are smooth (no layout shift)
+- [x] Accessible: `role="alert"` and `aria-live="polite"` on toast container
 
 ---
 

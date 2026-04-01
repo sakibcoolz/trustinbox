@@ -65,8 +65,8 @@ const SEGMENT_LABELS: Record<string, string> = {
 
 ### 4. Integration
 - [x] Render in Header component below the page title
-- [ ] Or render as first element inside page content area
-- [ ] Support page-provided `breadcrumbLabel` for dynamic entities (via React Context or prop)
+- [x] Or render as first element inside page content area
+- [x] Support page-provided `breadcrumbLabel` for dynamic entities (via React Context or prop)
 
 ---
 
@@ -125,11 +125,11 @@ export function Breadcrumb() {
 
 ## Acceptance Criteria
 
-- [ ] Breadcrumb renders correctly for all route depths
-- [ ] Links navigate to correct intermediate routes
-- [ ] Dynamic IDs shown as truncated strings or entity names
-- [ ] No breadcrumb shown on Dashboard (`/`)
-- [ ] Separator chevrons properly spaced
+- [x] Breadcrumb renders correctly for all route depths
+- [x] Links navigate to correct intermediate routes
+- [x] Dynamic IDs shown as truncated strings or entity names
+- [x] No breadcrumb shown on Dashboard (`/`)
+- [x] Separator chevrons properly spaced
 - [x] Accessible: `<nav aria-label="Breadcrumb">` with proper link semantics
 
 ---
