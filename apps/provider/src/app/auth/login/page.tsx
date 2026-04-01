@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMutation, useLazyQuery } from '@apollo/client';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, AlertTriangle, Loader2 } from 'lucide-react';
-import { LOGIN_MUTATION, MY_SERVICE_PROVIDERS_QUERY, FORGOT_PASSWORD_MUTATION } from '@/lib/graphql/auth';
+import { auth, profile } from '@/lib/api';
 import { tokenManager } from '@/lib/token';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/useToast';
@@ -34,10 +33,9 @@ export default function LoginPage() {
   const [spList, setSPList] = useState<ServiceProviderMembership[]>([]);
   const [showSPPicker, setShowSPPicker] = useState(false);
 
-  // GraphQL mutations
-  const [loginMutation, { loading }] = useMutation(LOGIN_MUTATION);
-  const [fetchSPs] = useLazyQuery(MY_SERVICE_PROVIDERS_QUERY);
-  const [forgotPasswordMutation, { loading: forgotLoading }] = useMutation(FORGOT_PASSWORD_MUTATION);
+  // Loading states
+  const [loading, setLoading] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   // Auto-focus email input on mount
   useEffect(() => {
@@ -71,17 +69,16 @@ export default function LoginPage() {
     e.preventDefault();
     if (!validateForm()) return;
 
+    setLoading(true);
     try {
-      const { data } = await loginMutation({
-        variables: { input: { email, password } },
-      });
+      const data = await auth.login(email, password);
 
-      if (!data?.login) {
+      if (!data?.accessToken) {
         toast.error('Login failed', 'Invalid response from server');
         return;
       }
 
-      const { accessToken, refreshToken } = data.login;
+      const { accessToken, refreshToken } = data;
       login(accessToken, refreshToken);
 
       // Remember email
@@ -93,8 +90,14 @@ export default function LoginPage() {
 
       // Fetch service providers
       try {
-        const { data: spData } = await fetchSPs();
-        const sps: ServiceProviderMembership[] = spData?.myServiceProviders || [];
+        const spData = await profile.serviceProviders();
+        const sps: ServiceProviderMembership[] = (spData?.serviceProviders || []).map((sp) => ({
+          id: sp.id,
+          name: sp.name,
+          industry: sp.industry,
+          role: sp.role,
+          status: sp.verificationStatus,
+        } as ServiceProviderMembership));
 
         if (sps.length > 1) {
           setSPList(sps);
@@ -113,17 +116,22 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Login failed';
       toast.error('Login failed', message);
+    } finally {
+      setLoading(false);
     }
   }
 
   async function handleForgotPassword(e: React.FormEvent) {
     e.preventDefault();
+    setForgotLoading(true);
     try {
-      await forgotPasswordMutation({ variables: { email: forgotEmail } });
+      await auth.forgotPassword(forgotEmail);
       setForgotSent(true);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to send reset email';
       toast.error('Error', message);
+    } finally {
+      setForgotLoading(false);
     }
   }
 

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Breadcrumb } from '@/components/Breadcrumb';
+import ConnectionStatus from '@/components/ConnectionStatus';
 import { cn } from '@/lib/utils';
 import { ROLE_LABELS, type Role } from '@/lib/roles';
 
@@ -112,6 +113,9 @@ export default function Header() {
             <Bell size={16} />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-status-error rounded-full"></span>
           </button>
+
+          {/* Connection status indicator */}
+          <ConnectionStatus />
 
           {/* Divider */}
           <div className="w-px h-6 bg-border-primary mx-1"></div>

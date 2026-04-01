@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 // --- Types ---
 interface ModalProps {
@@ -38,7 +39,7 @@ const SIZES = {
 
 // --- Modal ---
 export function Modal({ open, onClose, title, description, size = 'md', closeOnBackdrop = true, children, footer }: ModalProps) {
-  const modalRef = useRef<HTMLDivElement>(null);
+  const modalRef = useFocusTrap<HTMLDivElement>(open);
 
   useEffect(() => {
     if (!open) return;
@@ -49,12 +50,6 @@ export function Modal({ open, onClose, title, description, size = 'md', closeOnB
 
     document.addEventListener('keydown', handleEsc);
     document.body.style.overflow = 'hidden';
-
-    // Focus trap
-    const focusable = modalRef.current?.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    if (focusable?.length) focusable[0].focus();
 
     return () => {
       document.removeEventListener('keydown', handleEsc);

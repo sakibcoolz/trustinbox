@@ -1,9 +1,8 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useQuery, useMutation, useApolloClient } from '@apollo/client';
 import { useRouter } from 'next/navigation';
-import { ME_QUERY, LOGOUT_MUTATION } from '@/lib/graphql/auth';
+import { auth as authApi, profile as profileApi } from '@/lib/api';
 import { tokenManager } from '@/lib/token';
 import type { MeUser, ServiceProviderMembership, ServiceProviderDetail } from '@/lib/graphql/types';
 
@@ -29,78 +28,125 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const client = useApolloClient();
   const [loggedIn, setLoggedIn] = useState(() => tokenManager.isAuthenticated());
+  const [user, setUser] = useState<MeUser | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data, loading, error, refetch } = useQuery(ME_QUERY, {
-    skip: !loggedIn,
-    errorPolicy: 'all',
-    onError: (err) => {
-      const isAuthError = err.graphQLErrors?.some(
-        (e) => e.extensions?.code === 'UNAUTHENTICATED',
-      );
-      if (isAuthError) {
+  const fetchMe = useCallback(async () => {
+    if (!tokenManager.isAuthenticated()) return;
+    setLoading(true);
+    try {
+      // Fetch user profile and service providers in parallel
+      const [meData, spData] = await Promise.all([
+        authApi.me(),
+        profileApi.serviceProviders().catch(() => ({ serviceProviders: [] })),
+      ]);
+
+      const memberships: ServiceProviderMembership[] = (spData.serviceProviders || []).map((sp) => ({
+        id: sp.id,
+        name: sp.name,
+        industry: sp.industry,
+        role: sp.role,
+        status: sp.verificationStatus ?? 'ACTIVE',
+      } as ServiceProviderMembership));
+
+      // Determine active SP
+      const activeSpId = tokenManager.getActiveSpId();
+      const activeMembership = activeSpId
+        ? memberships.find((sp) => sp.id === activeSpId)
+        : memberships[0];
+
+      // Auto-set active SP if not set
+      if (!activeSpId && activeMembership) {
+        tokenManager.setActiveSpId(activeMembership.id);
+      }
+
+      const activeSP: ServiceProviderDetail | null = activeMembership
+        ? {
+            id: activeMembership.id,
+            name: activeMembership.name,
+            industry: activeMembership.industry,
+            status: activeMembership.status,
+            memberCount: 0,
+            createdAt: '',
+          }
+        : null;
+
+      // Use SP role (e.g. SP_ADMIN) instead of base user role (CUSTOMER)
+      const role = activeMembership?.role ?? 'CUSTOMER';
+
+      setUser({
+        id: meData.id,
+        email: meData.email,
+        fullName: meData.fullName,
+        username: meData.username,
+        role,
+        createdAt: '',
+        serviceProviders: memberships,
+        activeServiceProvider: activeSP,
+      } as MeUser);
+      setError(null);
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('401')) {
         tokenManager.clearTokens();
         setLoggedIn(false);
       }
-    },
-  });
+      setError(err instanceof Error ? err.message : 'Failed to fetch user');
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const [logoutMutation] = useMutation(LOGOUT_MUTATION, { errorPolicy: 'ignore' });
-
-  const user: MeUser | null = data?.me ?? null;
-
-  // Schedule token refresh on mount
+  // Fetch user on mount and when loggedIn changes
   useEffect(() => {
-    if (loggedIn) tokenManager.scheduleRefresh();
-  }, [loggedIn]);
+    if (loggedIn) {
+      fetchMe();
+      tokenManager.scheduleRefresh();
+    } else {
+      setUser(null);
+    }
+  }, [loggedIn, fetchMe]);
 
   const login = useCallback(
     (accessToken: string, refreshToken: string) => {
       tokenManager.setTokens(accessToken, refreshToken);
       setLoggedIn(true);
-      refetch();
+      fetchMe();
     },
-    [refetch],
+    [fetchMe],
   );
 
   const logout = useCallback(async () => {
-    try { await logoutMutation(); } catch { /* ignore */ }
     tokenManager.clearTokens();
     setLoggedIn(false);
-    await client.clearStore();
+    setUser(null);
     router.push('/auth/login');
-  }, [logoutMutation, client, router]);
+  }, [router]);
 
   const refreshSession = useCallback(async () => {
     const success = await tokenManager.refresh();
     if (success) {
-      refetch();
+      fetchMe();
     } else {
       logout();
     }
-  }, [refetch, logout]);
+  }, [fetchMe, logout]);
 
   const switchServiceProvider = useCallback(
     (spId: string) => {
       tokenManager.setActiveSpId(spId);
-      // Refetch ME query which respects active SP context
-      refetch();
-      // Clear cached data from previous SP
-      client.cache.evict({ fieldName: 'notifications' });
-      client.cache.evict({ fieldName: 'conversations' });
-      client.cache.evict({ fieldName: 'callbackRequests' });
-      client.cache.evict({ fieldName: 'campaigns' });
-      client.cache.gc();
+      fetchMe();
     },
-    [refetch, client],
+    [fetchMe],
   );
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       loading: loggedIn ? loading : false,
-      error: error?.message ?? null,
+      error: error ?? null,
       isAuthenticated: !!user,
       role: user?.role ?? null,
       activeServiceProvider: user?.activeServiceProvider ?? null,

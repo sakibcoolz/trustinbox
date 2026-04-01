@@ -22,8 +22,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow static assets and API proxy
-  if (pathname.startsWith('/_next') || pathname.startsWith('/api') || pathname.startsWith('/favicon')) {
+  // Allow static assets, API proxy, and GraphQL proxy
+  if (pathname.startsWith('/_next') || pathname.startsWith('/api') || pathname.startsWith('/favicon') || pathname === '/graphql') {
     return NextResponse.next();
   }
 

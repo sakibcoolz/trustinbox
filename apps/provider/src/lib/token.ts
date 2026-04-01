@@ -124,27 +124,16 @@ export const tokenManager = {
       if (!refreshToken) return false;
 
       try {
-        const response = await fetch(
-          process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:4000/graphql',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              query: `mutation RefreshToken($refreshToken: String!) {
-                refreshToken(refreshToken: $refreshToken) {
-                  accessToken
-                  refreshToken
-                }
-              }`,
-              variables: { refreshToken },
-            }),
-          },
-        );
+        const response = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
 
         const result = await response.json();
 
-        if (result.data?.refreshToken) {
-          const { accessToken, refreshToken: newRefreshToken } = result.data.refreshToken;
+        if (result.accessToken) {
+          const { accessToken, refreshToken: newRefreshToken } = result;
           tokenManager.setTokens(accessToken, newRefreshToken);
           return true;
         }

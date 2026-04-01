@@ -4,6 +4,7 @@ import { LayoutShell } from '@/components/LayoutShell';
 import { ApolloWrapper } from '@/lib/apollo-provider';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/components/Toast';
+import { LiveRegionProvider } from '@/components/LiveRegion';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
@@ -32,7 +33,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ApolloWrapper>
           <AuthProvider>
             <ToastProvider>
-              <LayoutShell>{children}</LayoutShell>
+              <LiveRegionProvider>
+                <LayoutShell>{children}</LayoutShell>
+              </LiveRegionProvider>
             </ToastProvider>
           </AuthProvider>
         </ApolloWrapper>

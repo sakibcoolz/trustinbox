@@ -6,6 +6,10 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/graphql',
+        destination: `${GATEWAY_URL}/graphql`,
+      },
+      {
         source: '/api/:path*',
         destination: `${GATEWAY_URL}/api/:path*`,
       },

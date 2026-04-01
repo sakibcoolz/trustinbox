@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 // --- Types ---
 interface DrawerProps {
@@ -25,7 +26,7 @@ const SIZES = {
 
 // --- Component ---
 export function Drawer({ open, onClose, title, size = 'md', children, footer }: DrawerProps) {
-  const drawerRef = useRef<HTMLDivElement>(null);
+  const drawerRef = useFocusTrap<HTMLDivElement>(open);
 
   useEffect(() => {
     if (!open) return;
@@ -36,12 +37,6 @@ export function Drawer({ open, onClose, title, size = 'md', children, footer }: 
 
     document.addEventListener('keydown', handleEsc);
     document.body.style.overflow = 'hidden';
-
-    // Focus the drawer
-    const focusable = drawerRef.current?.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    if (focusable?.length) focusable[0].focus();
 
     return () => {
       document.removeEventListener('keydown', handleEsc);

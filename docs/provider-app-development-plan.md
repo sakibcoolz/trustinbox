@@ -546,23 +546,23 @@
 - [x] **17.10** Keyboard navigation — all interactive elements focusable, tab order logical
 - [x] **17.11** ARIA labels — buttons, modals, drawers, alerts properly labeled
 - [x] **17.12** Color contrast — WCAG AA compliance on all text/bg combinations
-- [ ] **17.13** Screen reader support — live regions for real-time updates (new messages, toasts)
-- [ ] **17.14** Focus trap — modals and drawers trap focus correctly
+- [x] **17.13** Screen reader support — live regions for real-time updates (new messages, toasts)
+- [x] **17.14** Focus trap — modals and drawers trap focus correctly
 
 ### Performance
 
-- [ ] **17.15** Route-based code splitting — Next.js dynamic imports for heavy components (Recharts, editors)
-- [ ] **17.16** Virtual scrolling — for long lists (conversations, notifications, customers) using `react-window` or similar
-- [ ] **17.17** Image optimization — Next.js `<Image>` for avatars, logos, document thumbnails
-- [ ] **17.18** Debounced search — 300ms debounce on all search inputs
-- [ ] **17.19** Memoization — `useMemo`/`useCallback` for expensive computations and callback props
+- [x] **17.15** Route-based code splitting — Next.js dynamic imports for heavy components (Recharts, editors)
+- [x] **17.16** Virtual scrolling — for long lists (conversations, notifications, customers) using `react-window` or similar
+- [x] **17.17** Image optimization — Next.js `<Image>` for avatars, logos, document thumbnails
+- [x] **17.18** Debounced search — 300ms debounce on all search inputs
+- [x] **17.19** Memoization — `useMemo`/`useCallback` for expensive computations and callback props
 
 ### Logging & Observability
 
-- [ ] **17.20** Client-side logger (`lib/logger.ts`) — structured logs with user context, org context
-- [ ] **17.21** Error tracking — capture and report unhandled exceptions
-- [ ] **17.22** Performance monitoring — track page load times, query latencies
-- [ ] **17.23** User action tracking — anonymized event tracking for UX analytics (clicks, navigation patterns)
+- [x] **17.20** Client-side logger (`lib/logger.ts`) — structured logs with user context, org context
+- [x] **17.21** Error tracking — capture and report unhandled exceptions
+- [x] **17.22** Performance monitoring — track page load times, query latencies
+- [x] **17.23** User action tracking — anonymized event tracking for UX analytics (clicks, navigation patterns)
 
 ---
 
@@ -570,35 +570,35 @@
 
 ### Unit Tests
 
-- [ ] **18.1** Hook tests — `useAuth`, `usePermission` with mock providers
-- [ ] **18.2** Component tests — render tests for all major components:
+- [x] **18.1** Hook tests — `useAuth`, `usePermission` with mock providers
+- [x] **18.2** Component tests — render tests for all major components:
   - DashboardSummary, CallbackRequestTable, NotificationComposer
   - CampaignBuilder (each wizard step), BotStudioWizard (each wizard step)
   - WebhookManager, TeamManager, DocumentManager, APIKeyManager
   - ConversationPanel, CustomerLookup, ComplianceViewer
-- [ ] **18.3** Utility tests — role permission checks, date formatting, policy status mapping
+- [x] **18.3** Utility tests — role permission checks, date formatting, policy status mapping
 
 ### Integration Tests
 
-- [ ] **18.4** Apollo Mock Provider tests — full page renders with mocked GraphQL responses
-- [ ] **18.5** Auth flow integration — login → dashboard → sidebar navigation → logout
-- [ ] **18.6** Campaign creation flow — wizard step-by-step with policy preview
-- [ ] **18.7** Bot creation flow — wizard step-by-step with test panel
-- [ ] **18.8** Conversation flow — open conversation → send message → receive reply
-- [ ] **18.9** Webhook lifecycle — create → test → view deliveries → retry → delete
+- [x] **18.4** Apollo Mock Provider tests — full page renders with mocked GraphQL responses
+- [x] **18.5** Auth flow integration — login → dashboard → sidebar navigation → logout
+- [x] **18.6** Campaign creation flow — wizard step-by-step with policy preview
+- [x] **18.7** Bot creation flow — wizard step-by-step with test panel
+- [x] **18.8** Conversation flow — open conversation → send message → receive reply
+- [x] **18.9** Webhook lifecycle — create → test → view deliveries → retry → delete
 
 ### E2E Tests
 
-- [ ] **18.10** Playwright or Cypress setup for provider app
-- [ ] **18.11** Critical paths:
+- [x] **18.10** Playwright or Cypress setup for provider app
+- [x] **18.11** Critical paths:
   - Login → Dashboard loads with data
   - Navigate to Notifications → Compose → Send → Verify in list
   - Navigate to Campaigns → Create campaign → Launch → See progress
   - Navigate to Callbacks → View requests → Approve → Complete
   - Navigate to Bots → Create bot → Configure → Test → Activate
   - Navigate to Settings → Invite member → Verify in list
-- [ ] **18.12** Cross-browser testing — Chrome, Firefox, Safari, Edge
-- [ ] **18.13** Mobile viewport testing — responsive layout verification
+- [x] **18.12** Cross-browser testing — Chrome, Firefox, Safari, Edge
+- [x] **18.13** Mobile viewport testing — responsive layout verification
 
 ---
 
