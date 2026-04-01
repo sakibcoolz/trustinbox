@@ -308,55 +308,55 @@
 
 ### Route: `/bots`
 
-- [ ] **10.1** Bot list — cards showing bot name, avatar, status (Active/Inactive/Draft), model, last active, total interactions
-- [ ] **10.2** Create bot button → navigates to `/bots/new`
-- [ ] **10.3** Quick toggle — activate/deactivate bot directly from list
-- [ ] **10.4** Search/filter — by status, model type
+- [x] **10.1** Bot list — cards showing bot name, avatar, status (Active/Inactive/Draft), model, last active, total interactions
+- [x] **10.2** Create bot button → navigates to `/bots/new`
+- [x] **10.3** Quick toggle — activate/deactivate bot directly from list
+- [x] **10.4** Search/filter — by status, model type
 
 ### Route: `/bots/new`
 
-- [ ] **10.5** BotStudioWizard component — multi-step:
+- [x] **10.5** BotStudioWizard component — multi-step:
   - **Step 1 — Basics**: Name, description, avatar upload, category
   - **Step 2 — Model**: Select AI model (GPT-4, Claude, etc.), temperature, max tokens
   - **Step 3 — Prompt**: System prompt editor with syntax highlighting, test prompt panel
   - **Step 4 — Permissions**: What actions can the bot perform (send notifications, schedule callbacks, share documents)
   - **Step 5 — Deploy**: Activate/schedule, assign to conversation routing rules
-- [ ] **10.6** Test panel — send test message and see bot response in real-time during prompt editing
+- [x] **10.6** Test panel — send test message and see bot response in real-time during prompt editing
 
 ### Route: `/bots/[id]`
 
-- [ ] **10.7** BotConfigEditor component — edit all bot settings (same fields as wizard, single-page form)
-- [ ] **10.8** Activity log — recent bot interactions with conversation links
-- [ ] **10.9** Status toggle — activate/deactivate with confirmation
-- [ ] **10.10** Delete bot — confirmation modal with warning about active conversations
+- [x] **10.7** BotConfigEditor component — edit all bot settings (same fields as wizard, single-page form)
+- [x] **10.8** Activity log — recent bot interactions with conversation links
+- [x] **10.9** Status toggle — activate/deactivate with confirmation
+- [x] **10.10** Delete bot — confirmation modal with warning about active conversations
 
 ### Route: `/bots/[id]/knowledge`
 
-- [ ] **10.11** Knowledge base editor — list of knowledge sources (documents, URLs, text snippets)
-- [ ] **10.12** Add knowledge source — upload document, paste URL, or write raw text
-- [ ] **10.13** Source status — indexed, pending, failed with retry
-- [ ] **10.14** Remove knowledge source — with confirmation
+- [x] **10.11** Knowledge base editor — list of knowledge sources (documents, URLs, text snippets)
+- [x] **10.12** Add knowledge source — upload document, paste URL, or write raw text
+- [x] **10.13** Source status — indexed, pending, failed with retry
+- [x] **10.14** Remove knowledge source — with confirmation
 
 ### Route: `/bots/[id]/analytics`
 
-- [ ] **10.15** Bot analytics dashboard:
+- [x] **10.15** Bot analytics dashboard:
   - Total interactions (line chart over time)
   - Average response time
   - User satisfaction rating (if tracked)
   - Handoff rate (bot → human agent)
   - Top action types triggered
   - Policy block rate
-- [ ] **10.16** Action audit log — table of all actions bot performed with timestamps, results, policy decisions
+- [x] **10.16** Action audit log — table of all actions bot performed with timestamps, results, policy decisions
 
 ### Connected Backend
 
-- [ ] **10.17** GraphQL mutations: `createBot`, `updateBot`, `deleteBot`
-- [ ] **10.18** GraphQL mutation: `updateBotConfiguration(botId, config)`
-- [ ] **10.19** GraphQL mutation: `setBotPermission(botId, action, allowed)`
-- [ ] **10.20** GraphQL mutations: `addKnowledgeSource`, `removeKnowledgeSource`
-- [ ] **10.21** GraphQL mutation: `executeBotAction(botId, action, params)` → policy-gated
-- [ ] **10.22** GraphQL queries: `bot(id)`, `bots(spId)`, `botConfiguration`, `botPermissions`, `botKnowledgeSources`, `botActionLogs`, `botAnalytics`
-- [ ] **10.23** GraphQL subscription: `providerBotActionExecuted(spId)` → real-time action feed
+- [x] **10.17** GraphQL mutations: `createBot`, `updateBot`, `deleteBot`
+- [x] **10.18** GraphQL mutation: `updateBotConfiguration(botId, config)`
+- [x] **10.19** GraphQL mutation: `setBotPermission(botId, action, allowed)`
+- [x] **10.20** GraphQL mutations: `addKnowledgeSource`, `removeKnowledgeSource`
+- [x] **10.21** GraphQL mutation: `executeBotAction(botId, action, params)` → policy-gated
+- [x] **10.22** GraphQL queries: `bot(id)`, `bots(spId)`, `botConfiguration`, `botPermissions`, `botKnowledgeSources`, `botActionLogs`, `botAnalytics`
+- [x] **10.23** GraphQL subscription: `providerBotActionExecuted(spId)` → real-time action feed
 
 ---
 
@@ -364,37 +364,37 @@
 
 ### Route: `/analytics`
 
-- [ ] **11.1** Date range selector — today, 7d, 30d, 90d, custom with calendar picker
-- [ ] **11.2** Notification analytics panel:
+- [x] **11.1** Date range selector — today, 7d, 30d, 90d, custom with calendar picker
+- [x] **11.2** Notification analytics panel:
   - Total sent, delivered, failed, blocked (KPI cards)
   - Delivery rate over time (line chart)
   - Breakdown by category (bar chart)
   - Breakdown by channel (donut chart)
-- [ ] **11.3** Callback analytics panel:
+- [x] **11.3** Callback analytics panel:
   - Total requests, approved, rejected, expired, completed
   - Average response time
   - Completion rate trend
-- [ ] **11.4** Campaign analytics panel:
+- [x] **11.4** Campaign analytics panel:
   - Active campaigns count
   - Total recipients reached
   - Delivery success rate by campaign
   - Best performing campaign highlight card
-- [ ] **11.5** Bot analytics panel:
+- [x] **11.5** Bot analytics panel:
   - Total interactions
   - Handoff rate
   - Average response time
   - Top-performing bots ranking
-- [ ] **11.6** Policy analytics panel:
+- [x] **11.6** Policy analytics panel:
   - Allowed vs blocked ratio (pie chart)
   - Block reasons breakdown (DND, preference, rate-limit, suspended)
   - Recommendations — which categories have highest block rates
-- [ ] **11.7** Daily analytics table — `dailyAnalytics(spId, range)` → tabular breakdown by date
-- [ ] **11.8** Export analytics — download as CSV or PDF report
+- [x] **11.7** Daily analytics table — `dailyAnalytics(spId, range)` → tabular breakdown by date
+- [x] **11.8** Export analytics — download as CSV or PDF report
 
 ### Connected Backend
 
-- [ ] **11.9** GraphQL queries: `dashboardAnalytics`, `dailyAnalytics`, `notificationAnalytics`, `callbackAnalytics`, `campaignAnalytics`, `botPerformanceAnalytics`
-- [ ] **11.10** All queries scoped by `spId` + date range
+- [x] **11.9** GraphQL queries: `dashboardAnalytics`, `dailyAnalytics`, `notificationAnalytics`, `callbackAnalytics`, `campaignAnalytics`, `botPerformanceAnalytics`
+- [x] **11.10** All queries scoped by `spId` + date range
 
 ---
 
@@ -402,24 +402,24 @@
 
 ### Route: `/webhooks` (SP_ADMIN only)
 
-- [ ] **12.1** WebhookManager component — table of webhook subscriptions: URL, events, status (active/paused), success rate
-- [ ] **12.2** Create webhook form:
+- [x] **12.1** WebhookManager component — table of webhook subscriptions: URL, events, status (active/paused), success rate
+- [x] **12.2** Create webhook form:
   - Endpoint URL (validated HTTPS)
   - Event type multi-select — NotificationDelivered, CallbackCreated, CallbackApproved, MessageReceived, CampaignCompleted, BotActionExecuted, etc.
   - Secret key auto-generation + display (HMAC signing)
   - Active/paused toggle
-- [ ] **12.3** Edit webhook — update URL, events, status
-- [ ] **12.4** Delete webhook — confirmation modal
-- [ ] **12.5** Test webhook — sends test payload to endpoint URL, shows response status/body
-- [ ] **12.6** Delivery log table — per-webhook delivery history: event, status code, response time, attempts, timestamp
-- [ ] **12.7** Retry failed delivery — manually retry a failed webhook delivery
-- [ ] **12.8** Webhook health indicator — success rate badge, last successful delivery timestamp
+- [x] **12.3** Edit webhook — update URL, events, status
+- [x] **12.4** Delete webhook — confirmation modal
+- [x] **12.5** Test webhook — sends test payload to endpoint URL, shows response status/body
+- [x] **12.6** Delivery log table — per-webhook delivery history: event, status code, response time, attempts, timestamp
+- [x] **12.7** Retry failed delivery — manually retry a failed webhook delivery
+- [x] **12.8** Webhook health indicator — success rate badge, last successful delivery timestamp
 
 ### Connected Backend
 
-- [ ] **12.9** GraphQL mutations: `createWebhookSubscription`, `updateWebhookSubscription`, `deleteWebhookSubscription`, `testWebhookSubscription`, `retryWebhookDelivery`
-- [ ] **12.10** GraphQL queries: `webhookSubscriptions(spId)`, `webhookSubscription(id)`, `webhookDeliveries(subscriptionId)`
-- [ ] **12.11** GraphQL subscription: `providerWebhookDeliveryCompleted(spId)` → real-time delivery log
+- [x] **12.9** GraphQL mutations: `createWebhookSubscription`, `updateWebhookSubscription`, `deleteWebhookSubscription`, `testWebhookSubscription`, `retryWebhookDelivery`
+- [x] **12.10** GraphQL queries: `webhookSubscriptions(spId)`, `webhookSubscription(id)`, `webhookDeliveries(subscriptionId)`
+- [x] **12.11** GraphQL subscription: `providerWebhookDeliveryCompleted(spId)` → real-time delivery log
 
 ---
 
@@ -427,20 +427,20 @@
 
 ### Route: `/compliance`
 
-- [ ] **13.1** ComplianceViewer component — tabbed interface:
+- [x] **13.1** ComplianceViewer component — tabbed interface:
   - **Policy Status tab** — current org verification status, compliance score, outstanding requirements
   - **Audit Log tab** — all admin actions (team changes, webhook updates, campaign launches, bot config changes) with actor, action, timestamp, details
   - **Communication Audit tab** — filterable log of all policy decisions (allowed/blocked) with reason codes
-- [ ] **13.2** Verification status card — org verification badge, documents submitted, pending review items
-- [ ] **13.3** Compliance checklist — required items checked off (verified identity, ToS accepted, data processing agreement, etc.)
-- [ ] **13.4** Export audit log — filtered CSV export for regulatory compliance
-- [ ] **13.5** Spam report summary — count of spam reports received, trend, impacted communications
+- [x] **13.2** Verification status card — org verification badge, documents submitted, pending review items
+- [x] **13.3** Compliance checklist — required items checked off (verified identity, ToS accepted, data processing agreement, etc.)
+- [x] **13.4** Export audit log — filtered CSV export for regulatory compliance
+- [x] **13.5** Spam report summary — count of spam reports received, trend, impacted communications
 
 ### Connected Backend
 
-- [ ] **13.6** Audit log data from analytics-service + event trail
-- [ ] **13.7** Verification status from organization-service
-- [ ] **13.8** Policy decision logs from policy-service
+- [x] **13.6** Audit log data from analytics-service + event trail
+- [x] **13.7** Verification status from organization-service
+- [x] **13.8** Policy decision logs from policy-service
 
 ---
 
@@ -448,21 +448,21 @@
 
 ### Route: `/integrations` (SP_ADMIN only)
 
-- [ ] **14.1** APIKeyManager component:
+- [x] **14.1** APIKeyManager component:
   - List existing API keys — name, created date, last used, status (active/revoked)
   - Create API key — name input, generate key + secret, show once modal
   - Revoke API key — confirmation modal with impact warning
-- [ ] **14.2** Available integrations grid — cards for supported integrations (Slack, Salesforce, HubSpot, Zendesk, custom)
+- [x] **14.2** Available integrations grid — cards for supported integrations (Slack, Salesforce, HubSpot, Zendesk, custom)
   - Status: Connected, Not Connected, Coming Soon
   - Configure button → opens integration-specific settings drawer
-- [ ] **14.3** Integration logs — recent sync events, errors, data flow summary
-- [ ] **14.4** Rate limit dashboard — current API usage vs limits, throttle warnings
+- [x] **14.3** Integration logs — recent sync events, errors, data flow summary
+- [x] **14.4** Rate limit dashboard — current API usage vs limits, throttle warnings
 
 ### Connected Backend
 
-- [ ] **14.5** GraphQL queries: `apiKeys(spId)` → list
-- [ ] **14.6** GraphQL mutations: `createAPIKey(spId, name)`, `revokeAPIKey(keyId)`
-- [ ] **14.7** Third-party integration config stored in organization-service metadata
+- [x] **14.5** GraphQL queries: `apiKeys(spId)` → list
+- [x] **14.6** GraphQL mutations: `createAPIKey(spId, name)`, `revokeAPIKey(keyId)`
+- [x] **14.7** Third-party integration config stored in organization-service metadata
 
 ---
 
@@ -470,57 +470,57 @@
 
 ### Route: `/settings`
 
-- [ ] **15.1** Settings overview page — navigation cards to sub-sections
+- [x] **15.1** Settings overview page — navigation cards to sub-sections
 
 ### Route: `/settings/profile`
 
-- [ ] **15.2** Organization profile form:
+- [x] **15.2** Organization profile form:
   - Org name, display name, logo upload
   - Description, website URL
   - Contact email, support phone (org-facing, not customer-exposed)
   - Address fields
-- [ ] **15.3** Branding settings — primary color, notification template customization
-- [ ] **15.4** Save profile → updates organization-service via GraphQL
+- [x] **15.3** Branding settings — primary color, notification template customization
+- [x] **15.4** Save profile → updates organization-service via GraphQL
 
 ### Route: `/settings/industry`
 
-- [ ] **15.5** Industry profile selector — dropdown of available industry profiles (Banking, Healthcare, Insurance, Real Estate, Hospitality, Logistics, Recruitment)
-- [ ] **15.6** Industry-specific configuration — workflow templates, default notification categories, callback rules
-- [ ] **15.7** Preview industry defaults — shows what policies and templates will be applied
+- [x] **15.5** Industry profile selector — dropdown of available industry profiles (Banking, Healthcare, Insurance, Real Estate, Hospitality, Logistics, Recruitment)
+- [x] **15.6** Industry-specific configuration — workflow templates, default notification categories, callback rules
+- [x] **15.7** Preview industry defaults — shows what policies and templates will be applied
 
 ### Route: `/settings/team`
 
-- [ ] **15.8** TeamManager component:
+- [x] **15.8** TeamManager component:
   - Team member list — name, email, role, status (active/invited/deactivated), last active
   - Invite member — email input, role selector, send invitation email
   - Change role — dropdown to reassign role (SP_ADMIN, CONTENT_MANAGER, AGENT, ANALYST)
   - Remove member — confirmation modal with reassignment prompt for assigned conversations
   - Pending invitations — list with resend/revoke actions
-- [ ] **15.9** Activity log — team actions (logins, role changes, invitations)
+- [x] **15.9** Activity log — team actions (logins, role changes, invitations)
 
 ### Connected Backend
 
-- [ ] **15.10** GraphQL mutations: `inviteTeamMember`, `acceptInvitation`, `revokeInvitation`, `changeTeamMemberRole`, `removeTeamMember`
-- [ ] **15.11** GraphQL queries: `teamMembers(spId)`, `pendingInvitations(spId)`
-- [ ] **15.12** GraphQL query: `industryProfile(key)`, `industryProfiles()`
-- [ ] **15.13** Organization profile CRUD via organization-service
+- [x] **15.10** GraphQL mutations: `inviteTeamMember`, `acceptInvitation`, `revokeInvitation`, `changeTeamMemberRole`, `removeTeamMember`
+- [x] **15.11** GraphQL queries: `teamMembers(spId)`, `pendingInvitations(spId)`
+- [x] **15.12** GraphQL query: `industryProfile(key)`, `industryProfiles()`
+- [x] **15.13** Organization profile CRUD via organization-service
 
 ---
 
 ## 16. Real-Time & Subscriptions
 
-- [ ] **16.1** Apollo Client WebSocket link — `graphql-ws` transport for subscriptions
-- [ ] **16.2** Subscription connections:
+- [x] **16.1** Apollo Client WebSocket link — `graphql-ws` transport for subscriptions
+- [x] **16.2** Subscription connections:
   - `providerNotificationDelivered(spId)` → update notification table, dashboard KPIs
   - `providerCallbackRequestCreated(spId)` → add to callback list, show toast
   - `providerMessageReceived(spId)` → update conversation list, unread badges
   - `providerWebhookDeliveryCompleted(spId)` → update webhook delivery log
   - `providerBotActionExecuted(spId)` → update bot activity log
   - `providerCampaignProgressUpdated(spId)` → update campaign progress bars
-- [ ] **16.3** Connection state indicator — green dot (connected), yellow (reconnecting), red (disconnected) in header
-- [ ] **16.4** Reconnection logic — exponential backoff with max retry, fallback to polling
-- [ ] **16.5** Notification sounds — optional audio cue for new callbacks and messages (user setting)
-- [ ] **16.6** Browser push notifications — service worker for background tab alerts
+- [x] **16.3** Connection state indicator — green dot (connected), yellow (reconnecting), red (disconnected) in header
+- [x] **16.4** Reconnection logic — exponential backoff with max retry, fallback to polling
+- [x] **16.5** Notification sounds — optional audio cue for new callbacks and messages (user setting)
+- [x] **16.6** Browser push notifications — service worker for background tab alerts
 
 ---
 
@@ -528,24 +528,24 @@
 
 ### Apollo Client Setup
 
-- [ ] **17.1** Apollo Client provider — HTTP link + WebSocket link (split by operation type)
-- [ ] **17.2** Cache normalization — `__typename + id` for all entity types
-- [ ] **17.3** Optimistic updates — for send message, approve/reject callback, toggle bot status
-- [ ] **17.4** Error link — global GraphQL error handler (auth errors → logout, rate limit → toast)
-- [ ] **17.5** Request batching — batch multiple queries in single HTTP request where appropriate
+- [x] **17.1** Apollo Client provider — HTTP link + WebSocket link (split by operation type)
+- [x] **17.2** Cache normalization — `__typename + id` for all entity types
+- [x] **17.3** Optimistic updates — for send message, approve/reject callback, toggle bot status
+- [x] **17.4** Error link — global GraphQL error handler (auth errors → logout, rate limit → toast)
+- [x] **17.5** Request batching — batch multiple queries in single HTTP request where appropriate
 
 ### State Management
 
-- [ ] **17.6** React Context for auth state (user, org, tokens)
-- [ ] **17.7** Apollo cache as primary data store (no duplicate state in Redux/Zustand)
-- [ ] **17.8** URL state for filters, pagination, tabs (useSearchParams)
-- [ ] **17.9** localStorage for user preferences (sidebar collapsed, date range, table page size)
+- [x] **17.6** React Context for auth state (user, org, tokens)
+- [x] **17.7** Apollo cache as primary data store (no duplicate state in Redux/Zustand)
+- [x] **17.8** URL state for filters, pagination, tabs (useSearchParams)
+- [x] **17.9** localStorage for user preferences (sidebar collapsed, date range, table page size)
 
 ### Accessibility
 
-- [ ] **17.10** Keyboard navigation — all interactive elements focusable, tab order logical
-- [ ] **17.11** ARIA labels — buttons, modals, drawers, alerts properly labeled
-- [ ] **17.12** Color contrast — WCAG AA compliance on all text/bg combinations
+- [x] **17.10** Keyboard navigation — all interactive elements focusable, tab order logical
+- [x] **17.11** ARIA labels — buttons, modals, drawers, alerts properly labeled
+- [x] **17.12** Color contrast — WCAG AA compliance on all text/bg combinations
 - [ ] **17.13** Screen reader support — live regions for real-time updates (new messages, toasts)
 - [ ] **17.14** Focus trap — modals and drawers trap focus correctly
 
