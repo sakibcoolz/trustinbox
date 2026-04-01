@@ -42,8 +42,8 @@ The registration page **exists** with a full 5-step wizard:
 ## Requirements
 
 ### 1. GraphQL Migration
-- [ ] Replace `auth.register()` with `REGISTER_MUTATION`
-- [ ] Replace `auth.registerWithDocuments()` with `REGISTER_WITH_DOCUMENTS_MUTATION` (multipart)
+- [x] Replace `auth.register()` with `REGISTER_MUTATION`
+- [x] Replace `auth.registerWithDocuments()` with `REGISTER_WITH_DOCUMENTS_MUTATION` (multipart)
 
 ```graphql
 mutation Register($input: RegisterInput!) {
@@ -56,24 +56,24 @@ mutation Register($input: RegisterInput!) {
 ```
 
 ### 2. UI Improvements
-- [ ] Wrap form in `<Card>` component
-- [ ] Add explicit username field to Step 1 (with availability check)
-- [ ] Step transitions: slide-left animation between steps
-- [ ] Persist form state in `sessionStorage` — recover on page refresh
-- [ ] Show filled values in step indicators (green check for completed steps)
+- [x] Wrap form in `<Card>` component
+- [x] Add explicit username field to Step 1 (with availability check)
+- [x] Step transitions: slide-left animation between steps
+- [x] Persist form state in `sessionStorage` — recover on page refresh
+- [x] Show filled values in step indicators (green check for completed steps)
 
 ### 3. Validation Enhancements
-- [ ] Step 1: Real-time password strength meter (weak/medium/strong)
-- [ ] Step 1: Username uniqueness check (debounced API call)
-- [ ] Step 2: Website URL format validation
-- [ ] Step 3: Phone number format validation with country code
-- [ ] Step 4: Drag-and-drop file upload zone
-- [ ] Step 5: Collapsible review sections
+- [x] Step 1: Real-time password strength meter (weak/medium/strong)
+- [x] Step 1: Username uniqueness check (debounced API call)
+- [x] Step 2: Website URL format validation
+- [x] Step 3: Phone number format validation with country code
+- [x] Step 4: Drag-and-drop file upload zone
+- [x] Step 5: Collapsible review sections
 
 ### 4. Post-Registration
-- [ ] Store tokens
-- [ ] Navigate to `/` (user is automatically SP_ADMIN of new org)
-- [ ] Show success toast: "Organization registered successfully"
+- [x] Store tokens
+- [x] Navigate to `/` (user is automatically SP_ADMIN of new org)
+- [x] Show success toast: "Organization registered successfully"
 
 ---
 
@@ -130,16 +130,16 @@ useEffect(() => {
 
 ## Acceptance Criteria
 
-- [ ] All 5 steps work with navigation and validation
-- [ ] Username field with real-time availability check
-- [ ] Password strength meter shows visual feedback
-- [ ] File upload supports drag-and-drop + click
-- [ ] Form state persists across page refresh (sessionStorage)
-- [ ] GraphQL mutation used for registration
-- [ ] Friendly error messages for all backend errors
-- [ ] Successful registration navigates to dashboard
-- [ ] Step progress indicator shows completed/current/upcoming steps
-- [ ] Accessible: all form fields labeled, error messages linked to inputs
+- [x] All 5 steps work with navigation and validation
+- [x] Username field with real-time availability check
+- [x] Password strength meter shows visual feedback
+- [x] File upload supports drag-and-drop + click
+- [x] Form state persists across page refresh (sessionStorage)
+- [x] GraphQL mutation used for registration
+- [x] Friendly error messages for all backend errors
+- [x] Successful registration navigates to dashboard
+- [x] Step progress indicator shows completed/current/upcoming steps
+- [x] Accessible: all form fields labeled, error messages linked to inputs
 
 ---
 

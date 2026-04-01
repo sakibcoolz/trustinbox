@@ -35,7 +35,7 @@ export const CMS_PERMISSIONS = { ... };
 ## Requirements
 
 ### 1. Permission Enum
-- [ ] Define all permissions as a string union type
+- [x] Define all permissions as a string union type
 
 ```typescript
 export type Permission =
@@ -90,8 +90,8 @@ export type Permission =
 | compliance:view | ✅ | ✅ | ❌ | ❌ | ✅ |
 
 ### 3. ROLE_LABELS and ROLE_COLORS
-- [ ] Display labels: `{ PLATFORM_ADMIN: 'Platform Admin', SP_ADMIN: 'Admin', ... }`
-- [ ] Badge colors: `{ PLATFORM_ADMIN: 'purple', SP_ADMIN: 'info', AGENT: 'success', ANALYST: 'cyan', ... }`
+- [x] Display labels: `{ PLATFORM_ADMIN: 'Platform Admin', SP_ADMIN: 'Admin', ... }`
+- [x] Badge colors: `{ PLATFORM_ADMIN: 'purple', SP_ADMIN: 'info', AGENT: 'success', ANALYST: 'cyan', ... }`
 
 ---
 
@@ -133,12 +133,12 @@ export const ROLE_COLORS: Record<Role, string> = {
 
 ## Acceptance Criteria
 
-- [ ] All permissions defined as typed string union
-- [ ] `hasPermission(role, permission)` returns correct boolean
-- [ ] Every role has explicit permission set (no implicit grants)
-- [ ] ROLE_LABELS provide display-friendly names
-- [ ] ROLE_COLORS map to Badge variant names
-- [ ] Backward compatible: existing `hasRole()`, `CMS_PERMISSIONS` still work
+- [x] All permissions defined as typed string union
+- [x] `hasPermission(role, permission)` returns correct boolean
+- [x] Every role has explicit permission set (no implicit grants)
+- [x] ROLE_LABELS provide display-friendly names
+- [x] ROLE_COLORS map to Badge variant names
+- [x] Backward compatible: existing `hasRole()`, `CMS_PERMISSIONS` still work
 
 ---
 

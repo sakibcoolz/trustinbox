@@ -51,10 +51,10 @@ const ALL_PERMISSIONS: Permission[] = [
 **ANALYST**: dashboard:view, customers:view/export, notifications:view, conversations:view, callbacks:view, documents:view, analytics:view/export, compliance:view, settings:view
 
 ### 3. Utility Functions
-- [ ] `getPermissions(role: Role): Permission[]` — returns array of permissions for a role
-- [ ] `hasAllPermissions(role: Role, permissions: Permission[]): boolean` — checks all true
-- [ ] `hasAnyPermission(role: Role, permissions: Permission[]): boolean` — checks any true
-- [ ] `getFeaturePermissions(feature: string): Permission[]` — returns all permissions for a feature prefix (e.g., "notifications" → notifications:view, notifications:send, notifications:template:manage)
+- [x] `getPermissions(role: Role): Permission[]` — returns array of permissions for a role
+- [x] `hasAllPermissions(role: Role, permissions: Permission[]): boolean` — checks all true
+- [x] `hasAnyPermission(role: Role, permissions: Permission[]): boolean` — checks any true
+- [x] `getFeaturePermissions(feature: string): Permission[]` — returns all permissions for a feature prefix (e.g., "notifications" → notifications:view, notifications:send, notifications:template:manage)
 
 ---
 
@@ -90,14 +90,14 @@ export function getFeaturePermissions(feature: string): Permission[] {
 
 ## Acceptance Criteria
 
-- [ ] PLATFORM_ADMIN has all permissions
-- [ ] SP_ADMIN has all permissions
-- [ ] CONTENT_MANAGER can create campaigns but not launch them
-- [ ] AGENT can manage callbacks but not campaigns
-- [ ] ANALYST can only view + export analytics, view compliance
-- [ ] `hasPermission('AGENT', 'campaigns:create')` returns false
-- [ ] `hasAnyPermission('AGENT', ['callbacks:manage', 'campaigns:create'])` returns true
-- [ ] Type-safe: invalid permission strings cause compile errors
+- [x] PLATFORM_ADMIN has all permissions
+- [x] SP_ADMIN has all permissions
+- [x] CONTENT_MANAGER can create campaigns but not launch them
+- [x] AGENT can manage callbacks but not campaigns
+- [x] ANALYST can only view + export analytics, view compliance
+- [x] `hasPermission('AGENT', 'campaigns:create')` returns false
+- [x] `hasAnyPermission('AGENT', ['callbacks:manage', 'campaigns:create'])` returns true
+- [x] Type-safe: invalid permission strings cause compile errors
 
 ---
 

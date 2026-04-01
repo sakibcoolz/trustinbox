@@ -33,11 +33,11 @@ interface ProtectedRouteProps {
 ```
 
 ### 2. Behavior
-- [ ] If `requiredRole` provided: check `hasRole(userRole, requiredRole)`
-- [ ] If `requiredPermission` provided: check permission matrix
-- [ ] On failure with `fallback='redirect'`: navigate to `/` with toast "Access denied"
-- [ ] On failure with `fallback='forbidden'`: render 403 page
-- [ ] During loading: show loading skeleton
+- [x] If `requiredRole` provided: check `hasRole(userRole, requiredRole)`
+- [x] If `requiredPermission` provided: check permission matrix
+- [x] On failure with `fallback='redirect'`: navigate to `/` with toast "Access denied"
+- [x] On failure with `fallback='forbidden'`: render 403 page
+- [x] During loading: show loading skeleton
 
 ### 3. Per-Route Configuration
 ```tsx
@@ -130,12 +130,12 @@ function ForbiddenPage() {
 
 ## Acceptance Criteria
 
-- [ ] ANALYST user navigating to `/webhooks` sees 403 page
-- [ ] AGENT navigating to `/campaigns/new` sees 403 or redirect
-- [ ] SP_ADMIN can access all routes
-- [ ] Loading state shown while auth resolves
-- [ ] 403 page has clear message and link back to dashboard
-- [ ] `fallback="redirect"` navigates to `/` silently
+- [x] ANALYST user navigating to `/webhooks` sees 403 page
+- [x] AGENT navigating to `/campaigns/new` sees 403 or redirect
+- [x] SP_ADMIN can access all routes
+- [x] Loading state shown while auth resolves
+- [x] 403 page has clear message and link back to dashboard
+- [x] `fallback="redirect"` navigates to `/` silently
 
 ---
 

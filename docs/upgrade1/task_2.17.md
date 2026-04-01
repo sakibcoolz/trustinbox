@@ -46,11 +46,11 @@ This query is used in two places:
 2. **Sidebar SP switcher**: to show dropdown of orgs user belongs to
 
 ### 3. Organization Switcher Component
-- [ ] Extract org switcher into `<ServiceProviderSwitcher>` component
-- [ ] Current SP shown with logo/initial, name, industry
-- [ ] Click opens dropdown with all SPs
-- [ ] Selecting a different SP calls `switchServiceProvider()` from AuthContext
-- [ ] Active SP marked with checkmark
+- [x] Extract org switcher into `<ServiceProviderSwitcher>` component
+- [x] Current SP shown with logo/initial, name, industry
+- [x] Click opens dropdown with all SPs
+- [x] Selecting a different SP calls `switchServiceProvider()` from AuthContext
+- [x] Active SP marked with checkmark
 
 ```typescript
 interface ServiceProviderSwitcherProps {
@@ -123,12 +123,12 @@ export function ServiceProviderSwitcher({ current, providers, onSwitch }: Servic
 
 ## Acceptance Criteria
 
-- [ ] MY_SERVICE_PROVIDERS_QUERY returns all SPs for current user
-- [ ] ServiceProviderSwitcher shows current SP in sidebar
-- [ ] Multi-SP users see dropdown with all organizations
-- [ ] Switching SP updates AuthContext and triggers data refetch
-- [ ] Single-SP users see static org display (no dropdown)
-- [ ] Current org marked with checkmark in dropdown
+- [x] MY_SERVICE_PROVIDERS_QUERY returns all SPs for current user
+- [x] ServiceProviderSwitcher shows current SP in sidebar
+- [x] Multi-SP users see dropdown with all organizations
+- [x] Switching SP updates AuthContext and triggers data refetch
+- [x] Single-SP users see static org display (no dropdown)
+- [x] Current org marked with checkmark in dropdown
 
 ---
 

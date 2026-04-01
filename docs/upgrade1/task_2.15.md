@@ -89,10 +89,10 @@ export interface AcceptInvitationPayload {
 
 ## Acceptance Criteria
 
-- [ ] `VALIDATE_INVITATION_QUERY` returns invitation details or invalid status
-- [ ] `ACCEPT_INVITATION_MUTATION` joins user to the org
-- [ ] Types are properly defined and exported
-- [ ] Used in task 2.3 (invite acceptance page)
+- [x] `VALIDATE_INVITATION_QUERY` returns invitation details or invalid status
+- [x] `ACCEPT_INVITATION_MUTATION` joins user to the org
+- [x] Types are properly defined and exported
+- [x] Used in task 2.3 (invite acceptance page)
 
 ---
 

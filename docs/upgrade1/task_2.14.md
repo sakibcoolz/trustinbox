@@ -139,9 +139,9 @@ export interface TokenPayload {
 ```
 
 ### 3. GraphQL Schema Alignment
-- [ ] Verify mutations exist in `gateway/graphql-bff/graph/schema.graphqls`
-- [ ] If mutations don't exist, document what needs to be added to the gateway
-- [ ] Input types must match gateway schema exactly
+- [x] Verify mutations exist in `gateway/graphql-bff/graph/schema.graphqls`
+- [x] If mutations don't exist, document what needs to be added to the gateway
+- [x] Input types must match gateway schema exactly
 
 ---
 
@@ -153,9 +153,9 @@ export interface TokenPayload {
 
 ### Fallback Strategy
 If the GraphQL gateway doesn't yet support auth mutations:
-- [ ] Keep REST fallback in `api.ts` 
-- [ ] Use REST for auth, GraphQL for everything else
-- [ ] Document which operations need gateway implementation
+- [x] Keep REST fallback in `api.ts` 
+- [x] Use REST for auth, GraphQL for everything else
+- [x] Document which operations need gateway implementation
 
 ---
 
@@ -170,10 +170,10 @@ If the GraphQL gateway doesn't yet support auth mutations:
 
 ## Acceptance Criteria
 
-- [ ] All 6 mutations defined with proper `gql` template literals
-- [ ] TypeScript interfaces for all input/output types
-- [ ] Operations importable in auth pages and hooks
-- [ ] Types match backend GraphQL schema (or discrepancies documented)
+- [x] All 6 mutations defined with proper `gql` template literals
+- [x] TypeScript interfaces for all input/output types
+- [x] Operations importable in auth pages and hooks
+- [x] Types match backend GraphQL schema (or discrepancies documented)
 
 ---
 

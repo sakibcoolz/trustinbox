@@ -27,38 +27,38 @@ authLink → errorLink → splitLink(wsLink | httpLink)
 ```
 
 ### 2. Auth Link
-- [ ] Inject `Authorization: Bearer <accessToken>` header
-- [ ] Inject `X-Service-Provider-Id: <activeSpId>` header
-- [ ] Read from `tokenManager` (task 2.5)
+- [x] Inject `Authorization: Bearer <accessToken>` header
+- [x] Inject `X-Service-Provider-Id: <activeSpId>` header
+- [x] Read from `tokenManager` (task 2.5)
 
 ### 3. Error Link
-- [ ] On 401 (UNAUTHENTICATED) error:
+- [x] On 401 (UNAUTHENTICATED) error:
   1. Attempt token refresh via `tokenManager.refresh()`
   2. If success: retry the failed operation with `forward(operation)`
   3. If failure: clear tokens, redirect to `/auth/login`
-- [ ] On network error: show toast "Network error. Check your connection."
-- [ ] On other GraphQL errors: propagate to component for handling
+- [x] On network error: show toast "Network error. Check your connection."
+- [x] On other GraphQL errors: propagate to component for handling
 
 ### 4. HTTP Link
-- [ ] Target: `process.env.NEXT_PUBLIC_GRAPHQL_URL || '/api/graphql'`
-- [ ] Include credentials if needed
+- [x] Target: `process.env.NEXT_PUBLIC_GRAPHQL_URL || '/api/graphql'`
+- [x] Include credentials if needed
 
 ### 5. WebSocket Link (Subscriptions)
-- [ ] Target: `process.env.NEXT_PUBLIC_GRAPHQL_WS_URL || 'ws://localhost:4000/graphql'`
-- [ ] Pass auth token in `connectionParams`
-- [ ] Auto-reconnect on disconnect with exponential backoff
-- [ ] Use `graphql-ws` library
+- [x] Target: `process.env.NEXT_PUBLIC_GRAPHQL_WS_URL || 'ws://localhost:4000/graphql'`
+- [x] Pass auth token in `connectionParams`
+- [x] Auto-reconnect on disconnect with exponential backoff
+- [x] Use `graphql-ws` library
 
 ### 6. Split Link
-- [ ] Route subscriptions to wsLink, queries/mutations to httpLink
+- [x] Route subscriptions to wsLink, queries/mutations to httpLink
 
 ### 7. Cache Configuration
-- [ ] InMemoryCache with type policies for pagination merge
-- [ ] Type policies for key entities: `User`, `Notification`, `CallbackRequest`, `Conversation`, `Campaign`, `Bot`
+- [x] InMemoryCache with type policies for pagination merge
+- [x] Type policies for key entities: `User`, `Notification`, `CallbackRequest`, `Conversation`, `Campaign`, `Bot`
 
 ### 8. ApolloProvider Wrapper
-- [ ] Create `ApolloWrapper` client component
-- [ ] Wrap in `root layout.tsx` inside `AuthProvider`
+- [x] Create `ApolloWrapper` client component
+- [x] Wrap in `root layout.tsx` inside `AuthProvider`
 
 ---
 
@@ -170,13 +170,13 @@ export function ApolloWrapper({ children }: { children: React.ReactNode }) {
 
 ## Acceptance Criteria
 
-- [ ] Apollo Client set up with auth headers injected on every request
-- [ ] 401 triggers token refresh + retry transparently
-- [ ] WebSocket connection established for subscriptions
-- [ ] WS reconnects automatically on disconnect
-- [ ] Cache merges paginated lists correctly
-- [ ] Works during SSR (no window errors)
-- [ ] `ApolloWrapper` wraps the app in layout.tsx
+- [x] Apollo Client set up with auth headers injected on every request
+- [x] 401 triggers token refresh + retry transparently
+- [x] WebSocket connection established for subscriptions
+- [x] WS reconnects automatically on disconnect
+- [x] Cache merges paginated lists correctly
+- [x] Works during SSR (no window errors)
+- [x] `ApolloWrapper` wraps the app in layout.tsx
 
 ---
 

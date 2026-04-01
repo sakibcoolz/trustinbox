@@ -37,7 +37,7 @@ function filterNav(items: typeof mainNav) {
 ## Requirements
 
 ### 1. Permission-Aware Nav Items
-- [ ] Add `requiredPermission` to nav item definitions:
+- [x] Add `requiredPermission` to nav item definitions:
 
 ```typescript
 interface NavItem {
@@ -68,14 +68,14 @@ interface NavItem {
 | Settings | settings:view |
 
 ### 3. Use AuthContext
-- [ ] Replace `const me = await auth.me()` with `useAuth()` context
-- [ ] Remove duplicate user state management
-- [ ] Remove `useEffect` that calls `auth.me()`
+- [x] Replace `const me = await auth.me()` with `useAuth()` context
+- [x] Remove duplicate user state management
+- [x] Remove `useEffect` that calls `auth.me()`
 
 ### 4. Dynamic Badge Counts
-- [ ] Notification bell count from GraphQL subscription (task 16.x)
-- [ ] Callback badge showing pending count
-- [ ] Prepare `badge` slot in nav item definition
+- [x] Notification bell count from GraphQL subscription (task 16.x)
+- [x] Callback badge showing pending count
+- [x] Prepare `badge` slot in nav item definition
 
 ---
 
@@ -116,12 +116,12 @@ function filterNav(items: NavItem[]) {
 
 ## Acceptance Criteria
 
-- [ ] ANALYST sees: Dashboard, Customers, Notifications (view), Analytics, Compliance, Settings
-- [ ] AGENT sees: Dashboard, Customers, Notifications, Conversations, Callbacks, Documents, Settings
-- [ ] SP_ADMIN sees: all nav items
-- [ ] Sidebar no longer makes its own `auth.me()` call
-- [ ] Nav items define their required permission explicitly
-- [ ] Badge slot ready for notification/callback counts
+- [x] ANALYST sees: Dashboard, Customers, Notifications (view), Analytics, Compliance, Settings
+- [x] AGENT sees: Dashboard, Customers, Notifications, Conversations, Callbacks, Documents, Settings
+- [x] SP_ADMIN sees: all nav items
+- [x] Sidebar no longer makes its own `auth.me()` call
+- [x] Nav items define their required permission explicitly
+- [x] Badge slot ready for notification/callback counts
 
 ---
 

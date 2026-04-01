@@ -49,13 +49,13 @@ const canSend = usePermission('notifications:send');
 | Table | Bulk action bar | varies | Hide specific actions based on permission |
 
 ### 3. Tooltip for Disabled Elements
-- [ ] When button is disabled due to permissions, show tooltip: "You don't have permission to perform this action"
-- [ ] Use title attribute or custom tooltip component
+- [x] When button is disabled due to permissions, show tooltip: "You don't have permission to perform this action"
+- [x] Use title attribute or custom tooltip component
 
 ### 4. Form Read-Only Mode
-- [ ] For detail/edit views, detect if user has edit permission
-- [ ] If read-only: all form inputs disabled, no submit button
-- [ ] Show "View only" badge in form header
+- [x] For detail/edit views, detect if user has edit permission
+- [x] If read-only: all form inputs disabled, no submit button
+- [x] Show "View only" badge in form header
 
 ---
 
@@ -106,12 +106,12 @@ function DocumentForm({ readOnly }: { readOnly?: boolean }) {
 
 ## Acceptance Criteria
 
-- [ ] ANALYST cannot see send/create/delete buttons
-- [ ] AGENT cannot see campaign create or bot create buttons
-- [ ] Disabled buttons show permission tooltip
-- [ ] Read-only views disable form inputs
-- [ ] "View only" badge shown on read-only forms
-- [ ] No action buttons are visible that the user can't actually perform
+- [x] ANALYST cannot see send/create/delete buttons
+- [x] AGENT cannot see campaign create or bot create buttons
+- [x] Disabled buttons show permission tooltip
+- [x] Read-only views disable form inputs
+- [x] "View only" badge shown on read-only forms
+- [x] No action buttons are visible that the user can't actually perform
 
 ---
 

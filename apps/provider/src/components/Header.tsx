@@ -6,9 +6,10 @@ import Link from 'next/link';
 import {
   Bell, Search, Settings, LogOut, ChevronDown, UserCircle,
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { cn } from '@/lib/utils';
+import { ROLE_LABELS, type Role } from '@/lib/roles';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -44,7 +45,7 @@ function getPageTitle(pathname: string): string {
 
 export default function Header() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -73,11 +74,7 @@ export default function Header() {
   }, []);
 
   function handleLogout() {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('activeSpId');
-    localStorage.removeItem('userSPs');
-    window.location.href = '/auth/login';
+    logout();
   }
 
   const initials = user?.fullName
@@ -131,7 +128,7 @@ export default function Header() {
               {user && (
                 <div className="hidden md:block text-left">
                   <p className="text-xs font-medium text-text-primary leading-none">{user.fullName}</p>
-                  <p className="text-[10px] text-text-muted leading-none mt-0.5">{user.role?.replace('_', ' ')}</p>
+                  <p className="text-[10px] text-text-muted leading-none mt-0.5">{ROLE_LABELS[user.role as Role] || user.role?.replace('_', ' ')}</p>
                 </div>
               )}
               <ChevronDown size={12} className={cn('text-text-muted transition-transform', profileOpen && 'rotate-180')} />

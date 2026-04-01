@@ -25,23 +25,23 @@ No permission hook exists. Components would need to manually check `user.role` a
 ```typescript
 function usePermission(permission: Permission): boolean;
 ```
-- [ ] Returns `true` if the current user's role has the specified permission
-- [ ] Returns `false` if user is not authenticated or lacks permission
-- [ ] Reads from `useAuth()` context (task 2.4)
+- [x] Returns `true` if the current user's role has the specified permission
+- [x] Returns `false` if user is not authenticated or lacks permission
+- [x] Reads from `useAuth()` context (task 2.4)
 
 ### 2. usePermissions Hook (multiple checks)
 ```typescript
 function usePermissions(permissions: Permission[]): Record<Permission, boolean>;
 ```
-- [ ] Returns an object mapping each permission to its boolean result
-- [ ] Useful for pages with multiple permission-gated UI elements
+- [x] Returns an object mapping each permission to its boolean result
+- [x] Useful for pages with multiple permission-gated UI elements
 
 ### 3. useFeatureAccess Hook
 ```typescript
 function useFeatureAccess(feature: string): { canView: boolean; canCreate: boolean; canManage: boolean; canDelete: boolean };
 ```
-- [ ] Convenience hook for common feature access patterns
-- [ ] Maps to `feature:view`, `feature:create`, `feature:manage`, `feature:delete`
+- [x] Convenience hook for common feature access patterns
+- [x] Maps to `feature:view`, `feature:create`, `feature:manage`, `feature:delete`
 
 ### 4. PermissionGate Component
 ```tsx
@@ -52,9 +52,9 @@ interface PermissionGateProps {
   children: React.ReactNode;
 }
 ```
-- [ ] Renders children only if permission check passes
-- [ ] Optional fallback content for unauthorized view
-- [ ] Mode: 'all' requires all permissions, 'any' requires at least one
+- [x] Renders children only if permission check passes
+- [x] Optional fallback content for unauthorized view
+- [x] Mode: 'all' requires all permissions, 'any' requires at least one
 
 ---
 
@@ -132,12 +132,12 @@ const { canView, canCreate, canDelete } = useFeatureAccess('campaigns');
 
 ## Acceptance Criteria
 
-- [ ] `usePermission('notifications:send')` returns true for AGENT
-- [ ] `usePermission('campaigns:create')` returns false for AGENT
-- [ ] `PermissionGate` hides children when unauthorized
-- [ ] `PermissionGate` shows fallback when unauthorized
-- [ ] `useFeatureAccess` returns correct view/create/manage/delete booleans
-- [ ] Handles unauthenticated state gracefully (all false)
+- [x] `usePermission('notifications:send')` returns true for AGENT
+- [x] `usePermission('campaigns:create')` returns false for AGENT
+- [x] `PermissionGate` hides children when unauthorized
+- [x] `PermissionGate` shows fallback when unauthorized
+- [x] `useFeatureAccess` returns correct view/create/manage/delete booleans
+- [x] Handles unauthenticated state gracefully (all false)
 
 ---
 

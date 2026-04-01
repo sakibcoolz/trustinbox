@@ -2,6 +2,7 @@ import '@/app/globals.css';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { LayoutShell } from '@/components/LayoutShell';
 import { ApolloWrapper } from '@/lib/apollo-provider';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/components/Toast';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -29,9 +30,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`dark ${inter.variable} ${jetbrainsMono.variable}`}>
       <body className={`${inter.className} bg-bg-primary text-text-primary min-h-screen`} suppressHydrationWarning>
         <ApolloWrapper>
-          <ToastProvider>
-            <LayoutShell>{children}</LayoutShell>
-          </ToastProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <LayoutShell>{children}</LayoutShell>
+            </ToastProvider>
+          </AuthProvider>
         </ApolloWrapper>
       </body>
     </html>

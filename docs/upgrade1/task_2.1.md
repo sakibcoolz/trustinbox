@@ -37,17 +37,17 @@ The login page **exists** with:
 ## Requirements
 
 ### 1. UI Upgrades
-- [ ] Replace inline card with `<Card variant="default" padding="lg">` (task 1.12)
-- [ ] Add password visibility toggle (Eye/EyeOff icons already imported)
-- [ ] Add "Remember me" checkbox — saves email to localStorage
-- [ ] Add loading spinner inside submit button
-- [ ] Error display uses toast system for network errors, inline for validation
-- [ ] Focus auto-set to email input on mount
+- [x] Replace inline card with `<Card variant="default" padding="lg">` (task 1.12)
+- [x] Add password visibility toggle (Eye/EyeOff icons already imported)
+- [x] Add "Remember me" checkbox — saves email to localStorage
+- [x] Add loading spinner inside submit button
+- [x] Error display uses toast system for network errors, inline for validation
+- [x] Focus auto-set to email input on mount
 
 ### 2. GraphQL Migration
-- [ ] Replace `auth.login()` REST call with `LOGIN_MUTATION`
-- [ ] Replace `profileApi.serviceProviders()` with `MY_SERVICE_PROVIDERS` query
-- [ ] Use Apollo Client's `useMutation` hook
+- [x] Replace `auth.login()` REST call with `LOGIN_MUTATION`
+- [x] Replace `profileApi.serviceProviders()` with `MY_SERVICE_PROVIDERS` query
+- [x] Use Apollo Client's `useMutation` hook
 
 ```graphql
 mutation Login($input: LoginInput!) {
@@ -66,22 +66,22 @@ mutation Login($input: LoginInput!) {
 ```
 
 ### 3. Post-Login Flow
-- [ ] Store tokens in `localStorage`
-- [ ] Fetch service providers via GraphQL
-- [ ] If single SP → set `activeSpId`, navigate to `/`
-- [ ] If multiple SPs → show SP picker (extract to `<ServiceProviderPicker>`)
-- [ ] Use `router.push('/')` instead of `window.location.href`
+- [x] Store tokens in `localStorage`
+- [x] Fetch service providers via GraphQL
+- [x] If single SP → set `activeSpId`, navigate to `/`
+- [x] If multiple SPs → show SP picker (extract to `<ServiceProviderPicker>`)
+- [x] Use `router.push('/')` instead of `window.location.href`
 
 ### 4. Form Validation
-- [ ] Email: required, valid format `^[^\s@]+@[^\s@]+\.[^\s@]+$`
-- [ ] Password: required, min 1 character (server validates strength)
-- [ ] Show inline validation errors below each field
-- [ ] Disable submit when fields are empty or loading
+- [x] Email: required, valid format `^[^\s@]+@[^\s@]+\.[^\s@]+$`
+- [x] Password: required, min 1 character (server validates strength)
+- [x] Show inline validation errors below each field
+- [x] Disable submit when fields are empty or loading
 
 ### 5. Extract SP Picker
-- [ ] Move SP selection UI to `apps/provider/src/components/ServiceProviderPicker.tsx`
-- [ ] Accept `spList`, `onSelect` props
-- [ ] Reuse in login and future org-switch scenarios
+- [x] Move SP selection UI to `apps/provider/src/components/ServiceProviderPicker.tsx`
+- [x] Accept `spList`, `onSelect` props
+- [x] Reuse in login and future org-switch scenarios
 
 ---
 
@@ -128,17 +128,17 @@ export default function LoginPage() {
 
 ## Acceptance Criteria
 
-- [ ] Email/password login works via GraphQL mutation
-- [ ] Password visibility toggle works
-- [ ] Loading spinner shows during submission
-- [ ] Validation errors show inline below fields
-- [ ] Network errors show via toast
-- [ ] Multi-org users see SP picker after login
-- [ ] Single-org users navigate directly to dashboard
-- [ ] Dev credentials button works in development mode
-- [ ] Forgot password flow works (can remain REST until backend supports GraphQL)
-- [ ] "Remember me" pre-fills email from localStorage
-- [ ] Accessible: form labels, input types, focus management
+- [x] Email/password login works via GraphQL mutation
+- [x] Password visibility toggle works
+- [x] Loading spinner shows during submission
+- [x] Validation errors show inline below fields
+- [x] Network errors show via toast
+- [x] Multi-org users see SP picker after login
+- [x] Single-org users navigate directly to dashboard
+- [x] Dev credentials button works in development mode
+- [x] Forgot password flow works (can remain REST until backend supports GraphQL)
+- [x] "Remember me" pre-fills email from localStorage
+- [x] Accessible: form labels, input types, focus management
 
 ---
 

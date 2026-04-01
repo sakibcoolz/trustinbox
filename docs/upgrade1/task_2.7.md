@@ -34,24 +34,24 @@ export function middleware(request: NextRequest) {
 ## Requirements
 
 ### 1. Cookie-Based Token Check
-- [ ] Set `accessToken` as an HTTP-only cookie on login (in addition to localStorage)
-- [ ] Or: Set a non-HTTP-only `auth-status` cookie (value: `"1"`) as a lightweight flag
-- [ ] Middleware checks for the cookie — if absent, redirect to `/auth/login`
+- [x] Set `accessToken` as an HTTP-only cookie on login (in addition to localStorage)
+- [x] Or: Set a non-HTTP-only `auth-status` cookie (value: `"1"`) as a lightweight flag
+- [x] Middleware checks for the cookie — if absent, redirect to `/auth/login`
 
 > **Note**: We can't read localStorage in middleware (runs on Edge Runtime). The simplest approach is a lightweight `auth-status` cookie set by the client after login.
 
 ### 2. Redirect Logic
-- [ ] Unauthenticated → redirect to `/auth/login?redirect={pathname}`
-- [ ] Authenticated on `/auth/login` → redirect to `/`
-- [ ] Preserve query params in redirect
+- [x] Unauthenticated → redirect to `/auth/login?redirect={pathname}`
+- [x] Authenticated on `/auth/login` → redirect to `/`
+- [x] Preserve query params in redirect
 
 ### 3. Public Paths
-- [ ] `/auth/login`
-- [ ] `/auth/register`
-- [ ] `/auth/invite/[token]`
-- [ ] `/auth/forgot-password`
-- [ ] `/auth/reset-password`
-- [ ] `/_next/*`, `/api/*`, `/favicon.ico`
+- [x] `/auth/login`
+- [x] `/auth/register`
+- [x] `/auth/invite/[token]`
+- [x] `/auth/forgot-password`
+- [x] `/auth/reset-password`
+- [x] `/_next/*`, `/api/*`, `/favicon.ico`
 
 ---
 
@@ -126,12 +126,12 @@ router.push(redirect);
 
 ## Acceptance Criteria
 
-- [ ] Unauthenticated users are redirected to `/auth/login` from any protected route
-- [ ] Redirect URL preserved in `?redirect=` param
-- [ ] After login, user returns to the originally requested page
-- [ ] Authenticated users visiting `/auth/login` are redirected to `/`
-- [ ] No flash of unauthenticated content on protected pages
-- [ ] Public pages (login, register, invite) accessible without auth
+- [x] Unauthenticated users are redirected to `/auth/login` from any protected route
+- [x] Redirect URL preserved in `?redirect=` param
+- [x] After login, user returns to the originally requested page
+- [x] Authenticated users visiting `/auth/login` are redirected to `/`
+- [x] No flash of unauthenticated content on protected pages
+- [x] Public pages (login, register, invite) accessible without auth
 
 ---
 

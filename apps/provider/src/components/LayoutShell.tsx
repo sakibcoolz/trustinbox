@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import SidebarWrapper from '@/components/sidebar';
 import Header from '@/components/Header';
-import { useRequireAuth } from '@/hooks/useAuth';
+import { useRequireAuth } from '@/contexts/AuthContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const AUTH_ROUTES = ['/auth/login', '/auth/register', '/auth/invite', '/auth/forgot-password', '/auth/reset-password'];

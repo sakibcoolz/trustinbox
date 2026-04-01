@@ -68,29 +68,29 @@
 
 ### Auth Flow
 
-- [ ] **2.1** Login page (`/auth/login`) — email + password form, validation, error display, "Forgot password" link
-- [ ] **2.2** Registration page (`/auth/register`) — org name, admin email, password, confirm password, terms checkbox
-- [ ] **2.3** Invite acceptance page (`/auth/invite/[token]`) — token validation, set password, join organization
-- [ ] **2.4** `useAuth` hook — login, logout, refreshToken, isAuthenticated, currentUser, currentOrg
-- [ ] **2.5** Token management — store accessToken + refreshToken in localStorage, auto-refresh on 401
-- [ ] **2.6** Apollo Client auth link — inject `Authorization: Bearer <token>` + `X-Service-Provider-Id: <spId>` headers
-- [ ] **2.7** Auth middleware (`middleware.ts`) — redirect unauthenticated users to login, protect all non-auth routes
+- [x] **2.1** Login page (`/auth/login`) — email + password form, validation, error display, "Forgot password" link
+- [x] **2.2** Registration page (`/auth/register`) — org name, admin email, password, confirm password, terms checkbox
+- [x] **2.3** Invite acceptance page (`/auth/invite/[token]`) — token validation, set password, join organization
+- [x] **2.4** `useAuth` hook — login, logout, refreshToken, isAuthenticated, currentUser, currentOrg
+- [x] **2.5** Token management — store accessToken + refreshToken in localStorage, auto-refresh on 401
+- [x] **2.6** Apollo Client auth link — inject `Authorization: Bearer <token>` + `X-Service-Provider-Id: <spId>` headers
+- [x] **2.7** Auth middleware (`middleware.ts`) — redirect unauthenticated users to login, protect all non-auth routes
 
 ### RBAC
 
-- [ ] **2.8** Role definitions — PLATFORM_ADMIN > SP_ADMIN > CONTENT_MANAGER > AGENT > ANALYST
-- [ ] **2.9** Permission matrix implementation — 25+ permissions mapped to roles
-- [ ] **2.10** `usePermission(permission)` hook — returns boolean for conditional rendering
-- [ ] **2.11** `<ProtectedRoute requiredRole={...}>` wrapper — redirects if insufficient role
-- [ ] **2.12** Sidebar items hide/show based on role (Webhooks, Integrations → SP_ADMIN+)
-- [ ] **2.13** Field-level auth — disable edit buttons, hide action columns for read-only roles
+- [x] **2.8** Role definitions — PLATFORM_ADMIN > SP_ADMIN > CONTENT_MANAGER > AGENT > ANALYST
+- [x] **2.9** Permission matrix implementation — 25+ permissions mapped to roles
+- [x] **2.10** `usePermission(permission)` hook — returns boolean for conditional rendering
+- [x] **2.11** `<ProtectedRoute requiredRole={...}>` wrapper — redirects if insufficient role
+- [x] **2.12** Sidebar items hide/show based on role (Webhooks, Integrations → SP_ADMIN+)
+- [x] **2.13** Field-level auth — disable edit buttons, hide action columns for read-only roles
 
 ### Connected Backend
 
-- [ ] **2.14** GraphQL mutations: `login`, `register`, `refreshToken`
-- [ ] **2.15** GraphQL mutations: `acceptInvitation`
-- [ ] **2.16** GraphQL query: `me` — current user + service provider context
-- [ ] **2.17** GraphQL query: `myServiceProviders` — org switcher data
+- [x] **2.14** GraphQL mutations: `login`, `register`, `refreshToken`
+- [x] **2.15** GraphQL mutations: `acceptInvitation`
+- [x] **2.16** GraphQL query: `me` — current user + service provider context
+- [x] **2.17** GraphQL query: `myServiceProviders` — org switcher data
 
 ---
 

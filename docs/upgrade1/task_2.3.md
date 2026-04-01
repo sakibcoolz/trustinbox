@@ -34,10 +34,10 @@ The invite page **exists** with:
 ## Requirements
 
 ### 1. Token Validation
-- [ ] On mount, call `VALIDATE_INVITATION_QUERY` with token
-- [ ] Show loading spinner during validation
-- [ ] If valid: show invitation details (org name, inviter name, role)
-- [ ] If invalid/expired: show error state with "Go to Login" link
+- [x] On mount, call `VALIDATE_INVITATION_QUERY` with token
+- [x] Show loading spinner during validation
+- [x] If valid: show invitation details (org name, inviter name, role)
+- [x] If invalid/expired: show error state with "Go to Login" link
 
 ```graphql
 query ValidateInvitation($token: String!) {
@@ -53,22 +53,22 @@ query ValidateInvitation($token: String!) {
 ```
 
 ### 2. Accept Flow — Existing User
-- [ ] Pre-fill email from invitation data
-- [ ] Login via GraphQL mutation
-- [ ] Accept invitation via `ACCEPT_INVITATION_MUTATION`
-- [ ] Navigate to dashboard
+- [x] Pre-fill email from invitation data
+- [x] Login via GraphQL mutation
+- [x] Accept invitation via `ACCEPT_INVITATION_MUTATION`
+- [x] Navigate to dashboard
 
 ### 3. Accept Flow — New User
-- [ ] Pre-fill email from invitation data (read-only)
-- [ ] Minimal registration: fullName, password, confirmPassword
-- [ ] Register via GraphQL mutation + accept invitation
-- [ ] Navigate to dashboard
+- [x] Pre-fill email from invitation data (read-only)
+- [x] Minimal registration: fullName, password, confirmPassword
+- [x] Register via GraphQL mutation + accept invitation
+- [x] Navigate to dashboard
 
 ### 4. UI Improvements
-- [ ] Use `<Card>` component
-- [ ] Show org name and role in invitation banner
-- [ ] Tab-style toggle: "New Account" / "Existing Account"
-- [ ] Success state with confetti or checkmark animation
+- [x] Use `<Card>` component
+- [x] Show org name and role in invitation banner
+- [x] Tab-style toggle: "New Account" / "Existing Account"
+- [x] Success state with confetti or checkmark animation
 
 ---
 
@@ -102,13 +102,13 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ token: 
 
 ## Acceptance Criteria
 
-- [ ] Token validates on page load with loading state
-- [ ] Invalid tokens show clear error message
-- [ ] Valid tokens show org name, inviter, and role
-- [ ] New user registration works with pre-filled email
-- [ ] Existing user login + accept works
-- [ ] Success state navigates to dashboard
-- [ ] Accessible: form labels, error messages
+- [x] Token validates on page load with loading state
+- [x] Invalid tokens show clear error message
+- [x] Valid tokens show org name, inviter, and role
+- [x] New user registration works with pre-filled email
+- [x] Existing user login + accept works
+- [x] Success state navigates to dashboard
+- [x] Accessible: form labels, error messages
 
 ---
 

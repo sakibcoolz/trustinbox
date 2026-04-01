@@ -28,9 +28,9 @@ No centralized token management. No auto-refresh. No JWT decoding.
 ## Requirements
 
 ### 1. Token Storage Utility
-- [ ] Centralized `tokenManager` with get/set/clear methods
-- [ ] Store `accessToken`, `refreshToken`, `activeSpId`
-- [ ] Never expose raw tokens outside the module
+- [x] Centralized `tokenManager` with get/set/clear methods
+- [x] Store `accessToken`, `refreshToken`, `activeSpId`
+- [x] Never expose raw tokens outside the module
 
 ```typescript
 export const tokenManager = {
@@ -44,14 +44,14 @@ export const tokenManager = {
 ```
 
 ### 2. JWT Decoding (client-side only)
-- [ ] Decode JWT payload without verification (for expiry check)
-- [ ] Extract `exp`, `sub`, `role` from token
-- [ ] `isTokenExpired(token)` — returns boolean
-- [ ] `getTokenExpiresIn(token)` — returns milliseconds until expiry
+- [x] Decode JWT payload without verification (for expiry check)
+- [x] Extract `exp`, `sub`, `role` from token
+- [x] `isTokenExpired(token)` — returns boolean
+- [x] `getTokenExpiresIn(token)` — returns milliseconds until expiry
 
 ### 3. Silent Refresh
-- [ ] Schedule refresh 60 seconds before token expiry
-- [ ] Use `REFRESH_TOKEN_MUTATION`:
+- [x] Schedule refresh 60 seconds before token expiry
+- [x] Use `REFRESH_TOKEN_MUTATION`:
 ```graphql
 mutation RefreshToken($refreshToken: String!) {
   refreshToken(refreshToken: $refreshToken) {
@@ -60,16 +60,16 @@ mutation RefreshToken($refreshToken: String!) {
   }
 }
 ```
-- [ ] On success: update stored tokens
-- [ ] On failure: clear tokens, redirect to login
-- [ ] Prevent concurrent refresh attempts (de-duplicate)
+- [x] On success: update stored tokens
+- [x] On failure: clear tokens, redirect to login
+- [x] Prevent concurrent refresh attempts (de-duplicate)
 
 ### 4. 401 Retry Flow (Apollo Link)
-- [ ] On 401 from any GraphQL operation:
+- [x] On 401 from any GraphQL operation:
   1. Attempt refresh token
   2. If success: retry the failed operation with new token
   3. If failure: logout
-- [ ] Queue pending operations during refresh to prevent multiple refresh calls
+- [x] Queue pending operations during refresh to prevent multiple refresh calls
 
 ---
 
@@ -169,12 +169,12 @@ export const tokenManager = {
 
 ## Acceptance Criteria
 
-- [ ] All token access goes through `tokenManager` (no direct localStorage calls elsewhere)
-- [ ] JWT payload decoded for expiry checking
-- [ ] Silent refresh triggers before token expires
-- [ ] Concurrent refresh attempts are de-duplicated
-- [ ] Failed refresh clears all tokens and redirects to login
-- [ ] Works with SSR — guards against `window`/`localStorage` on server
+- [x] All token access goes through `tokenManager` (no direct localStorage calls elsewhere)
+- [x] JWT payload decoded for expiry checking
+- [x] Silent refresh triggers before token expires
+- [x] Concurrent refresh attempts are de-duplicated
+- [x] Failed refresh clears all tokens and redirects to login
+- [x] Works with SSR — guards against `window`/`localStorage` on server
 
 ---
 

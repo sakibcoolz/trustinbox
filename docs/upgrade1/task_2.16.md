@@ -103,9 +103,9 @@ export interface ServiceProviderDetail {
 ```
 
 ### 3. Usage Context
-- [ ] Called once on app mount in `AuthProvider` (task 2.4)
-- [ ] Cached by Apollo — components reading `useAuth()` don't trigger additional requests
-- [ ] Refetched on: login, SP switch, token refresh
+- [x] Called once on app mount in `AuthProvider` (task 2.4)
+- [x] Cached by Apollo — components reading `useAuth()` don't trigger additional requests
+- [x] Refetched on: login, SP switch, token refresh
 
 ---
 
@@ -119,11 +119,11 @@ export interface ServiceProviderDetail {
 
 ## Acceptance Criteria
 
-- [ ] ME_QUERY returns complete user profile with role
-- [ ] Service providers list includes role per SP
-- [ ] Active SP includes membership details
-- [ ] Types exported for use in AuthContext
-- [ ] Query result shapes match gateway schema
+- [x] ME_QUERY returns complete user profile with role
+- [x] Service providers list includes role per SP
+- [x] Active SP includes membership details
+- [x] Types exported for use in AuthContext
+- [x] Query result shapes match gateway schema
 
 ---
 

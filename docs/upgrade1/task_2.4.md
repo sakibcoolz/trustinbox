@@ -40,10 +40,10 @@ export function useRequireAuth(redirectTo = '/auth/login') { /* redirects if not
 ## Requirements
 
 ### 1. AuthContext Provider
-- [ ] Create `AuthProvider` context wrapping the entire app
-- [ ] Single GraphQL `ME_QUERY` on mount — sets user + role
-- [ ] Expose: `user`, `loading`, `error`, `isAuthenticated`, `role`, `activeServiceProvider`
-- [ ] Expose: `login()`, `logout()`, `refreshSession()`, `switchServiceProvider()`
+- [x] Create `AuthProvider` context wrapping the entire app
+- [x] Single GraphQL `ME_QUERY` on mount — sets user + role
+- [x] Expose: `user`, `loading`, `error`, `isAuthenticated`, `role`, `activeServiceProvider`
+- [x] Expose: `login()`, `logout()`, `refreshSession()`, `switchServiceProvider()`
 
 ### 2. ME Query
 ```graphql
@@ -70,21 +70,21 @@ query Me {
 ```
 
 ### 3. Token Refresh
-- [ ] On 401 response, attempt `REFRESH_TOKEN_MUTATION` with refreshToken
-- [ ] If refresh succeeds: update accessToken, retry original request
-- [ ] If refresh fails: clear tokens, redirect to login
-- [ ] Implement as Apollo Link (see task 2.6)
+- [x] On 401 response, attempt `REFRESH_TOKEN_MUTATION` with refreshToken
+- [x] If refresh succeeds: update accessToken, retry original request
+- [x] If refresh fails: clear tokens, redirect to login
+- [x] Implement as Apollo Link (see task 2.6)
 
 ### 4. Logout
-- [ ] Clear `accessToken`, `refreshToken`, `activeSpId`, `userSPs` from localStorage
-- [ ] Call optional `LOGOUT_MUTATION` (server-side token invalidation)
-- [ ] Reset Apollo cache
-- [ ] Navigate to `/auth/login`
+- [x] Clear `accessToken`, `refreshToken`, `activeSpId`, `userSPs` from localStorage
+- [x] Call optional `LOGOUT_MUTATION` (server-side token invalidation)
+- [x] Reset Apollo cache
+- [x] Navigate to `/auth/login`
 
 ### 5. Service Provider Context
-- [ ] `activeServiceProvider` from ME query or localStorage fallback
-- [ ] `switchServiceProvider(spId)` — updates localStorage, refetches ME query
-- [ ] Header auto-includes `X-Service-Provider-Id` (task 2.6)
+- [x] `activeServiceProvider` from ME query or localStorage fallback
+- [x] `switchServiceProvider(spId)` — updates localStorage, refetches ME query
+- [x] Header auto-includes `X-Service-Provider-Id` (task 2.6)
 
 ---
 
@@ -188,13 +188,13 @@ export function useRequireAuth(redirectTo = '/auth/login') {
 
 ## Acceptance Criteria
 
-- [ ] Single `ME_QUERY` call on app mount (no duplicate per-component calls)
-- [ ] `useAuth()` returns consistent user data across all components
-- [ ] `logout()` clears all state, resets Apollo cache, navigates to login
-- [ ] `switchServiceProvider()` updates context and refetches
-- [ ] `useRequireAuth()` redirects unauthenticated users
-- [ ] No flash of unauthenticated content (loading state handled)
-- [ ] Backward-compatible: existing `useAuth()` imports still work
+- [x] Single `ME_QUERY` call on app mount (no duplicate per-component calls)
+- [x] `useAuth()` returns consistent user data across all components
+- [x] `logout()` clears all state, resets Apollo cache, navigates to login
+- [x] `switchServiceProvider()` updates context and refetches
+- [x] `useRequireAuth()` redirects unauthenticated users
+- [x] No flash of unauthenticated content (loading state handled)
+- [x] Backward-compatible: existing `useAuth()` imports still work
 
 ---
 

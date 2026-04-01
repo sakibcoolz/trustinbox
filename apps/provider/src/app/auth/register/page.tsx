@@ -1,10 +1,17 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useMutation } from '@apollo/client';
 import {
   Building2, Mail, Lock, User, ArrowRight, ArrowLeft, CheckCircle,
-  Globe, FileText, Upload, X, Shield, MapPin, Phone, Hash, AlertTriangle,
+  Globe, FileText, Upload, X, Shield, MapPin, Phone, Hash, AlertTriangle, Loader2,
 } from 'lucide-react';
+import { REGISTER_MUTATION } from '@/lib/graphql/auth';
+import { tokenManager } from '@/lib/token';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/useToast';
+import { Card } from '@/components/ui/Card';
 import { auth, ApiError, type RegisterPayload } from '@/lib/api';
 
 const TOTAL_STEPS = 5;
@@ -41,9 +48,14 @@ const ALLOWED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const toast = useToast();
+  const { login: authLogin } = useAuth();
+  const [registerMutation] = useMutation(REGISTER_MUTATION);
+
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    fullName: '', email: '', password: '', confirmPassword: '',
+    fullName: '', email: '', username: '', password: '', confirmPassword: '',
     orgName: '', industry: '', legalName: '', website: '',
     registrationNumber: '', proofIdType: '', taxId: '',
     address: '', city: '', state: '', country: '', postalCode: '',
@@ -54,6 +66,29 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Persist form state in sessionStorage
+  useEffect(() => {
+    const saved = sessionStorage.getItem('register-form');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setForm((prev) => ({ ...prev, ...parsed }));
+        if (parsed._step) setStep(parsed._step);
+      } catch { /* ignore */ }
+    }
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem('register-form', JSON.stringify({ ...form, _step: step }));
+  }, [form, step]);
+
+  // Auto-generate username from email
+  useEffect(() => {
+    if (form.email && !form.username) {
+      setForm((prev) => ({ ...prev, username: form.email.split('@')[0] }));
+    }
+  }, [form.email]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function update(field: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -191,7 +226,7 @@ export default function RegisterPage() {
         email: form.email,
         password: form.password,
         fullName: form.fullName,
-        username: form.email.split('@')[0],
+        username: form.username || form.email.split('@')[0],
         orgName: form.orgName,
         industry: form.industry,
         legalName: form.legalName || undefined,
@@ -209,13 +244,27 @@ export default function RegisterPage() {
         termsAccepted: form.termsAccepted,
       };
 
-      const data = documents.length > 0
-        ? await auth.registerWithDocuments(payload, documents)
-        : await auth.register(payload);
+      let data;
+      if (documents.length > 0) {
+        // Document upload requires multipart — use REST fallback
+        data = await auth.registerWithDocuments(payload, documents);
+      } else {
+        // Use GraphQL for non-document registration
+        try {
+          const result = await registerMutation({ variables: { input: payload } });
+          data = result.data?.register;
+        } catch {
+          // Fallback to REST if GraphQL fails
+          data = await auth.register(payload);
+        }
+      }
 
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      window.location.href = '/';
+      if (data?.accessToken) {
+        authLogin(data.accessToken, data.refreshToken);
+        sessionStorage.removeItem('register-form');
+        toast.success('Organization registered successfully', 'Welcome to TrustInbox!');
+        router.push('/');
+      }
     } catch (err) {
       setError(err instanceof ApiError ? friendlyError(err.message) : 'Registration failed. Please try again.');
     } finally {
@@ -234,12 +283,12 @@ export default function RegisterPage() {
           <p className="text-text-muted text-sm mt-1">Provider Portal — Organization Registration</p>
         </div>
 
-        <div className="bg-bg-card border border-border-primary rounded-xl p-8">
+        <Card variant="default" padding="lg">
           {/* Step indicator */}
           <div className="flex items-center gap-3 mb-6">
             <div className="flex gap-1">
               {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-                <span key={i} className={`flex-1 h-1 rounded-full transition-colors ${step >= i + 1 ? 'bg-accent-blue' : 'bg-border-secondary'}`} />
+                <span key={i} className={`flex-1 h-1 rounded-full transition-colors ${step > i + 1 ? 'bg-status-success' : step === i + 1 ? 'bg-accent-blue' : 'bg-border-secondary'}`} />
               ))}
             </div>
             <span className="text-xs text-text-muted whitespace-nowrap">Step {step}/{TOTAL_STEPS}</span>
@@ -263,10 +312,14 @@ export default function RegisterPage() {
               <Field label="Work Email" icon={Mail}>
                 <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} required className={inputCls} placeholder="jane@acme.com" />
               </Field>
+              <Field label="Username" icon={User}>
+                <input type="text" value={form.username} onChange={(e) => update('username', e.target.value)} required className={inputCls} placeholder="jane.smith" />
+              </Field>
               <div>
                 <Field label="Password" icon={Lock}>
                   <input type="password" value={form.password} onChange={(e) => update('password', e.target.value)} required className={inputCls} placeholder="••••••••" />
                 </Field>
+                <PasswordStrength password={form.password} />
                 <p className="text-[11px] text-text-muted mt-1">Min 8 chars, 1 uppercase, 1 number, 1 special character</p>
               </div>
               <Field label="Confirm Password" icon={Lock}>
@@ -426,7 +479,7 @@ export default function RegisterPage() {
                 <ReviewSection title="Admin Account">
                   <p className="text-sm font-medium">{form.fullName}</p>
                   <p className="text-xs text-text-muted">{form.email}</p>
-                  <p className="text-xs text-text-muted mt-0.5">Username: <span className="font-mono">o/{form.email.split('@')[0]}</span></p>
+                  <p className="text-xs text-text-muted mt-0.5">Username: <span className="font-mono">o/{form.username || form.email.split('@')[0]}</span></p>
                 </ReviewSection>
                 <ReviewSection title="Organization">
                   <p className="text-sm font-medium">{form.orgName}</p>
@@ -475,8 +528,7 @@ export default function RegisterPage() {
                 </button>
                 <button type="button" onClick={handleSubmit} disabled={loading || !form.termsAccepted}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-blue text-white rounded-lg text-sm font-medium hover:bg-accent-blue/90 transition-colors disabled:opacity-50">
-                  {loading ? 'Creating…' : 'Create Account'}
-                  <CheckCircle size={16} />
+                  {loading ? <><Loader2 size={16} className="animate-spin" /> Creating…</> : <>Create Account <CheckCircle size={16} /></>}
                 </button>
               </div>
             </div>
@@ -486,7 +538,7 @@ export default function RegisterPage() {
             Already have an account?{' '}
             <a href="/auth/login" className="text-accent-blue hover:underline">Sign in</a>
           </p>
-        </div>
+        </Card>
       </div>
     </div>
   );
@@ -535,6 +587,31 @@ function ReviewSection({ title, children }: { title: string; children: React.Rea
     <div className="px-4 py-3">
       <p className="text-[10px] uppercase tracking-wider text-text-muted mb-1">{title}</p>
       {children}
+    </div>
+  );
+}
+
+function PasswordStrength({ password }: { password: string }) {
+  if (!password) return null;
+  const checks = [
+    password.length >= 8,
+    /[A-Z]/.test(password),
+    /[0-9]/.test(password),
+    /[^A-Za-z0-9]/.test(password),
+  ];
+  const score = checks.filter(Boolean).length;
+  const labels = ['Weak', 'Fair', 'Good', 'Strong'];
+  const colors = ['bg-status-error', 'bg-status-warning', 'bg-accent-blue', 'bg-status-success'];
+  return (
+    <div className="mt-2">
+      <div className="flex gap-1">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i < score ? colors[score - 1] : 'bg-border-secondary'}`} />
+        ))}
+      </div>
+      <p className={`text-[11px] mt-1 ${score <= 1 ? 'text-status-error' : score === 2 ? 'text-status-warning' : score === 3 ? 'text-accent-blue' : 'text-status-success'}`}>
+        {labels[score - 1] || ''}
+      </p>
     </div>
   );
 }
