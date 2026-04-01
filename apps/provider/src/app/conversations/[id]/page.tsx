@@ -1,115 +1,348 @@
 'use client';
 
-import { useState, use } from 'react';
-import { ArrowLeft, Send, Bot, User, Paperclip, MoreVertical, PhoneCall } from 'lucide-react';
-import Link from 'next/link';
+import { Suspense, use, useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { ChevronDown, Bot, User, Check, CheckCheck, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/Skeleton';
+import { ConversationHeader } from '@/components/conversations/ConversationHeader';
+import { ConversationInfoSidebar } from '@/components/conversations/ConversationInfoSidebar';
+import { AgentAssignDrawer } from '@/components/conversations/AgentAssignDrawer';
+import { MessageComposer } from '@/components/conversations/MessageComposer';
+import { FileAttachment } from '@/components/conversations/FileAttachment';
+import { TypingIndicator } from '@/components/conversations/TypingIndicator';
+import {
+  useConversation,
+  useSendMessage,
+  useMessageSubscription,
+  getSenderStyle,
+} from '@/lib/graphql/conversations';
+import type { MessageNode, SenderType, ReadStatus } from '@/lib/graphql/conversations';
+import { useToast } from '@/components/Toast';
 
-const mockMessages = [
-  { id: '1', sender: 'customer', text: 'Hi, I need help with my account settings.', time: '14:20' },
-  { id: '2', sender: 'bot', text: 'Hello! I\'d be happy to help you with your account settings. Could you please tell me what specific settings you\'d like to change?', time: '14:20' },
-  { id: '3', sender: 'customer', text: 'I want to update my notification preferences. I\'m getting too many promotional emails.', time: '14:21' },
-  { id: '4', sender: 'bot', text: 'I understand. You can manage your notification preferences from your profile. Would you like me to guide you through the steps, or would you prefer to speak with a human agent?', time: '14:21' },
-  { id: '5', sender: 'customer', text: 'Can you guide me through it?', time: '14:22' },
-  { id: '6', sender: 'bot', text: 'Sure! Here are the steps:\n1. Go to Settings → Notifications\n2. Under "Communication Preferences", you\'ll see categories\n3. Toggle off "Advertisement" to stop promotional emails\n4. Click Save\n\nWould you like me to do anything else?', time: '14:22' },
-];
+// ─── Day grouping helpers ───────────────────────────────
 
-const convInfo = {
-  customerVid: 'VID-4c9e1d',
-  status: 'Active',
-  assignee: 'Bot: Support Assistant',
-  startedAt: '2024-03-10 14:20',
-  category: 'Account Support',
-};
+function getDayLabel(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diff = today.getTime() - msgDay.getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
 
-export default function ConversationDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState(mockMessages);
+function groupMessagesByDay(messages: MessageNode[]): { label: string; messages: MessageNode[] }[] {
+  const groups: { label: string; messages: MessageNode[] }[] = [];
+  let currentLabel = '';
 
-  function handleSend(e: React.FormEvent) {
-    e.preventDefault();
-    if (!message.trim()) return;
-    setMessages((prev) => [...prev, { id: String(prev.length + 1), sender: 'agent', text: message, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-    setMessage('');
+  for (const msg of messages) {
+    const label = getDayLabel(msg.createdAt);
+    if (label !== currentLabel) {
+      groups.push({ label, messages: [msg] });
+      currentLabel = label;
+    } else {
+      groups[groups.length - 1].messages.push(msg);
+    }
+  }
+  return groups;
+}
+
+function formatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function isImageFile(metadata?: Record<string, unknown>): boolean {
+  const mime = (metadata?.mimeType as string) ?? '';
+  return mime.startsWith('image/');
+}
+
+// ─── Read Receipt ───────────────────────────────────────
+
+function ReadReceipt({ status }: { status: ReadStatus }) {
+  if (status === 'READ') {
+    return <CheckCheck size={12} className="text-accent-blue" />;
+  }
+  if (status === 'DELIVERED') {
+    return <CheckCheck size={12} className="text-text-muted" />;
+  }
+  return <Check size={12} className="text-text-muted" />;
+}
+
+// ─── Message Bubble ─────────────────────────────────────
+
+function MessageBubble({ message }: { message: MessageNode }) {
+  const isSystem = message.senderType === 'SYSTEM' || message.messageType === 'SYSTEM';
+  const isCustomer = message.senderType === 'CUSTOMER';
+  const isRight = !isCustomer && !isSystem;
+
+  if (isSystem) {
+    return (
+      <div className="flex justify-center py-1">
+        <span className="px-3 py-1 text-xs text-text-muted bg-bg-tertiary rounded-full">
+          {message.content}
+        </span>
+      </div>
+    );
   }
 
-  return (
-    <div className="flex flex-col h-[calc(100vh-0px)]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-border-primary bg-bg-secondary">
-        <div className="flex items-center gap-3">
-          <Link href="/conversations" className="p-2 rounded-lg hover:bg-bg-hover transition-colors">
-            <ArrowLeft size={18} className="text-text-muted" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">{convInfo.customerVid}</span>
-              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-status-success/10 text-status-success">{convInfo.status}</span>
-            </div>
-            <p className="text-xs text-text-muted">{convInfo.category} · {convInfo.assignee}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="p-2 rounded-lg hover:bg-bg-hover transition-colors text-text-muted" title="Request callback">
-            <PhoneCall size={16} />
-          </button>
-          <button className="p-2 rounded-lg hover:bg-bg-hover transition-colors text-text-muted">
-            <MoreVertical size={16} />
-          </button>
-        </div>
-      </div>
+  const style = getSenderStyle(message.senderType);
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.sender === 'customer' ? 'justify-start' : 'justify-end'}`}>
-            <div className={`max-w-[70%] ${msg.sender === 'customer' ? '' : ''}`}>
-              <div className="flex items-center gap-1.5 mb-1">
-                {msg.sender === 'customer' && <User size={12} className="text-text-muted" />}
-                {msg.sender === 'bot' && <Bot size={12} className="text-accent-purple" />}
-                {msg.sender === 'agent' && <User size={12} className="text-accent-blue" />}
-                <span className="text-xs text-text-muted capitalize">{msg.sender}</span>
-                <span className="text-xs text-text-muted">· {msg.time}</span>
-              </div>
-              <div className={`px-4 py-2.5 rounded-xl text-sm whitespace-pre-wrap ${
-                msg.sender === 'customer'
-                  ? 'bg-bg-card border border-border-primary text-text-primary'
-                  : msg.sender === 'bot'
-                    ? 'bg-accent-purple/10 border border-accent-purple/20 text-text-primary'
-                    : 'bg-accent-blue/10 border border-accent-blue/20 text-text-primary'
-              }`}>
-                {msg.text}
-              </div>
+  return (
+    <div className={`flex ${isRight ? 'justify-end' : 'justify-start'} mb-2`}>
+      <div className="max-w-[70%]">
+        {/* Sender label */}
+        <div className={`flex items-center gap-1.5 mb-0.5 ${isRight ? 'justify-end' : ''}`}>
+          {message.senderType === 'CUSTOMER' && <User size={12} className="text-text-muted" />}
+          {message.senderType === 'BOT' && <Bot size={12} className="text-accent-purple" />}
+          {(message.senderType === 'AGENT') && <User size={12} className="text-accent-blue" />}
+          <span className="text-[10px] text-text-muted">{message.senderName}</span>
+          <span className="text-[10px] text-text-muted">· {formatTime(message.createdAt)}</span>
+        </div>
+
+        {/* Bubble */}
+        <div
+          className={`px-4 py-2.5 text-sm whitespace-pre-wrap ${
+            isCustomer
+              ? 'bg-bg-card border border-border-primary rounded-2xl rounded-bl-sm'
+              : message.senderType === 'BOT'
+                ? 'bg-accent-purple/10 border border-accent-purple/20 rounded-2xl rounded-br-sm'
+                : 'bg-accent-blue/10 border border-accent-blue/20 rounded-2xl rounded-br-sm'
+          } text-text-primary`}
+        >
+          {/* File attachment */}
+          {message.messageType === 'FILE' && message.metadata && (
+            <div className="mb-2">
+              <FileAttachment
+                fileUrl={(message.metadata.url as string) ?? '#'}
+                fileName={(message.metadata.fileName as string) ?? 'File'}
+                fileSize={message.metadata.fileSize as number | undefined}
+                fileType={(message.metadata.mimeType as string) ?? ''}
+                isImage={isImageFile(message.metadata)}
+              />
             </div>
+          )}
+
+          {/* Text content */}
+          {message.content && <span>{message.content}</span>}
+        </div>
+
+        {/* Read receipt for outgoing */}
+        {isRight && message.readStatus && (
+          <div className="flex justify-end mt-0.5">
+            <ReadReceipt status={message.readStatus} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Day Divider ────────────────────────────────────────
+
+function DayDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 py-3">
+      <div className="flex-1 h-px bg-border-secondary" />
+      <span className="text-[10px] text-text-muted font-medium uppercase tracking-wider">{label}</span>
+      <div className="flex-1 h-px bg-border-secondary" />
+    </div>
+  );
+}
+
+// ─── Loading Skeleton ───────────────────────────────────
+
+function DetailSkeleton() {
+  return (
+    <div className="flex flex-col h-[calc(100vh-64px)]">
+      <div className="px-4 py-3 border-b border-border-primary">
+        <Skeleton className="h-5 w-40" />
+      </div>
+      <div className="flex-1 p-6 space-y-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className={`flex ${i % 2 ? 'justify-start' : 'justify-end'}`}>
+            <Skeleton className="h-16 w-60 rounded-xl" />
           </div>
         ))}
       </div>
+      <div className="px-4 py-3 border-t border-border-primary">
+        <Skeleton className="h-10 w-full rounded-lg" />
+      </div>
+    </div>
+  );
+}
 
-      {/* Bot suggestion bar */}
-      <div className="px-6 py-2 border-t border-border-primary bg-bg-tertiary">
-        <div className="flex items-center gap-2 text-xs text-text-muted">
-          <Bot size={14} className="text-accent-purple" />
-          <span className="font-medium text-accent-purple">Bot Suggestion:</span>
-          <span>Customer seems satisfied. Offer to close the conversation or ask if there&apos;s anything else.</span>
+// ─── Main Content ───────────────────────────────────────
+
+function ConversationDetailContent({ id }: { id: string }) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { error: toastError } = useToast();
+
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [typingLabel, setTypingLabel] = useState<string | null>(null);
+
+  const { data, loading, fetchMoreMessages, hasMoreMessages } = useConversation(id);
+  const { sendMessage, loading: sending } = useSendMessage();
+
+  // Real-time
+  useMessageSubscription(id);
+
+  const conversation = data?.conversation ?? null;
+  const messages = conversation?.messages?.nodes ?? [];
+
+  // Sorted messages (oldest first for display)
+  const sortedMessages = useMemo(() => {
+    if (!messages) return [];
+    return [...messages].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }, [messages]);
+
+  const dayGroups = useMemo(() => groupMessagesByDay(sortedMessages), [sortedMessages]);
+
+  // Auto-scroll to bottom on new messages
+  const prevCountRef = useRef(0);
+  useEffect(() => {
+    if (sortedMessages.length > prevCountRef.current && !showScrollBtn) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    prevCountRef.current = sortedMessages.length;
+  }, [sortedMessages.length, showScrollBtn]);
+
+  // Scroll detection
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    // Show "scroll to bottom" if scrolled up more than 200px
+    const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setShowScrollBtn(fromBottom > 200);
+
+    // Load older messages when near top
+    if (el.scrollTop < 100 && hasMoreMessages) {
+      const prevHeight = el.scrollHeight;
+      fetchMoreMessages().then(() => {
+        // Preserve scroll position
+        requestAnimationFrame(() => {
+          el.scrollTop = el.scrollHeight - prevHeight;
+        });
+      });
+    }
+  }, [hasMoreMessages, fetchMoreMessages]);
+
+  function scrollToBottom() {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  async function handleSend(content: string) {
+    try {
+      await sendMessage({
+        conversationId: id,
+        content,
+      });
+    } catch {
+      toastError('Failed to send message');
+    }
+  }
+
+  if (loading && !conversation) return <DetailSkeleton />;
+  if (!conversation) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+        <p className="text-text-muted">Conversation not found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-[calc(100vh-64px)]">
+      {/* Main chat area */}
+      <div className="flex flex-col flex-1 min-w-0">
+        <ConversationHeader
+          conversation={conversation}
+          onToggleInfo={() => setInfoOpen(!infoOpen)}
+          onAssign={() => setAssignOpen(true)}
+          infoOpen={infoOpen}
+        />
+
+        {/* Messages */}
+        <div
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto px-6 py-4"
+        >
+          {/* Load more indicator */}
+          {hasMoreMessages && (
+            <div className="flex justify-center py-2">
+              <Loader2 size={16} className="text-text-muted animate-spin" />
+            </div>
+          )}
+
+          {dayGroups.map((group) => (
+            <div key={group.label}>
+              <DayDivider label={group.label} />
+              {group.messages.map((msg) => (
+                <MessageBubble key={msg.id} message={msg} />
+              ))}
+            </div>
+          ))}
+
+          {typingLabel && <TypingIndicator label={typingLabel} />}
+
+          <div ref={messagesEndRef} />
         </div>
+
+        {/* Scroll to bottom */}
+        {showScrollBtn && (
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10">
+            <button
+              onClick={scrollToBottom}
+              className="flex items-center gap-1 px-3 py-1.5 bg-bg-card border border-border-primary rounded-full shadow-lg text-xs text-text-secondary hover:bg-bg-hover transition-colors"
+            >
+              <ChevronDown size={14} />
+              New messages
+            </button>
+          </div>
+        )}
+
+        {/* Composer */}
+        <MessageComposer
+          conversationId={id}
+          onSend={handleSend}
+          sending={sending}
+          disabled={conversation.status === 'ARCHIVED'}
+        />
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSend} className="px-6 py-3 border-t border-border-primary bg-bg-secondary">
-        <div className="flex items-center gap-3">
-          <button type="button" className="p-2 rounded-lg hover:bg-bg-hover transition-colors text-text-muted">
-            <Paperclip size={16} />
-          </button>
-          <input type="text" value={message} onChange={(e) => setMessage(e.target.value)}
-            className="flex-1 px-4 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active"
-            placeholder="Type a message…" />
-          <button type="submit"
-            className="p-2.5 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors disabled:opacity-50"
-            disabled={!message.trim()}>
-            <Send size={16} />
-          </button>
-        </div>
-      </form>
+      {/* Info sidebar */}
+      <ConversationInfoSidebar
+        conversation={conversation}
+        open={infoOpen}
+        onClose={() => setInfoOpen(false)}
+      />
+
+      {/* Agent assign drawer */}
+      <AgentAssignDrawer
+        open={assignOpen}
+        onClose={() => setAssignOpen(false)}
+        conversationId={id}
+        currentAssigneeId={conversation.assignee?.id}
+      />
     </div>
+  );
+}
+
+// ─── Page ───────────────────────────────────────────────
+
+export default function ConversationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+
+  return (
+    <Suspense fallback={<DetailSkeleton />}>
+      <ConversationDetailContent id={id} />
+    </Suspense>
   );
 }

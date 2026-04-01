@@ -186,33 +186,33 @@
 
 ### Route: `/conversations`
 
-- [ ] **6.1** Conversation list — left panel showing all active conversations with customer virtual ID, last message preview, unread badge, timestamp
-- [ ] **6.2** Search conversations — by customer name/virtual ID or message content
-- [ ] **6.3** Filter — by status (active, archived), unread only, date range
-- [ ] **6.4** Sort — by last message time (default), by unread first
+- [x] **6.1** Conversation list — left panel showing all active conversations with customer virtual ID, last message preview, unread badge, timestamp
+- [x] **6.2** Search conversations — by customer name/virtual ID or message content
+- [x] **6.3** Filter — by status (active, archived), unread only, date range
+- [x] **6.4** Sort — by last message time (default), by unread first
 
 ### Route: `/conversations/[id]`
 
-- [ ] **6.5** ConversationPanel component — chat-style message thread:
+- [x] **6.5** ConversationPanel component — chat-style message thread:
   - Message bubbles — sent (right, blue) vs received (left, gray)
   - Timestamps between message groups
   - Read receipts
   - File attachment previews (images inline, docs as cards)
   - System messages (callback approved, policy blocked, etc.)
-- [ ] **6.6** Message composer bar — text input, file attach button, emoji picker, send button
-- [ ] **6.7** File attachment — upload via DocumentManager, show preview before send
-- [ ] **6.8** Typing indicator — shows when customer is typing
-- [ ] **6.9** Conversation actions toolbar — "Request Callback", "Share Document", "Archive", "Assign to Agent"
-- [ ] **6.10** Agent assignment — assign conversation to team member (agent role)
-- [ ] **6.11** Conversation info sidebar — customer profile card, shared documents list, callback history
+- [x] **6.6** Message composer bar — text input, file attach button, emoji picker, send button
+- [x] **6.7** File attachment — upload via DocumentManager, show preview before send
+- [x] **6.8** Typing indicator — shows when customer is typing
+- [x] **6.9** Conversation actions toolbar — "Request Callback", "Share Document", "Archive", "Assign to Agent"
+- [x] **6.10** Agent assignment — assign conversation to team member (agent role)
+- [x] **6.11** Conversation info sidebar — customer profile card, shared documents list, callback history
 
 ### Connected Backend
 
-- [ ] **6.12** GraphQL query: `conversations(spId)` → list with latest message
-- [ ] **6.13** GraphQL query: `conversation(id)` → messages with pagination (cursor-based, latest first)
-- [ ] **6.14** GraphQL mutation: `sendMessage(conversationId, content, attachments)` → policy-checked message
-- [ ] **6.15** GraphQL subscription: `providerMessageReceived(spId)` → real-time new message
-- [ ] **6.16** GraphQL subscription: `messageReceived(conversationId)` → per-conversation live updates
+- [x] **6.12** GraphQL query: `conversations(spId)` → list with latest message
+- [x] **6.13** GraphQL query: `conversation(id)` → messages with pagination (cursor-based, latest first)
+- [x] **6.14** GraphQL mutation: `sendMessage(conversationId, content, attachments)` → policy-checked message
+- [x] **6.15** GraphQL subscription: `providerMessageReceived(spId)` → real-time new message
+- [x] **6.16** GraphQL subscription: `messageReceived(conversationId)` → per-conversation live updates
 
 ---
 
