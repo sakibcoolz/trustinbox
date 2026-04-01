@@ -266,41 +266,41 @@
 
 ### Route: `/campaigns`
 
-- [ ] **9.1** Campaign list table — name, status (Draft/Scheduled/Active/Completed/Cancelled), target audience size, delivery stats, created_at
-- [ ] **9.2** Status filter chips — Draft, Scheduled, Active, Completed, Cancelled
-- [ ] **9.3** Search by campaign name
-- [ ] **9.4** Campaign performance mini-chart — sparkline showing delivery progress for active campaigns
+- [x] **9.1** Campaign list table — name, status (Draft/Scheduled/Active/Completed/Cancelled), target audience size, delivery stats, created_at
+- [x] **9.2** Status filter chips — Draft, Scheduled, Active, Completed, Cancelled
+- [x] **9.3** Search by campaign name
+- [x] **9.4** Campaign performance mini-chart — sparkline showing delivery progress for active campaigns
 
 ### Route: `/campaigns/new`
 
-- [ ] **9.5** CampaignBuilder component — multi-step wizard:
+- [x] **9.5** CampaignBuilder component — multi-step wizard:
   - **Step 1 — Basics**: Name, description, category (Organizational/Advertisement)
   - **Step 2 — Audience**: Filter by tags, segments, or manual selection of customer virtual IDs
   - **Step 3 — Content**: Notification subject, body (rich text), channel selection
   - **Step 4 — Schedule**: Send immediately, or schedule date/time with timezone
   - **Step 5 — Review**: Summary of all settings, audience count, estimated delivery rate
-- [ ] **9.6** Policy preview — `previewCampaignPolicy(input)` → shows how many recipients would be allowed vs blocked
-- [ ] **9.7** Save as draft — persist campaign without launching
-- [ ] **9.8** Launch confirmation — modal with final audience count, policy summary, "Launch Campaign" CTA
+- [x] **9.6** Policy preview — `previewCampaignPolicy(input)` → shows how many recipients would be allowed vs blocked
+- [x] **9.7** Save as draft — persist campaign without launching
+- [x] **9.8** Launch confirmation — modal with final audience count, policy summary, "Launch Campaign" CTA
 
 ### Route: `/campaigns/[id]`
 
-- [ ] **9.9** Campaign detail view — full settings, audience breakdown, delivery progress
-- [ ] **9.10** Delivery progress bar — sent / delivered / failed / blocked counts with progress percentage
-- [ ] **9.11** Recipient table — per-recipient delivery status with timestamps
-- [ ] **9.12** Campaign actions — Edit (if draft), Cancel (if active/scheduled), Clone
-- [ ] **9.13** Campaign analytics — delivery rate, open rate (if trackable), policy block reasons breakdown
+- [x] **9.9** Campaign detail view — full settings, audience breakdown, delivery progress
+- [x] **9.10** Delivery progress bar — sent / delivered / failed / blocked counts with progress percentage
+- [x] **9.11** Recipient table — per-recipient delivery status with timestamps
+- [x] **9.12** Campaign actions — Edit (if draft), Cancel (if active/scheduled), Clone
+- [x] **9.13** Campaign analytics — delivery rate, open rate (if trackable), policy block reasons breakdown
 
 ### Connected Backend
 
-- [ ] **9.14** GraphQL query: `campaigns(spId, filters)` → list
-- [ ] **9.15** GraphQL mutation: `createCampaign(input)` → draft
-- [ ] **9.16** GraphQL mutation: `updateCampaign(id, input)` → edit draft
-- [ ] **9.17** GraphQL mutation: `launchCampaign(id)` → trigger worker fan-out
-- [ ] **9.18** GraphQL mutation: `cancelCampaign(id)` → stop delivery
-- [ ] **9.19** GraphQL query: `previewCampaignPolicy(input)` → pre-launch policy evaluation
-- [ ] **9.20** GraphQL query: `campaignAnalytics(campaignId)` → performance metrics
-- [ ] **9.21** GraphQL subscription: `providerCampaignProgressUpdated(spId)` → real-time delivery progress
+- [x] **9.14** GraphQL query: `campaigns(spId, filters)` → list
+- [x] **9.15** GraphQL mutation: `createCampaign(input)` → draft
+- [x] **9.16** GraphQL mutation: `updateCampaign(id, input)` → edit draft
+- [x] **9.17** GraphQL mutation: `launchCampaign(id)` → trigger worker fan-out
+- [x] **9.18** GraphQL mutation: `cancelCampaign(id)` → stop delivery
+- [x] **9.19** GraphQL query: `previewCampaignPolicy(input)` → pre-launch policy evaluation
+- [x] **9.20** GraphQL query: `campaignAnalytics(campaignId)` → performance metrics
+- [x] **9.21** GraphQL subscription: `providerCampaignProgressUpdated(spId)` → real-time delivery progress
 
 ---
 
