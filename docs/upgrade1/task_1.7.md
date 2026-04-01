@@ -30,19 +30,19 @@ No toast system exists. Feedback is only provided via inline elements in individ
 | `info` | Info | `border-status-info` | Real-time event (new callback, message received) |
 
 ### 2. Toast Behavior
-- [ ] Stack vertically from top-right corner
-- [ ] Max 5 visible toasts at once (oldest dismissed when exceeded)
-- [ ] Auto-dismiss: success (3s), info (4s), warning (5s), error (6s)
-- [ ] Manual dismiss via close (X) button
-- [ ] Hover pauses auto-dismiss timer
-- [ ] Enter animation: slide-in from right + fade-in (200ms)
-- [ ] Exit animation: slide-out right + fade-out (150ms)
+- [x] Stack vertically from top-right corner
+- [x] Max 5 visible toasts at once (oldest dismissed when exceeded)
+- [x] Auto-dismiss: success (3s), info (4s), warning (5s), error (6s)
+- [x] Manual dismiss via close (X) button
+- [x] Hover pauses auto-dismiss timer
+- [x] Enter animation: slide-in from right + fade-in (200ms)
+- [x] Exit animation: slide-out right + fade-out (150ms)
 
 ### 3. Toast Content
-- [ ] Title (bold, required)
-- [ ] Description (optional, secondary text)
-- [ ] Action button (optional, e.g., "View", "Retry", "Undo")
-- [ ] Close button (always present)
+- [x] Title (bold, required)
+- [x] Description (optional, secondary text)
+- [x] Action button (optional, e.g., "View", "Retry", "Undo")
+- [x] Close button (always present)
 
 ### 4. Toast Context API
 ```typescript
@@ -67,9 +67,9 @@ interface ToastContext {
 ```
 
 ### 5. Integration
-- [ ] `<ToastProvider>` wraps the app in root layout
-- [ ] `useToast()` hook available from any component
-- [ ] Toast container renders as portal to `document.body` (above all z-indexes)
+- [x] `<ToastProvider>` wraps the app in root layout
+- [x] `useToast()` hook available from any component
+- [x] Toast container renders as portal to `document.body` (above all z-indexes)
 
 ---
 

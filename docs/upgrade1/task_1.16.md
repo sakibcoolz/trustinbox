@@ -30,13 +30,13 @@ No modal component. Confirmations and forms would need to be built inline.
 | `xl` | 800px | Full editors, previews |
 
 ### 2. Modal Behavior
-- [ ] Centered vertically and horizontally with some top offset
-- [ ] Backdrop: `bg-black/50 backdrop-blur-sm`
-- [ ] Close on Escape, close button, and optionally backdrop click
-- [ ] Enter animation: scale(0.95) → scale(1) + fade-in (150ms)
-- [ ] Body scroll lock when open
-- [ ] Focus trap inside modal
-- [ ] Render as portal to `document.body`
+- [x] Centered vertically and horizontally with some top offset
+- [x] Backdrop: `bg-black/50 backdrop-blur-sm`
+- [x] Close on Escape, close button, and optionally backdrop click
+- [x] Enter animation: scale(0.95) → scale(1) + fade-in (150ms)
+- [x] Body scroll lock when open
+- [x] Focus trap inside modal
+- [x] Render as portal to `document.body`
 
 ### 3. Component API
 ```typescript
@@ -126,14 +126,14 @@ export function ConfirmDialog({ open, onConfirm, onCancel, title, description, c
 
 ## Acceptance Criteria
 
-- [ ] Modal centers on screen with backdrop blur
-- [ ] Escape closes modal
-- [ ] Focus trapped inside modal
-- [ ] ConfirmDialog shows title, description, Cancel + Confirm buttons
-- [ ] Danger variant shows red confirm button
-- [ ] Loading state disables confirm button and shows "Processing…"
-- [ ] Body scroll locked when modal open
-- [ ] Accessible: `role="dialog"`, `aria-modal="true"`, `aria-labelledby`
+- [x] Modal centers on screen with backdrop blur
+- [x] Escape closes modal
+- [x] Focus trapped inside modal
+- [x] ConfirmDialog shows title, description, Cancel + Confirm buttons
+- [x] Danger variant shows red confirm button
+- [x] Loading state disables confirm button and shows "Processing…"
+- [x] Body scroll locked when modal open
+- [x] Accessible: `role="dialog"`, `aria-modal="true"`, `aria-labelledby`
 
 ---
 

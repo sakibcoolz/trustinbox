@@ -37,10 +37,10 @@ No filter component exists. Feature pages would need to implement filtering ad-h
 - Removable: active chips show `X` button to clear
 
 ### 3. Filter Bar Features
-- [ ] Horizontal scrolling if chips overflow container
-- [ ] "Clear All" button appears when any filter is active
-- [ ] URL sync — active filters reflected in query params (`?status=DELIVERED&category=PERSONAL`)
-- [ ] `onFilterChange(filters: FilterState)` callback
+- [x] Horizontal scrolling if chips overflow container
+- [x] "Clear All" button appears when any filter is active
+- [x] URL sync — active filters reflected in query params (`?status=DELIVERED&category=PERSONAL`)
+- [x] `onFilterChange(filters: FilterState)` callback
 
 ### 4. Component API
 ```typescript
@@ -95,13 +95,13 @@ export function FilterChipBar({ filters, activeFilters, onFilterChange, onClearA
 
 ## Acceptance Criteria
 
-- [ ] Filter chips render for all defined filter types
-- [ ] Clicking a select chip opens dropdown with options
-- [ ] Active filters show blue highlight and X button
-- [ ] "Clear All" resets all filters
-- [ ] Filters sync to URL query params
-- [ ] Horizontal scroll works when many filters are active
-- [ ] Works with DataTable component (task 1.13) — filters update table data
+- [x] Filter chips render for all defined filter types
+- [x] Clicking a select chip opens dropdown with options
+- [x] Active filters show blue highlight and X button
+- [x] "Clear All" resets all filters
+- [x] Filters sync to URL query params
+- [x] Horizontal scroll works when many filters are active
+- [x] Works with DataTable component (task 1.13) — filters update table data
 
 ---
 

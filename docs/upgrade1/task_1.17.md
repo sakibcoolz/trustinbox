@@ -22,21 +22,21 @@ No tab component exists. Multi-section pages have no way to segment content.
 ## Requirements
 
 ### 1. Tab Appearance
-- [ ] Underline style: active tab has `border-b-2 border-accent-blue text-text-primary font-medium`
-- [ ] Inactive: `text-text-secondary hover:text-text-primary`
-- [ ] Tab row has bottom border: `border-b border-border-primary`
-- [ ] Optional icon before tab label
+- [x] Underline style: active tab has `border-b-2 border-accent-blue text-text-primary font-medium`
+- [x] Inactive: `text-text-secondary hover:text-text-primary`
+- [x] Tab row has bottom border: `border-b border-border-primary`
+- [x] Optional icon before tab label
 
 ### 2. Tab Behavior
-- [ ] Click tab switches visible panel
-- [ ] Lazy rendering: panel content mounts only on first activation (remains mounted after)
-- [ ] Optional controlled mode (`activeTab` + `onTabChange` props)
-- [ ] Optional uncontrolled mode (internal state with `defaultTab`)
-- [ ] Tab content transition: fade-in on switch (100ms)
+- [x] Click tab switches visible panel
+- [x] Lazy rendering: panel content mounts only on first activation (remains mounted after)
+- [x] Optional controlled mode (`activeTab` + `onTabChange` props)
+- [x] Optional uncontrolled mode (internal state with `defaultTab`)
+- [x] Tab content transition: fade-in on switch (100ms)
 
 ### 3. URL Sync
-- [ ] Optional `syncUrl` prop: active tab name sent to URL `?tab=name`
-- [ ] On page refresh, restores active tab from URL
+- [x] Optional `syncUrl` prop: active tab name sent to URL `?tab=name`
+- [x] On page refresh, restores active tab from URL
 
 ### 4. Component API
 ```typescript
@@ -130,13 +130,13 @@ export function TabPanel({ children }: TabPanelProps) {
 
 ## Acceptance Criteria
 
-- [ ] Active tab shows blue underline and bold text
-- [ ] Clicking tab switches panel content
-- [ ] Lazy rendering: panels mount on first view, then stay mounted
-- [ ] Badge count shows red pill on tab
-- [ ] Disabled tabs are non-interactive and dimmed
-- [ ] URL sync option preserves tab state across refresh
-- [ ] Accessible: `role="tablist"`, `role="tab"`, `role="tabpanel"`, `aria-selected`
+- [x] Active tab shows blue underline and bold text
+- [x] Clicking tab switches panel content
+- [x] Lazy rendering: panels mount on first view, then stay mounted
+- [x] Badge count shows red pill on tab
+- [x] Disabled tabs are non-interactive and dimmed
+- [x] URL sync option preserves tab state across refresh
+- [x] Accessible: `role="tablist"`, `role="tab"`, `role="tabpanel"`, `aria-selected`
 
 ---
 

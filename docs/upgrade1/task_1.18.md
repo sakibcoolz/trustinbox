@@ -111,12 +111,12 @@ export function StatusBadge({ status }: { status: string }) {
 
 ## Acceptance Criteria
 
-- [ ] `<Badge variant="success">Delivered</Badge>` renders green pill
-- [ ] `<StatusBadge status="PENDING" />` auto-maps to yellow warning badge
-- [ ] Dot indicator shows colored circle before text when enabled
-- [ ] All 7 variants render with correct color combinations
-- [ ] Size variants (sm/md) affect font size and padding
-- [ ] Used consistently across all tables and detail views
+- [x] `<Badge variant="success">Delivered</Badge>` renders green pill
+- [x] `<StatusBadge status="PENDING" />` auto-maps to yellow warning badge
+- [x] Dot indicator shows colored circle before text when enabled
+- [x] All 7 variants render with correct color combinations
+- [x] Size variants (sm/md) affect font size and padding
+- [x] Used consistently across all tables and detail views
 
 ---
 

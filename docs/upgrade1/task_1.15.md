@@ -22,17 +22,17 @@ No drawer component exists. Detail views require full page navigation.
 ## Requirements
 
 ### 1. Drawer Behavior
-- [ ] Slides in from right edge of viewport
-- [ ] Backdrop overlay: `bg-black/50 backdrop-blur-sm`
-- [ ] Close on backdrop click, Escape key, or close button
-- [ ] Width options: `sm` (384px), `md` (512px), `lg` (640px), `xl` (768px), `full` (100%)
-- [ ] Transition: `transform translateX` 250ms ease
+- [x] Slides in from right edge of viewport
+- [x] Backdrop overlay: `bg-black/50 backdrop-blur-sm`
+- [x] Close on backdrop click, Escape key, or close button
+- [x] Width options: `sm` (384px), `md` (512px), `lg` (640px), `xl` (768px), `full` (100%)
+- [x] Transition: `transform translateX` 250ms ease
 
 ### 2. Drawer Layout
-- [ ] Header: title + close button, sticky top with bottom border
-- [ ] Body: scrollable content area
-- [ ] Footer (optional): sticky bottom with top border for action buttons
-- [ ] Focus trap when open (tabbing stays within drawer)
+- [x] Header: title + close button, sticky top with bottom border
+- [x] Body: scrollable content area
+- [x] Footer (optional): sticky bottom with top border for action buttons
+- [x] Focus trap when open (tabbing stays within drawer)
 
 ### 3. Component API
 ```typescript
@@ -113,14 +113,14 @@ export function Drawer({ open, onClose, title, size = 'md', children, footer }: 
 
 ## Acceptance Criteria
 
-- [ ] Drawer slides in from right with smooth animation
-- [ ] Backdrop dims content and closes on click
-- [ ] Escape key closes drawer
-- [ ] Body scrolls independently, header/footer stay fixed
-- [ ] Focus trapped inside drawer when open
-- [ ] Body scroll locked when drawer is open
-- [ ] All size variants render at correct widths
-- [ ] Works on mobile — full width on small screens
+- [x] Drawer slides in from right with smooth animation
+- [x] Backdrop dims content and closes on click
+- [x] Escape key closes drawer
+- [x] Body scrolls independently, header/footer stay fixed
+- [x] Focus trapped inside drawer when open
+- [x] Body scroll locked when drawer is open
+- [x] All size variants render at correct widths
+- [x] Works on mobile — full width on small screens
 
 ---
 

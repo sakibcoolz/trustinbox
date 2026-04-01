@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Bell, Search, User, Settings, LogOut, ChevronDown, UserCircle,
+  Bell, Search, Settings, LogOut, ChevronDown, UserCircle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { Breadcrumb } from '@/components/Breadcrumb';
+import { cn } from '@/lib/utils';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -34,7 +36,6 @@ const PAGE_TITLES: Record<string, string> = {
 
 function getPageTitle(pathname: string): string {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
-  // Match dynamic routes
   for (const [path, title] of Object.entries(PAGE_TITLES)) {
     if (pathname.startsWith(path) && path !== '/') return title;
   }
@@ -45,6 +46,7 @@ export default function Header() {
   const pathname = usePathname();
   const { user } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -56,6 +58,18 @@ export default function Header() {
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // Cmd+K / Ctrl+K keyboard shortcut
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   function handleLogout() {
@@ -73,85 +87,148 @@ export default function Header() {
   const pageTitle = getPageTitle(pathname);
 
   return (
-    <header className="h-14 bg-bg-secondary border-b border-border-primary flex items-center justify-between px-6 shrink-0">
-      {/* Left: Page title */}
-      <div className="flex items-center gap-3">
-        <h2 className="text-sm font-semibold text-text-primary">{pageTitle}</h2>
-      </div>
+    <>
+      <header className="h-14 bg-bg-secondary border-b border-border-primary flex items-center justify-between px-6 shrink-0">
+        {/* Left: Page title + breadcrumbs */}
+        <div className="flex flex-col justify-center">
+          <h2 className="text-sm font-semibold text-text-primary">{pageTitle}</h2>
+          <Breadcrumb />
+        </div>
 
-      {/* Right: Actions */}
-      <div className="flex items-center gap-2">
-        {/* Search trigger */}
-        <button className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors" title="Search">
-          <Search size={16} />
-        </button>
-
-        {/* Notifications bell */}
-        <button className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors relative" title="Notifications">
-          <Bell size={16} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-status-error rounded-full"></span>
-        </button>
-
-        {/* Divider */}
-        <div className="w-px h-6 bg-border-primary mx-1"></div>
-
-        {/* Profile dropdown */}
-        <div className="relative" ref={dropdownRef}>
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2">
+          {/* Search trigger */}
           <button
-            onClick={() => setProfileOpen(!profileOpen)}
-            className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-bg-hover transition-colors"
+            onClick={() => setSearchOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors text-xs border border-border-primary"
+            title="Search (Ctrl+K)"
           >
-            <div className="w-8 h-8 rounded-full bg-accent-blue/20 flex items-center justify-center text-accent-blue text-xs font-semibold shrink-0">
-              {initials}
-            </div>
-            {user && (
-              <div className="hidden md:block text-left">
-                <p className="text-xs font-medium text-text-primary leading-none">{user.fullName}</p>
-                <p className="text-[10px] text-text-muted leading-none mt-0.5">{user.role?.replace('_', ' ')}</p>
-              </div>
-            )}
-            <ChevronDown size={12} className={`text-text-muted transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
+            <Search size={14} />
+            <span className="hidden md:inline text-text-muted">Search…</span>
+            <kbd className="hidden md:inline px-1.5 py-0.5 rounded bg-bg-hover border border-border-secondary text-[10px] text-text-muted font-mono">
+              ⌘K
+            </kbd>
           </button>
 
-          {profileOpen && (
-            <div className="absolute right-0 top-full mt-2 w-56 bg-bg-card border border-border-primary rounded-xl shadow-2xl py-1 z-50">
-              {/* User info header */}
+          {/* Notifications bell */}
+          <button className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors relative" title="Notifications">
+            <Bell size={16} />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-status-error rounded-full"></span>
+          </button>
+
+          {/* Divider */}
+          <div className="w-px h-6 bg-border-primary mx-1"></div>
+
+          {/* Profile dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-bg-hover transition-colors"
+            >
+              <div className="w-8 h-8 rounded-full bg-accent-blue/20 flex items-center justify-center text-accent-blue text-xs font-semibold shrink-0">
+                {initials}
+              </div>
               {user && (
-                <div className="px-4 py-3 border-b border-border-primary">
-                  <p className="text-sm font-medium text-text-primary truncate">{user.fullName}</p>
-                  <p className="text-xs text-text-muted truncate">{user.email}</p>
-                  <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-medium bg-accent-purple/10 text-accent-purple">
-                    {user.role}
-                  </span>
+                <div className="hidden md:block text-left">
+                  <p className="text-xs font-medium text-text-primary leading-none">{user.fullName}</p>
+                  <p className="text-[10px] text-text-muted leading-none mt-0.5">{user.role?.replace('_', ' ')}</p>
                 </div>
               )}
+              <ChevronDown size={12} className={cn('text-text-muted transition-transform', profileOpen && 'rotate-180')} />
+            </button>
 
-              {/* Menu items */}
-              <div className="py-1">
-                <Link href="/settings/profile" onClick={() => setProfileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors">
-                  <UserCircle size={14} className="text-text-muted" />
-                  My Profile
-                </Link>
-                <Link href="/settings" onClick={() => setProfileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors">
-                  <Settings size={14} className="text-text-muted" />
-                  Settings
-                </Link>
-              </div>
+            {profileOpen && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-bg-card border border-border-primary rounded-xl shadow-2xl py-1 z-50">
+                {user && (
+                  <div className="px-4 py-3 border-b border-border-primary">
+                    <p className="text-sm font-medium text-text-primary truncate">{user.fullName}</p>
+                    <p className="text-xs text-text-muted truncate">{user.email}</p>
+                    <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-medium bg-accent-purple/10 text-accent-purple">
+                      {user.role}
+                    </span>
+                  </div>
+                )}
 
-              {/* Logout */}
-              <div className="border-t border-border-primary py-1">
-                <button onClick={handleLogout}
-                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-status-error hover:bg-status-error/5 transition-colors">
-                  <LogOut size={14} />
-                  Sign out
-                </button>
+                <div className="py-1">
+                  <Link href="/settings/profile" onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors">
+                    <UserCircle size={14} className="text-text-muted" />
+                    My Profile
+                  </Link>
+                  <Link href="/settings" onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors">
+                    <Settings size={14} className="text-text-muted" />
+                    Settings
+                  </Link>
+                </div>
+
+                <div className="border-t border-border-primary py-1">
+                  <button onClick={handleLogout}
+                    className="flex items-center gap-3 w-full px-4 py-2 text-sm text-status-error hover:bg-status-error/5 transition-colors">
+                    <LogOut size={14} />
+                    Sign out
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Search Modal */}
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+    </>
+  );
+}
+
+// --- Search Modal (Cmd+K Palette) ---
+function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 0);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) setQuery('');
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg mx-4 bg-bg-card border border-border-primary rounded-xl shadow-2xl animate-modal-in overflow-hidden">
+        {/* Search Input */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border-primary">
+          <Search size={16} className="text-text-muted shrink-0" />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Search customers, notifications, campaigns…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted outline-none"
+          />
+          <kbd className="px-1.5 py-0.5 rounded bg-bg-hover border border-border-secondary text-[10px] text-text-muted font-mono">
+            ESC
+          </kbd>
+        </div>
+
+        {/* Results area */}
+        <div className="px-4 py-6 text-center">
+          {query ? (
+            <p className="text-sm text-text-muted">Search results will appear here</p>
+          ) : (
+            <p className="text-sm text-text-muted">Type to search across all resources</p>
           )}
         </div>
       </div>
-    </header>
+    </div>
   );
 }

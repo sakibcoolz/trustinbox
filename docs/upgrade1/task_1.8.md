@@ -22,9 +22,9 @@ Only a single spinner exists in `LayoutShell.tsx` for initial auth loading. No c
 ## Requirements
 
 ### 1. Base Skeleton Element
-- [ ] `<Skeleton>` — generic block with shimmer animation
-- [ ] Props: `width`, `height`, `className`, `rounded` (full/lg/md)
-- [ ] Shimmer: gradient animation from left to right, 1.5s infinite
+- [x] `<Skeleton>` — generic block with shimmer animation
+- [x] Props: `width`, `height`, `className`, `rounded` (full/lg/md)
+- [x] Shimmer: gradient animation from left to right, 1.5s infinite
 
 ### 2. Preset Skeleton Variants
 

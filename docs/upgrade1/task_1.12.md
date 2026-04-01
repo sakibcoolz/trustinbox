@@ -46,10 +46,10 @@ interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
 ```
 
 ### 3. Sub-Components
-- [ ] `<Card>` — main wrapper
-- [ ] `<CardHeader>` — title + optional description + action, with bottom border
-- [ ] `<CardContent>` — padded content area
-- [ ] `<CardFooter>` — bottom area with top border, typically for actions
+- [x] `<Card>` — main wrapper
+- [x] `<CardHeader>` — title + optional description + action, with bottom border
+- [x] `<CardContent>` — padded content area
+- [x] `<CardFooter>` — bottom area with top border, typically for actions
 
 ---
 
@@ -117,11 +117,11 @@ export function cn(...classes: (string | undefined | false | null)[]): string {
 
 ## Acceptance Criteria
 
-- [ ] `<Card variant="default" padding="lg">` renders dark card with rounded corners
-- [ ] `<Card variant="interactive">` shows hover elevation effect
-- [ ] `<CardHeader title="..." action={<button>}/>` renders title + right action
-- [ ] All existing inline card styles can be replaced with Card component
-- [ ] Consistent border radius (rounded-xl) across all variants
+- [x] `<Card variant="default" padding="lg">` renders dark card with rounded corners
+- [x] `<Card variant="interactive">` shows hover elevation effect
+- [x] `<CardHeader title="..." action={<button>}/>` renders title + right action
+- [x] All existing inline card styles can be replaced with Card component
+- [x] Consistent border radius (rounded-xl) across all variants
 
 ---
 

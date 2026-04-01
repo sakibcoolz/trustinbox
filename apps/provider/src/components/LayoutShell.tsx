@@ -4,12 +4,13 @@ import { usePathname } from 'next/navigation';
 import SidebarWrapper from '@/components/sidebar';
 import Header from '@/components/Header';
 import { useRequireAuth } from '@/hooks/useAuth';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-const AUTH_ROUTES = ['/auth/login', '/auth/register', '/auth/invite'];
+const AUTH_ROUTES = ['/auth/login', '/auth/register', '/auth/invite', '/auth/forgot-password', '/auth/reset-password'];
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = AUTH_ROUTES.some((r) => pathname.startsWith(r));
+  const isAuthPage = AUTH_ROUTES.some((r) => pathname.replace(/\/$/, '').startsWith(r));
 
   if (isAuthPage) {
     return <>{children}</>;
@@ -25,6 +26,7 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
+          <div className="text-accent-blue text-2xl font-bold mb-4">TrustInbox</div>
           <div className="w-8 h-8 border-2 border-accent-blue border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
           <p className="text-sm text-text-muted">Loading…</p>
         </div>
@@ -41,7 +43,11 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
       <SidebarWrapper />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto">
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+        </main>
       </div>
     </div>
   );

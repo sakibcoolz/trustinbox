@@ -50,28 +50,28 @@ colors: {
 ## Requirements
 
 ### 1. Missing Tokens to Add
-- [ ] `bg-surface`: `#10141a` — between primary and secondary, for page content areas
-- [ ] `bg-overlay`: `rgba(0,0,0,0.5)` — backdrop for modals/drawers
-- [ ] `border-focus`: `#3b82f6` (alias for accent-blue, semantic meaning)
-- [ ] `text-inverse`: `#0b0d0f` — for text on light/accent backgrounds
-- [ ] `text-link`: `#3b82f6` — explicit link color
-- [ ] `accent-teal`: `#14b8a6` — additional accent for variety
+- [x] `bg-surface`: `#10141a` — between primary and secondary, for page content areas
+- [x] `bg-overlay`: `rgba(0,0,0,0.5)` — backdrop for modals/drawers
+- [x] `border-focus`: `#3b82f6` (alias for accent-blue, semantic meaning)
+- [x] `text-inverse`: `#0b0d0f` — for text on light/accent backgrounds
+- [x] `text-link`: `#3b82f6` — explicit link color
+- [x] `accent-teal`: `#14b8a6` — additional accent for variety
 
 ### 2. CSS Custom Properties
-- [ ] Export all colors as CSS `--color-*` variables in `:root` for non-Tailwind usage
-- [ ] Ensure no hardcoded hex values in components — all reference Tailwind classes or CSS vars
+- [x] Export all colors as CSS `--color-*` variables in `:root` for non-Tailwind usage
+- [x] Ensure no hardcoded hex values in components — all reference Tailwind classes or CSS vars
 
 ### 3. Semantic Color Aliases
-- [ ] `ring-focus`: maps to `accent-blue` for focus ring styles
-- [ ] Add Tailwind `ringColor` and `outlineColor` defaults
+- [x] `ring-focus`: maps to `accent-blue` for focus ring styles
+- [x] Add Tailwind `ringColor` and `outlineColor` defaults
 
 ### 4. Global Base Styles (in globals.css)
 - [x] Body: `bg-bg-primary text-text-primary` (done)
 - [x] Default border color: `border-border-primary` (done)
 - [x] Custom scrollbar styling (done)
-- [ ] Selection color: `::selection { background: rgba(59, 130, 246, 0.3); }`
-- [ ] Focus-visible ring: `focus-visible:ring-2 focus-visible:ring-accent-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary`
-- [ ] Placeholder text: `placeholder:text-text-muted`
+- [x] Selection color: `::selection { background: rgba(59, 130, 246, 0.3); }`
+- [x] Focus-visible ring: `focus-visible:ring-2 focus-visible:ring-accent-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary`
+- [x] Placeholder text: `placeholder:text-text-muted`
 
 ---
 

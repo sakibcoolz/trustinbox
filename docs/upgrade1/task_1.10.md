@@ -22,26 +22,26 @@ No error boundary exists. Any render error crashes the entire page to a Next.js 
 ## Requirements
 
 ### 1. Global Error Boundary
-- [ ] Wrap `<main>` content in `LayoutShell` (task 1.2)
-- [ ] Catch React render errors (not async/promise errors)
-- [ ] Show error card in-place (sidebar + header remain functional)
-- [ ] Log error details to `lib/logger.ts`
+- [x] Wrap `<main>` content in `LayoutShell` (task 1.2)
+- [x] Catch React render errors (not async/promise errors)
+- [x] Show error card in-place (sidebar + header remain functional)
+- [x] Log error details to `lib/logger.ts`
 
 ### 2. Error Card UI
-- [ ] Red error icon (AlertTriangle or XCircle)
-- [ ] Title: "Something went wrong"
-- [ ] Description: error message (in development), generic message (in production)
-- [ ] "Try Again" button — resets error boundary state, re-renders children
-- [ ] "Go to Dashboard" link — escape hatch to navigate away
-- [ ] Stack trace collapsible section (development only)
+- [x] Red error icon (AlertTriangle or XCircle)
+- [x] Title: "Something went wrong"
+- [x] Description: error message (in development), generic message (in production)
+- [x] "Try Again" button — resets error boundary state, re-renders children
+- [x] "Go to Dashboard" link — escape hatch to navigate away
+- [x] Stack trace collapsible section (development only)
 
 ### 3. Next.js Error Pages
-- [ ] `apps/provider/src/app/error.tsx` — route-level error boundary (Next.js convention)
-- [ ] `apps/provider/src/app/not-found.tsx` — 404 page with navigation back
-- [ ] Both pages use the same error card design pattern
+- [x] `apps/provider/src/app/error.tsx` — route-level error boundary (Next.js convention)
+- [x] `apps/provider/src/app/not-found.tsx` — 404 page with navigation back
+- [x] Both pages use the same error card design pattern
 
 ### 4. Error Reporting
-- [ ] Call `logger.error()` with component stack and error details
+- [x] Call `logger.error()` with component stack and error details
 - [ ] In production, potential integration with error tracking service (future)
 
 ---

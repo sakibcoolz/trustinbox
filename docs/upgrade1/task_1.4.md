@@ -27,12 +27,12 @@ Header exists at `apps/provider/src/components/Header.tsx` with:
 
 ### 1. Page Title
 - [x] Dynamic title from pathname map (already done)
-- [ ] Add breadcrumb trail below/beside title for nested routes (e.g., `Bots > Bot Name > Knowledge`)
+- [x] Add breadcrumb trail below/beside title for nested routes (e.g., `Bots > Bot Name > Knowledge`)
 - [ ] Support dynamic titles for `[id]` routes by reading from page context or prop
 
 ### 2. Global Search (Cmd+K)
-- [ ] Search button opens a command palette / search modal (centered overlay)
-- [ ] Keyboard shortcut: `Cmd+K` (Mac) / `Ctrl+K` (Windows/Linux)
+- [x] Search button opens a command palette / search modal (centered overlay)
+- [x] Keyboard shortcut: `Cmd+K` (Mac) / `Ctrl+K` (Windows/Linux)
 - [ ] Search across: customers, conversations, notifications, campaigns, bots, documents
 - [ ] Fuzzy search with type-ahead results grouped by category
 - [ ] Navigate to result on selection

@@ -43,11 +43,11 @@ The sidebar already exists at `apps/provider/src/components/sidebar.tsx` with:
 - [ ] Add tooltip on icon-only (collapsed) state showing label
 
 ### 2. Collapsible Sidebar
-- [ ] Toggle button (hamburger / chevron) at bottom or top of sidebar
-- [ ] Collapsed state: 64px wide, show only icons centered
-- [ ] Expanded state: 256px wide, show icon + label
-- [ ] Persist collapse state in `localStorage('sidebarCollapsed')`
-- [ ] Smooth CSS transition on width change (200ms ease)
+- [x] Toggle button (hamburger / chevron) at bottom or top of sidebar
+- [x] Collapsed state: 64px wide, show only icons centered
+- [x] Expanded state: 256px wide, show icon + label
+- [x] Persist collapse state in `localStorage('sidebarCollapsed')`
+- [x] Smooth CSS transition on width change (200ms ease)
 - [ ] Hover on collapsed sidebar temporarily expands with overlay (not pushing content)
 
 ### 3. Service Provider Switcher
@@ -61,14 +61,14 @@ The sidebar already exists at `apps/provider/src/components/sidebar.tsx` with:
 ### 4. Active Route Highlighting
 - [x] Active item: `bg-bg-hover text-text-primary font-medium` with blue icon (already done)
 - [x] Inactive: `text-text-secondary hover:text-text-primary hover:bg-bg-hover` (already done)
-- [ ] Add left border accent: `border-l-2 border-accent-blue` on active item
-- [ ] Ensure nested routes highlight parent (e.g., `/bots/new` highlights "Bots")
+- [x] Add left border accent: `border-l-2 border-accent-blue` on active item
+- [x] Ensure nested routes highlight parent (e.g., `/bots/new` highlights "Bots")
 
 ### 5. Role-Based Filtering
 - [x] Admin-only paths hidden for non-admin roles (already done)
-- [ ] Extend to CONTENT_MANAGER: hide Compliance
-- [ ] ANALYST: show only Dashboard, Analytics, Compliance (read-only views)
-- [ ] AGENT: show Dashboard, Customers, Conversations, Callbacks, Documents
+- [x] Extend to CONTENT_MANAGER: hide Compliance
+- [x] ANALYST: show only Dashboard, Analytics, Compliance (read-only views)
+- [x] AGENT: show Dashboard, Customers, Conversations, Callbacks, Documents
 
 ### 6. Responsive Behavior
 - [ ] On screens < 1024px: sidebar becomes off-screen drawer

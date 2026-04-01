@@ -22,30 +22,30 @@ No shared table component. Feature pages would need to build tables from scratch
 ## Requirements
 
 ### 1. Core Features
-- [ ] Typed column definitions with accessor, header label, width, alignment
-- [ ] Sortable columns — click header to toggle asc/desc/none
-- [ ] Row hover highlight: `hover:bg-bg-hover`
-- [ ] Striped rows option (alternating `bg-bg-card` / `bg-bg-primary`)
-- [ ] Empty state integration (task 1.9)
+- [x] Typed column definitions with accessor, header label, width, alignment
+- [x] Sortable columns — click header to toggle asc/desc/none
+- [x] Row hover highlight: `hover:bg-bg-hover`
+- [x] Striped rows option (alternating `bg-bg-card` / `bg-bg-primary`)
+- [x] Empty state integration (task 1.9)
 
 ### 2. Selection
-- [ ] Header checkbox for select-all (current page)
-- [ ] Row checkboxes for individual selection
-- [ ] Selection count badge in bulk actions bar
-- [ ] `onSelectionChange(selectedIds: string[])` callback
-- [ ] Indeterminate state when partial selection
+- [x] Header checkbox for select-all (current page)
+- [x] Row checkboxes for individual selection
+- [x] Selection count badge in bulk actions bar
+- [x] `onSelectionChange(selectedIds: string[])` callback
+- [x] Indeterminate state when partial selection
 
 ### 3. Pagination
-- [ ] Footer with: "Showing X–Y of Z" text
-- [ ] Page size selector dropdown: 10, 25, 50
-- [ ] Previous/Next page buttons
-- [ ] Page number indicators (1, 2, 3 ... N)
-- [ ] Persist page size in localStorage
+- [x] Footer with: "Showing X–Y of Z" text
+- [x] Page size selector dropdown: 10, 25, 50
+- [x] Previous/Next page buttons
+- [x] Page number indicators (1, 2, 3 ... N)
+- [x] Persist page size in localStorage
 
 ### 4. Expandable Rows
-- [ ] Optional expand chevron on row start
-- [ ] Click expands to show detail content below the row
-- [ ] Only one row expanded at a time (or configurable multi-expand)
+- [x] Optional expand chevron on row start
+- [x] Click expands to show detail content below the row
+- [x] Only one row expanded at a time (or configurable multi-expand)
 - [ ] Expand/collapse animation (max-height transition)
 
 ### 5. Column Configuration
@@ -147,17 +147,17 @@ export function DataTable<T>({ columns, data, keyExtractor, loading, emptyState,
 
 ## Acceptance Criteria
 
-- [ ] Renders typed columns with correct data
-- [ ] Click sortable header toggles sort direction (visual indicator arrow)
-- [ ] Rows highlight on hover
-- [ ] Checkbox selection works — header toggles all, indeterminate state for partial
-- [ ] Pagination footer shows correct count, page navigation works
-- [ ] Page size persists in localStorage
-- [ ] Expandable rows show/hide detail content
-- [ ] Empty state renders when data is empty
-- [ ] Loading state shows skeleton table
-- [ ] Table scrolls horizontally on narrow screens without breaking layout
-- [ ] Accessible: proper `<table>`, `<thead>`, `<tbody>` semantics, `aria-sort` on sortable headers
+- [x] Renders typed columns with correct data
+- [x] Click sortable header toggles sort direction (visual indicator arrow)
+- [x] Rows highlight on hover
+- [x] Checkbox selection works — header toggles all, indeterminate state for partial
+- [x] Pagination footer shows correct count, page navigation works
+- [x] Page size persists in localStorage
+- [x] Expandable rows show/hide detail content
+- [x] Empty state renders when data is empty
+- [x] Loading state shows skeleton table
+- [x] Table scrolls horizontally on narrow screens without breaking layout
+- [x] Accessible: proper `<table>`, `<thead>`, `<tbody>` semantics, `aria-sort` on sortable headers
 
 ---
 

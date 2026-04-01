@@ -22,9 +22,9 @@ Dashboard has a basic inline activity list. No reusable timeline component.
 ## Requirements
 
 ### 1. Timeline Structure
-- [ ] Vertical line connecting events (`border-l-2 border-border-primary`)
-- [ ] Event nodes: colored circle on the timeline line
-- [ ] Each event: icon, title, description (optional), timestamp, optional action link
+- [x] Vertical line connecting events (`border-l-2 border-border-primary`)
+- [x] Event nodes: colored circle on the timeline line
+- [x] Each event: icon, title, description (optional), timestamp, optional action link
 
 ### 2. Event Types (by color)
 | Type | Color | Example |
@@ -126,14 +126,14 @@ export function Timeline({ events, maxItems, showLoadMore, onLoadMore }: Timelin
 
 ## Acceptance Criteria
 
-- [ ] Vertical line connects all events visually
-- [ ] Each event shows colored dot, title, optional description, and timestamp
-- [ ] Event type determines dot color
-- [ ] Optional action link renders below description
-- [ ] `maxItems` limits visible events
-- [ ] "Load more" button shows when truncated
-- [ ] Accessible: uses semantic list elements
-- [ ] Used in: Dashboard activity (3.4), Customer timeline (4.9), Compliance audit log (13.1)
+- [x] Vertical line connects all events visually
+- [x] Each event shows colored dot, title, optional description, and timestamp
+- [x] Event type determines dot color
+- [x] Optional action link renders below description
+- [x] `maxItems` limits visible events
+- [x] "Load more" button shows when truncated
+- [x] Accessible: uses semantic list elements
+- [x] Used in: Dashboard activity (3.4), Customer timeline (4.9), Compliance audit log (13.1)
 
 ---
 

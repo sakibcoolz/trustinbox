@@ -33,12 +33,12 @@ interface EmptyStateProps {
 ```
 
 ### 2. Visual Design
-- [ ] Centered in container, vertical stack
-- [ ] Icon: 48px, `text-text-muted` with `bg-bg-hover` circular background (80px)
-- [ ] Title: `text-lg font-medium text-text-primary`
-- [ ] Description: `text-sm text-text-secondary` max-w-sm centered
-- [ ] Primary CTA: blue button (`bg-accent-blue text-white rounded-lg px-4 py-2`)
-- [ ] Secondary action: text link below primary
+- [x] Centered in container, vertical stack
+- [x] Icon: 48px, `text-text-muted` with `bg-bg-hover` circular background (80px)
+- [x] Title: `text-lg font-medium text-text-primary`
+- [x] Description: `text-sm text-text-secondary` max-w-sm centered
+- [x] Primary CTA: blue button (`bg-accent-blue text-white rounded-lg px-4 py-2`)
+- [x] Secondary action: text link below primary
 
 ### 3. Per-Feature Empty States
 

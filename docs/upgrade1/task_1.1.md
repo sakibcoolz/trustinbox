@@ -45,24 +45,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ### 1. Font Loading
 - [x] Import **Inter** as primary sans font (already done)
-- [ ] Import **JetBrains Mono** from Google Fonts for monospace code/data displays
-- [ ] Apply both fonts via CSS custom properties or Tailwind classes so `font-sans` → Inter, `font-mono` → JetBrains Mono
+- [x] Import **JetBrains Mono** from Google Fonts for monospace code/data displays
+- [x] Apply both fonts via CSS custom properties or Tailwind classes so `font-sans` → Inter, `font-mono` → JetBrains Mono
 
 ### 2. Dark Theme Enforcement
 - [x] `<html>` has `className="dark"` (already done)
 - [x] `<body>` applies `bg-bg-primary text-text-primary` (already done)
-- [ ] Add `color-scheme: dark` via `<meta>` to hint browsers for scrollbar and form control theming
+- [x] Add `color-scheme: dark` via `<meta>` to hint browsers for scrollbar and form control theming
 
 ### 3. Global Providers
-- [ ] Wrap `<LayoutShell>` with an Apollo Client `<ApolloProvider>` for GraphQL operations
-- [ ] Add a `<ToastProvider>` context for the toast notification system (task 1.7)
-- [ ] Ensure providers are client-side only (`'use client'` boundary handled by provider components)
+- [x] Wrap `<LayoutShell>` with an Apollo Client `<ApolloProvider>` for GraphQL operations
+- [x] Add a `<ToastProvider>` context for the toast notification system (task 1.7)
+- [x] Ensure providers are client-side only (`'use client'` boundary handled by provider components)
 
 ### 4. Metadata
 - [x] Title: "TrustInbox Provider Portal" (already done)
-- [ ] Add `viewport` meta for mobile: `width=device-width, initial-scale=1`
-- [ ] Add `themeColor: '#0b0d0f'` for mobile browser chrome color
-- [ ] Add Open Graph metadata for link previews
+- [x] Add `viewport` meta for mobile: `width=device-width, initial-scale=1`
+- [x] Add `themeColor: '#0b0d0f'` for mobile browser chrome color
+- [x] Add Open Graph metadata for link previews
 
 ### 5. Suppress Hydration Warnings
 - [x] `suppressHydrationWarning` on `<body>` (already done) — required because localStorage reads on client differ from server

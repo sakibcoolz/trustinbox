@@ -22,10 +22,10 @@ No breadcrumb component exists. Only the page title in the Header provides locat
 ## Requirements
 
 ### 1. Auto-Generation from Route Segments
-- [ ] Parse `pathname` into segments: `/campaigns/abc123` → `["campaigns", "abc123"]`
-- [ ] Map each segment to a human-readable label using a lookup map
-- [ ] Final segment is plain text (current page), all others are links
-- [ ] Dynamic segments (`[id]`, `[virtualId]`, `[token]`) show entity name if available, fallback to truncated ID
+- [x] Parse `pathname` into segments: `/campaigns/abc123` → `["campaigns", "abc123"]`
+- [x] Map each segment to a human-readable label using a lookup map
+- [x] Final segment is plain text (current page), all others are links
+- [x] Dynamic segments (`[id]`, `[virtualId]`, `[token]`) show entity name if available, fallback to truncated ID
 
 ### 2. Label Map
 ```typescript
@@ -56,15 +56,15 @@ const SEGMENT_LABELS: Record<string, string> = {
 ```
 
 ### 3. Rendering
-- [ ] Format: `Dashboard / Campaigns / Campaign Name`
-- [ ] Separator: `/` or `›` in `text-text-muted`
-- [ ] Links: `text-text-secondary hover:text-accent-blue`
-- [ ] Current: `text-text-primary font-medium`
-- [ ] Don't show breadcrumb on root `/` (Dashboard)
-- [ ] Max 4 segments visible, collapse middle with `...` if deeper
+- [x] Format: `Dashboard / Campaigns / Campaign Name`
+- [x] Separator: `/` or `›` in `text-text-muted`
+- [x] Links: `text-text-secondary hover:text-accent-blue`
+- [x] Current: `text-text-primary font-medium`
+- [x] Don't show breadcrumb on root `/` (Dashboard)
+- [x] Max 4 segments visible, collapse middle with `...` if deeper
 
 ### 4. Integration
-- [ ] Render in Header component below the page title
+- [x] Render in Header component below the page title
 - [ ] Or render as first element inside page content area
 - [ ] Support page-provided `breadcrumbLabel` for dynamic entities (via React Context or prop)
 
@@ -130,7 +130,7 @@ export function Breadcrumb() {
 - [ ] Dynamic IDs shown as truncated strings or entity names
 - [ ] No breadcrumb shown on Dashboard (`/`)
 - [ ] Separator chevrons properly spaced
-- [ ] Accessible: `<nav aria-label="Breadcrumb">` with proper link semantics
+- [x] Accessible: `<nav aria-label="Breadcrumb">` with proper link semantics
 
 ---
 

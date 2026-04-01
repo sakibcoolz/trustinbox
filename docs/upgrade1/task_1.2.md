@@ -70,12 +70,12 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
 
 ### 1. Auth Route Detection
 - [x] Detect auth pages by pathname prefix matching (already done)
-- [ ] Add `/auth/forgot-password` and `/auth/reset-password` to `AUTH_ROUTES` for future support
-- [ ] Handle edge case: trailing slashes (`/auth/login/` should match)
+- [x] Add `/auth/forgot-password` and `/auth/reset-password` to `AUTH_ROUTES` for future support
+- [x] Handle edge case: trailing slashes (`/auth/login/` should match)
 
 ### 2. Loading State
 - [x] Full-screen centered spinner while auth state resolves (already done)
-- [ ] Add TrustInbox logo above spinner for brand recognition during load
+- [x] Add TrustInbox logo above spinner for brand recognition during load
 - [ ] Minimum 200ms display to prevent flash-of-loading for fast connections
 - [ ] Use skeleton shimmer (task 1.8) for authenticated layout instead of plain spinner
 
@@ -91,7 +91,7 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
 - [ ] Support sidebar collapse state (via localStorage persisted preference)
 
 ### 5. Error Handling
-- [ ] Wrap `<main>` content in a React Error Boundary (task 1.10)
+- [x] Wrap `<main>` content in a React Error Boundary (task 1.10)
 - [ ] Catch render errors and show in-place error card without breaking sidebar/header
 
 ---

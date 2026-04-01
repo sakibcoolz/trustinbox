@@ -23,23 +23,23 @@ No mobile navigation exists. The sidebar is always 256px fixed and does not adap
 
 ### 1. Bottom Tab Bar (< 640px / `sm` breakpoint)
 - [ ] Fixed at bottom of viewport, `h-16` with safe area padding for notched devices
-- [ ] Show top 5 most-used items as icon tabs: Dashboard, Notifications, Conversations, Callbacks, More
-- [ ] Active tab: blue icon + label, inactive: muted icon, no label
-- [ ] "More" tab opens full-screen menu overlay with all remaining nav items
+- [x] Show top 5 most-used items as icon tabs: Dashboard, Notifications, Conversations, Callbacks, More
+- [x] Active tab: blue icon + label, inactive: muted icon, no label
+- [x] "More" tab opens full-screen menu overlay with all remaining nav items
 - [ ] Tab bar hides when virtual keyboard is open (detect via `visualViewport` API)
 
 ### 2. Slide-Out Drawer (640px–1024px / `sm` to `lg`)
 - [ ] Hamburger button in Header triggers drawer from left
-- [ ] Drawer overlays content (not pushing) with dark backdrop
+- [x] Drawer overlays content (not pushing) with dark backdrop
 - [ ] Drawer contains full sidebar content (SP switcher, all nav groups)
-- [ ] Backdrop click or swipe-left closes drawer
+- [x] Backdrop click or swipe-left closes drawer
 - [ ] Transition: `transform translateX` 250ms ease
 - [ ] Closing transitions smoothly (no jump)
 
 ### 3. Responsive Layout Coordination
-- [ ] Hide desktop sidebar on `< lg` (1024px)
+- [x] Hide desktop sidebar on `< lg` (1024px)
 - [ ] Show hamburger button in Header on `< lg`
-- [ ] Show bottom tab bar on `< sm` (640px)
+- [x] Show bottom tab bar on `< sm` (640px)
 - [ ] Show drawer trigger on `sm` to `lg`
 - [ ] Use `useMediaQuery` hook or Tailwind responsive classes for breakpoint detection
 
