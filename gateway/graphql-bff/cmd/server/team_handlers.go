@@ -8,6 +8,7 @@ import (
 	"github.com/trustinbox/cornerstone/auth/jwt"
 	"github.com/trustinbox/graphql-bff/internal/clients"
 	orgpb "github.com/trustinbox/proto/gen/organization/v1"
+	userpb "github.com/trustinbox/proto/gen/user/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -37,8 +38,11 @@ type teamMemberResponse struct {
 	ID                string `json:"id"`
 	UserID            string `json:"userId"`
 	ServiceProviderID string `json:"serviceProviderId"`
+	Name              string `json:"name"`
+	Email             string `json:"email"`
 	Role              string `json:"role"`
 	Status            string `json:"status"`
+	AvatarURL         string `json:"avatarUrl,omitempty"`
 }
 
 type invitationResponse struct {
@@ -83,13 +87,22 @@ func handleTeamMembers(svc *clients.ServiceClients, tokenSvc *jwt.TokenService, 
 			}
 			members := make([]teamMemberResponse, len(resp.Users))
 			for i, u := range resp.Users {
-				members[i] = teamMemberResponse{
+				m := teamMemberResponse{
 					ID:                u.Id,
 					UserID:            u.UserId,
 					ServiceProviderID: u.ServiceProviderId,
 					Role:              u.Role,
 					Status:            u.Status,
 				}
+				profile, err := svc.User.GetUserProfile(r.Context(), &userpb.GetUserProfileRequest{UserId: u.UserId})
+				if err == nil && profile != nil {
+					m.Name = profile.FullName
+					m.Email = profile.Email
+					m.AvatarURL = profile.AvatarUrl
+				} else {
+					m.Name = u.Role + " " + u.UserId[:8]
+				}
+				members[i] = m
 			}
 			writeJSON(w, http.StatusOK, map[string]interface{}{"items": members, "total": resp.Total})
 

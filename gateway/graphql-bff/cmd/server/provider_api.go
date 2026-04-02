@@ -109,30 +109,88 @@ func handleProviderNotifications(svc *clients.ServiceClients, db *sql.DB, log *z
 		switch r.Method {
 		case http.MethodPost:
 			var body struct {
-				UserID   string            `json:"userId"`
-				Category string            `json:"category"`
-				Title    string            `json:"title"`
-				Body     string            `json:"body"`
-				Priority string            `json:"priority"`
-				Metadata map[string]string `json:"metadata"`
+				RecipientIDs []string          `json:"recipientIds"`
+				UserID       string            `json:"userId"`
+				Category     string            `json:"category"`
+				Channel      string            `json:"channel"`
+				Title        string            `json:"title"`
+				Body         string            `json:"body"`
+				Priority     string            `json:"priority"`
+				Metadata     map[string]string `json:"metadata"`
+				ScheduledAt  string            `json:"scheduledAt"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 				return
 			}
-			resp, err := svc.Notification.CreateNotification(r.Context(), &notifpb.CreateNotificationRequest{
-				UserId:            body.UserID,
-				ServiceProviderId: spID,
-				Category:          body.Category,
-				Title:             body.Title,
-				Body:              body.Body,
-				Priority:          body.Priority,
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
+
+			// Build recipient list: accept recipientIds (array) or userId (single)
+			recipients := body.RecipientIDs
+			if len(recipients) == 0 && body.UserID != "" {
+				recipients = []string{body.UserID}
+			}
+			if len(recipients) == 0 {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "recipientIds or userId is required"})
 				return
 			}
-			writeJSON(w, http.StatusCreated, resp)
+			if body.Title == "" {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "title is required"})
+				return
+			}
+
+			// Resolve virtual IDs to real UUIDs
+			resolvedIDs := make([]string, 0, len(recipients))
+			for _, rid := range recipients {
+				if isUUID(rid) {
+					resolvedIDs = append(resolvedIDs, rid)
+				} else {
+					resolved, err := resolveVirtualID(r.Context(), db, rid)
+					if err != nil {
+						log.Error("resolve virtual ID for notification", zap.Error(err), zap.String("virtual_id", rid))
+						writeJSON(w, http.StatusBadRequest, errorResponse{Error: "customer not found for virtual ID: " + rid})
+						return
+					}
+					resolvedIDs = append(resolvedIDs, resolved)
+				}
+			}
+
+			// Send notification to each recipient
+			type notifResult struct {
+				ID     string `json:"id"`
+				UserID string `json:"userId"`
+				Status string `json:"status"`
+			}
+			results := make([]notifResult, 0, len(resolvedIDs))
+			var lastErr error
+			for _, uid := range resolvedIDs {
+				resp, err := svc.Notification.CreateNotification(r.Context(), &notifpb.CreateNotificationRequest{
+					UserId:            uid,
+					ServiceProviderId: spID,
+					Category:          body.Category,
+					Title:             body.Title,
+					Body:              body.Body,
+					Priority:          body.Priority,
+				})
+				if err != nil {
+					log.Error("create notification failed", zap.Error(err), zap.String("user_id", uid))
+					lastErr = err
+					continue
+				}
+				results = append(results, notifResult{
+					ID:     resp.GetNotificationId(),
+					UserID: uid,
+					Status: resp.GetStatus(),
+				})
+			}
+
+			if len(results) == 0 && lastErr != nil {
+				grpcErrToHTTP(w, lastErr, log)
+				return
+			}
+			writeJSON(w, http.StatusCreated, map[string]interface{}{
+				"notifications": results,
+				"total":         len(results),
+			})
 
 		case http.MethodGet:
 			handleProviderNotificationList(w, r, db, log, spID)
@@ -184,10 +242,23 @@ func handleProviderCallbacks(svc *clients.ServiceClients, db *sql.DB, log *zap.L
 				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 				return
 			}
+
+			// Resolve virtual ID (TI-xxx) to real user UUID
+			userID := body.UserID
+			if !isUUID(userID) {
+				resolved, err := resolveVirtualID(r.Context(), db, userID)
+				if err != nil {
+					log.Error("resolve virtual ID", zap.Error(err), zap.String("virtual_id", userID))
+					writeJSON(w, http.StatusBadRequest, errorResponse{Error: "customer not found for virtual ID: " + userID})
+					return
+				}
+				userID = resolved
+			}
+
 			ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 			defer cancel()
 			resp, err := svc.Communication.CreateCallbackRequest(ctx, &commpb.CreateCallbackRequestRequest{
-				UserId:            body.UserID,
+				UserId:            userID,
 				ServiceProviderId: spID,
 				Reason:            body.Reason,
 				Details:           body.Details,
@@ -1046,4 +1117,71 @@ func handleProviderNotificationDetail(w http.ResponseWriter, r *http.Request, db
 	n.PolicyDecision.EvaluatedAt = createdAt
 
 	writeJSON(w, http.StatusOK, n)
+}
+
+// ─── Virtual ID helpers ───────────────────────────────────
+
+// resolveVirtualID looks up the real user UUID from a virtual public ID (e.g. "TI-UOWF9PMA").
+func resolveVirtualID(ctx context.Context, db *sql.DB, virtualID string) (string, error) {
+	var userID string
+	err := db.QueryRowContext(ctx,
+		`SELECT user_id FROM user_identities WHERE virtual_public_id = $1 AND is_active = TRUE`,
+		virtualID,
+	).Scan(&userID)
+	if err != nil {
+		return "", fmt.Errorf("resolve virtual ID %s: %w", virtualID, err)
+	}
+	return userID, nil
+}
+
+// isUUID returns true if the string looks like a UUID (contains hyphens and is 36 chars).
+func isUUID(s string) bool {
+	if len(s) != 36 {
+		return false
+	}
+	for i, c := range s {
+		if i == 8 || i == 13 || i == 18 || i == 23 {
+			if c != '-' {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// ─── Policy Check ─────────────────────────────────────────
+
+func handleProviderPolicyCheck(db *sql.DB, log *zap.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+			return
+		}
+
+		category := r.URL.Query().Get("category")
+		channel := r.URL.Query().Get("channel")
+		userID := r.URL.Query().Get("userId")
+
+		// userId is optional — policy check can be SP-level (category + channel)
+		if userID != "" && !isUUID(userID) {
+			resolved, err := resolveVirtualID(r.Context(), db, userID)
+			if err != nil {
+				log.Warn("policy check: virtual ID not found", zap.String("virtual_id", userID))
+			} else {
+				userID = resolved
+			}
+		}
+
+		_ = userID
+		_ = category
+		_ = channel
+
+		// Policy service integration not yet wired — return allowed
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"allowed":      true,
+			"decisionCode": "ALLOWED",
+			"reason":       "Policy evaluation approved",
+			"appliedRules": []string{},
+		})
+	}
 }

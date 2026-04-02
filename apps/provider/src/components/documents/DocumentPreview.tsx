@@ -24,7 +24,8 @@ export default function DocumentPreview({ documentId, fileName, fileType, isOpen
       });
     }
     return () => setUrl(null);
-  }, [isOpen, documentId, getSignedUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, documentId]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();

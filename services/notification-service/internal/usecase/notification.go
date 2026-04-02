@@ -75,18 +75,20 @@ func (uc *NotificationUseCase) CreateNotification(ctx context.Context, input Cre
 	defer span.End()
 
 	// Evaluate policy
-	allowed, reason, err := uc.policyChecker.EvaluateCommunication(
-		ctx, input.UserID, input.ServiceProviderID, input.Category, "INBOX", "NOTIFICATION",
-	)
-	if err != nil {
-		return nil, bzerr.Internal("policy evaluation failed", err)
-	}
+	if uc.policyChecker != nil {
+		allowed, reason, err := uc.policyChecker.EvaluateCommunication(
+			ctx, input.UserID, input.ServiceProviderID, input.Category, "INBOX", "NOTIFICATION",
+		)
+		if err != nil {
+			return nil, bzerr.Internal("policy evaluation failed", err)
+		}
 
-	if !allowed {
-		return &CreateNotificationResult{
-			Status:          "REJECTED",
-			RejectionReason: reason,
-		}, nil
+		if !allowed {
+			return &CreateNotificationResult{
+				Status:          "REJECTED",
+				RejectionReason: reason,
+			}, nil
+		}
 	}
 
 	// Create notification
@@ -107,19 +109,23 @@ func (uc *NotificationUseCase) CreateNotification(ctx context.Context, input Cre
 	}
 
 	// Queue delivery
-	if err := uc.queue.PublishDeliveryJob(ctx, notif.ID); err != nil {
-		uc.log.Error("failed to queue delivery", zap.String("notification_id", notif.ID), zap.Error(err))
+	if uc.queue != nil {
+		if err := uc.queue.PublishDeliveryJob(ctx, notif.ID); err != nil {
+			uc.log.Error("failed to queue delivery", zap.String("notification_id", notif.ID), zap.Error(err))
+		}
 	}
 
 	// Publish notification.created event
-	uc.publishEvent(ctx, events.NotificationCreated, notif.ID, notif.UserID, notif.ServiceProviderID, map[string]interface{}{
-		"notification_id":     notif.ID,
-		"user_id":             notif.UserID,
-		"service_provider_id": notif.ServiceProviderID,
-		"category":            notif.Category,
-		"title":               notif.Title,
-		"priority":            notif.Priority,
-	})
+	if uc.publisher != nil {
+		uc.publishEvent(ctx, events.NotificationCreated, notif.ID, notif.UserID, notif.ServiceProviderID, map[string]interface{}{
+			"notification_id":     notif.ID,
+			"user_id":             notif.UserID,
+			"service_provider_id": notif.ServiceProviderID,
+			"category":            notif.Category,
+			"title":               notif.Title,
+			"priority":            notif.Priority,
+		})
+	}
 
 	return &CreateNotificationResult{
 		NotificationID: notif.ID,

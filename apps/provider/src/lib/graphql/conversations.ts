@@ -204,11 +204,11 @@ export function useTeamMembers(spId: string, role?: string) {
   if (role) params.set('role', role);
   const qs = params.toString();
 
-  const result = useData<TeamMember[]>(
+  const result = useData<{ items: TeamMember[]; total: number }>(
     spId ? `/api/team/members${qs ? `?${qs}` : ''}` : null,
     { skip: !spId },
   );
-  return { ...result, data: result.data ? { teamMembers: result.data } : undefined };
+  return { ...result, data: result.data ? { teamMembers: result.data.items ?? [] } : undefined };
 }
 
 export function useSendMessage() {

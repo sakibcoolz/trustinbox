@@ -38,15 +38,18 @@ func initMinioClient(log *zap.Logger) *minio.Client {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	exists, err := client.BucketExists(ctx, minioBucket)
-	if err != nil {
-		log.Error("failed to check MinIO bucket", zap.Error(err))
-	}
-	if !exists {
-		if err := client.MakeBucket(ctx, minioBucket, minio.MakeBucketOptions{}); err != nil {
-			log.Error("failed to create MinIO bucket", zap.Error(err))
-		} else {
-			log.Info("created MinIO bucket", zap.String("bucket", minioBucket))
+	for _, b := range []string{minioBucket, getEnvOrDefault("MINIO_BUCKET", "trustinbox")} {
+		exists, err := client.BucketExists(ctx, b)
+		if err != nil {
+			log.Error("failed to check MinIO bucket", zap.Error(err), zap.String("bucket", b))
+			continue
+		}
+		if !exists {
+			if err := client.MakeBucket(ctx, b, minio.MakeBucketOptions{}); err != nil {
+				log.Error("failed to create MinIO bucket", zap.Error(err), zap.String("bucket", b))
+			} else {
+				log.Info("created MinIO bucket", zap.String("bucket", b))
+			}
 		}
 	}
 

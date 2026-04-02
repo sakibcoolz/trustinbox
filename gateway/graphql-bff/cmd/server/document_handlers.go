@@ -3,10 +3,15 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/minio/minio-go/v7"
 	"github.com/trustinbox/graphql-bff/internal/clients"
 	commpb "github.com/trustinbox/proto/gen/communication/v1"
 	"go.uber.org/zap"
@@ -55,7 +60,7 @@ type documentShareRow struct {
 
 // ─── Main handler ─────────────────────────────────────────
 
-func handleProviderDocumentsAll(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger) http.HandlerFunc {
+func handleProviderDocumentsAll(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger, mc *minio.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		spID := spIDFromCtx(r.Context())
 		if spID == "" {
@@ -66,9 +71,17 @@ func handleProviderDocumentsAll(svc *clients.ServiceClients, db *sql.DB, log *za
 		rest := strings.TrimPrefix(r.URL.Path, "/api/v1/documents")
 		rest = strings.TrimPrefix(rest, "/")
 
-		// Sub-routes: /api/v1/documents/presigned-url, /api/v1/documents/share
+		// Sub-routes: /api/v1/documents/presigned-url, /api/v1/documents/upload/..., /api/v1/documents/download/..., /api/v1/documents/share
 		if rest == "presigned-url" {
-			handleDocPresignedURL(w, r, db, log, spID)
+			handleDocPresignedURL(w, r, log, spID)
+			return
+		}
+		if strings.HasPrefix(rest, "upload/") {
+			handleDocUploadProxy(w, r, log, mc, spID, strings.TrimPrefix(rest, "upload/"))
+			return
+		}
+		if strings.HasPrefix(rest, "download/") {
+			handleDocDownloadProxy(w, r, db, log, mc, spID, strings.TrimPrefix(rest, "download/"))
 			return
 		}
 		if rest == "share" {
@@ -84,7 +97,7 @@ func handleProviderDocumentsAll(svc *clients.ServiceClients, db *sql.DB, log *za
 			if len(parts) > 1 {
 				sub = parts[1]
 			}
-			handleDocumentSubRoute(w, r, db, log, spID, docID, sub)
+			handleDocumentSubRoute(w, r, db, log, mc, spID, docID, sub)
 			return
 		}
 
@@ -232,7 +245,7 @@ func handleCreateDocument(w http.ResponseWriter, r *http.Request, db *sql.DB, lo
 
 // ─── Document sub-routes ──────────────────────────────────
 
-func handleDocumentSubRoute(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, spID, docID, sub string) {
+func handleDocumentSubRoute(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, mc *minio.Client, spID, docID, sub string) {
 	switch sub {
 	case "":
 		// GET /api/v1/documents/{id}  or  DELETE /api/v1/documents/{id}
@@ -253,7 +266,7 @@ func handleDocumentSubRoute(w http.ResponseWriter, r *http.Request, db *sql.DB, 
 	case "classification":
 		handleDocClassification(w, r, db, log, spID, docID)
 	case "signed-url":
-		handleDocSignedURL(w, r, db, log, spID, docID)
+		handleDocSignedURL(w, r, db, log, mc, spID, docID)
 	default:
 		writeJSON(w, http.StatusNotFound, errorResponse{Error: "not found"})
 	}
@@ -369,16 +382,167 @@ func handleDocClassification(w http.ResponseWriter, _ *http.Request, _ *sql.DB, 
 
 // ─── Signed URL for existing document ─────────────────────
 
-func handleDocSignedURL(w http.ResponseWriter, _ *http.Request, _ *sql.DB, _ *zap.Logger, _, _ string) {
-	// TODO: integrate with MinIO presigned URL generation
-	writeJSON(w, http.StatusNotImplemented, errorResponse{Error: "signed URL generation not yet implemented on this route"})
+func handleDocSignedURL(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, mc *minio.Client, spID, docID string) {
+	var s3Key, fileName string
+	err := db.QueryRowContext(r.Context(),
+		`SELECT s3_key, file_name FROM documents WHERE id = $1 AND service_provider_id = $2`,
+		docID, spID,
+	).Scan(&s3Key, &fileName)
+	if err == sql.ErrNoRows {
+		writeJSON(w, http.StatusNotFound, errorResponse{Error: "document not found"})
+		return
+	}
+	if err != nil {
+		log.Error("signed-url: DB error", zap.Error(err))
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+		return
+	}
+
+	// Return a gateway-proxied download URL to avoid CORS with MinIO.
+	downloadPath := fmt.Sprintf("/api/documents/download/%s/%s", docID, fileName)
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"url":       downloadPath,
+		"fileName":  fileName,
+		"expiresAt": time.Now().Add(signedURLExpiry).UTC().Format(time.RFC3339),
+	})
 }
 
 // ─── Presigned URL for upload ─────────────────────────────
 
-func handleDocPresignedURL(w http.ResponseWriter, _ *http.Request, _ *sql.DB, _ *zap.Logger, _ string) {
-	// TODO: integrate with MinIO presigned URL generation
-	writeJSON(w, http.StatusNotImplemented, errorResponse{Error: "presigned URL generation not yet implemented on this route"})
+func handleDocPresignedURL(w http.ResponseWriter, r *http.Request, log *zap.Logger, spID string) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+		return
+	}
+
+	var body struct {
+		FileName string `json:"fileName"`
+		FileType string `json:"fileType"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+		return
+	}
+	if body.FileName == "" {
+		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "fileName is required"})
+		return
+	}
+
+	// Generate a unique S3 key: documents/<spID>/<uuid>/<fileName>
+	s3Key := fmt.Sprintf("documents/%s/%s/%s", spID, uuid.New().String(), body.FileName)
+
+	// Return a gateway-proxied upload URL instead of a direct MinIO URL
+	// to avoid CORS issues when the browser origin differs from MinIO.
+	// The path goes through the Next.js API route which attaches auth cookies.
+	uploadPath := "/api/documents/upload/" + s3Key
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"url":       uploadPath,
+		"s3Key":     s3Key,
+		"expiresAt": time.Now().Add(signedURLExpiry).UTC().Format(time.RFC3339),
+	})
+}
+
+// ─── Upload proxy (browser → gateway → MinIO) ────────────
+
+const maxDocUploadSize = 100 * 1024 * 1024 // 100 MB
+
+func handleDocUploadProxy(w http.ResponseWriter, r *http.Request, log *zap.Logger, mc *minio.Client, spID, s3Key string) {
+	if r.Method != http.MethodPut {
+		writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+		return
+	}
+	if mc == nil {
+		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: "object storage not configured"})
+		return
+	}
+
+	// Validate that the s3Key belongs to this service provider
+	expectedPrefix := "documents/" + spID + "/"
+	if !strings.HasPrefix(s3Key, expectedPrefix) {
+		writeJSON(w, http.StatusForbidden, errorResponse{Error: "access denied"})
+		return
+	}
+
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	bucket := getEnvOrDefault("MINIO_BUCKET", "trustinbox")
+	body := http.MaxBytesReader(w, r.Body, maxDocUploadSize)
+	defer body.Close()
+
+	_, err := mc.PutObject(r.Context(), bucket, s3Key, body, -1, minio.PutObjectOptions{
+		ContentType: contentType,
+	})
+	if err != nil {
+		log.Error("upload-proxy: put failed", zap.Error(err), zap.String("s3_key", s3Key))
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "upload failed"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// ─── Download proxy (browser → gateway → MinIO) ──────────
+
+func handleDocDownloadProxy(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, mc *minio.Client, spID, rest string) {
+	if mc == nil {
+		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: "object storage not configured"})
+		return
+	}
+
+	// rest = "{docID}/{fileName}"
+	parts := strings.SplitN(rest, "/", 2)
+	docID := parts[0]
+	if docID == "" {
+		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "document id required"})
+		return
+	}
+
+	var s3Key, fileName, fileType string
+	err := db.QueryRowContext(r.Context(),
+		`SELECT s3_key, file_name, file_type FROM documents WHERE id = $1 AND service_provider_id = $2`,
+		docID, spID,
+	).Scan(&s3Key, &fileName, &fileType)
+	if err == sql.ErrNoRows {
+		writeJSON(w, http.StatusNotFound, errorResponse{Error: "document not found"})
+		return
+	}
+	if err != nil {
+		log.Error("download-proxy: DB error", zap.Error(err))
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+		return
+	}
+
+	bucket := getEnvOrDefault("MINIO_BUCKET", "trustinbox")
+	obj, err := mc.GetObject(r.Context(), bucket, s3Key, minio.GetObjectOptions{})
+	if err != nil {
+		log.Error("download-proxy: get failed", zap.Error(err), zap.String("s3_key", s3Key))
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "download failed"})
+		return
+	}
+	defer obj.Close()
+
+	stat, err := obj.Stat()
+	if err != nil {
+		log.Error("download-proxy: stat failed", zap.Error(err), zap.String("s3_key", s3Key))
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "download failed"})
+		return
+	}
+
+	if fileType != "" {
+		w.Header().Set("Content-Type", fileType)
+	} else {
+		w.Header().Set("Content-Type", "application/octet-stream")
+	}
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", stat.Size))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%q", fileName))
+	w.WriteHeader(http.StatusOK)
+
+	io.Copy(w, obj)
 }
 
 // ─── Share document (gRPC) ────────────────────────────────

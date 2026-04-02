@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { Search, Users } from 'lucide-react';
+import { Search, Users, Plus, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { DataTable, type Column, type SortState, type PaginationState } from '@/components/ui/Table';
 import { FilterChipBar } from '@/components/ui/FilterChipBar';
@@ -10,7 +10,9 @@ import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/EmptyState';
 import { BulkActionsToolbar } from '@/components/customers/BulkActionsToolbar';
 import { useCustomers, type CustomerRow } from '@/lib/graphql/customers';
+import { useAddCustomer, useRemoveCustomer } from '@/lib/mutations/customers';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/Toast';
 import { formatRelativeTime } from '@/lib/format';
 
 // ─── Filter Definitions ─────────────────────────────────
@@ -60,6 +62,14 @@ export function CustomersContent() {
   const router = useRouter();
   const pathname = usePathname();
   const { activeServiceProvider } = useAuth();
+  const { success: toastSuccess, error: toastError } = useToast();
+
+  // ── Add / Remove ──
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [addVirtualId, setAddVirtualId] = useState('');
+  const [addRelType, setAddRelType] = useState('CUSTOMER');
+  const { execute: addCustomer, loading: addLoading } = useAddCustomer();
+  const { execute: removeCustomer, loading: removeLoading } = useRemoveCustomer();
 
   // ── URL state ──
   const search = searchParams.get('search') ?? '';
@@ -88,7 +98,7 @@ export function CustomersContent() {
   );
 
   // ── GraphQL Query ──
-  const { data, loading } = useCustomers({
+  const { data, loading, refetch } = useCustomers({
     search: search || undefined,
     category: categories.length > 0 ? categories : undefined,
     status: statuses.length > 0 ? statuses : undefined,
@@ -100,6 +110,33 @@ export function CustomersContent() {
   const customers = data?.conversations?.nodes ?? [];
   const totalCount = data?.conversations?.totalCount ?? 0;
   const pageInfo = data?.conversations?.pageInfo;
+
+  // ── Add / Remove handlers ──
+  async function handleAddCustomer(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addVirtualId.trim()) return;
+    const result = await addCustomer(addVirtualId.trim(), addRelType);
+    if (result) {
+      toastSuccess(`Customer ${addVirtualId.trim()} added`);
+      setShowAddDialog(false);
+      setAddVirtualId('');
+      setAddRelType('CUSTOMER');
+      refetch();
+    } else {
+      toastError('Failed to add customer');
+    }
+  }
+
+  async function handleRemoveCustomer(virtualId: string) {
+    if (!confirm(`Remove customer ${virtualId}?`)) return;
+    const result = await removeCustomer(virtualId);
+    if (result) {
+      toastSuccess(`Customer ${virtualId} removed`);
+      refetch();
+    } else {
+      toastError('Failed to remove customer');
+    }
+  }
 
   // ── Sort ──
   const sortState: SortState = { key: sortField, direction: sortDir };
@@ -216,8 +253,22 @@ export function CustomersContent() {
         header: 'Status',
         render: (_, row) => <StatusBadge status={row.status} />,
       },
+      {
+        key: 'actions',
+        header: '',
+        render: (_, row) => (
+          <button
+            onClick={(e) => { e.stopPropagation(); handleRemoveCustomer(row.virtualId); }}
+            disabled={removeLoading}
+            className="p-1 text-text-muted hover:text-status-error transition-colors rounded"
+            title="Remove customer"
+          >
+            <Trash2 size={14} />
+          </button>
+        ),
+      },
     ],
-    [],
+    [removeLoading],  // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return (
@@ -230,7 +281,71 @@ export function CustomersContent() {
             Manage your customer relationships and communication preferences
           </p>
         </div>
+        <button
+          onClick={() => setShowAddDialog(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-accent-blue text-white text-sm font-medium rounded-lg hover:bg-accent-blue/90 transition-colors"
+        >
+          <Plus size={16} />
+          Add Customer
+        </button>
       </div>
+
+      {/* Add Customer Dialog */}
+      {showAddDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-bg-elevated border border-border-primary rounded-xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-text-primary">Add Customer</h2>
+              <button onClick={() => setShowAddDialog(false)} className="text-text-muted hover:text-text-primary">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleAddCustomer} className="space-y-4">
+              <div>
+                <label className="block text-sm text-text-secondary mb-1">Virtual ID</label>
+                <input
+                  type="text"
+                  value={addVirtualId}
+                  onChange={(e) => setAddVirtualId(e.target.value)}
+                  className="w-full px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active"
+                  placeholder="e.g. TI-UOWF9PMA"
+                  autoFocus
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-text-secondary mb-1">Relationship Type</label>
+                <select
+                  value={addRelType}
+                  onChange={(e) => setAddRelType(e.target.value)}
+                  className="w-full px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-active"
+                >
+                  <option value="CUSTOMER">Customer</option>
+                  <option value="SUBSCRIBER">Subscriber</option>
+                  <option value="LEAD">Lead</option>
+                  <option value="PROSPECT">Prospect</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddDialog(false)}
+                  className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addLoading || !addVirtualId.trim()}
+                  className="px-4 py-2 bg-accent-blue text-white text-sm font-medium rounded-lg hover:bg-accent-blue/90 transition-colors disabled:opacity-50"
+                >
+                  {addLoading ? 'Adding…' : 'Add'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Search + Filters */}
       <div className="space-y-3">

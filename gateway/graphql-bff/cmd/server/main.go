@@ -305,8 +305,8 @@ func main() {
 	providerMux.HandleFunc("/api/v1/callbacks/", handleProviderCallbacks(svc, db, log))
 	providerMux.HandleFunc("/api/v1/messages", handleProviderMessages(svc, db, log))
 	providerMux.HandleFunc("/api/v1/messages/", handleProviderMessages(svc, db, log))
-	providerMux.HandleFunc("/api/v1/documents", handleProviderDocumentsAll(svc, db, log))
-	providerMux.HandleFunc("/api/v1/documents/", handleProviderDocumentsAll(svc, db, log))
+	providerMux.HandleFunc("/api/v1/documents", handleProviderDocumentsAll(svc, db, log, minioClient))
+	providerMux.HandleFunc("/api/v1/documents/", handleProviderDocumentsAll(svc, db, log, minioClient))
 	providerMux.HandleFunc("/api/v1/campaigns", handleProviderCampaigns(svc, db, log))
 	providerMux.HandleFunc("/api/v1/campaigns/", handleProviderCampaigns(svc, db, log))
 	providerMux.HandleFunc("/api/v1/webhooks", handleProviderWebhooks(svc, db, log))
@@ -317,6 +317,7 @@ func main() {
 	providerMux.HandleFunc("/api/v1/analytics/", handleProviderAnalytics(svc, db, log))
 	providerMux.HandleFunc("/api/v1/customers", handleProviderCustomers(db, log))
 	providerMux.HandleFunc("/api/v1/customers/", handleProviderCustomers(db, log))
+	providerMux.HandleFunc("/api/v1/policy/check", handleProviderPolicyCheck(db, log))
 
 	providerHandler := apiKeyAuth(db, tokenSvc, log, rateLimitMiddleware(rl, log, providerMux))
 	mux.Handle("/api/v1/", providerHandler)
