@@ -587,8 +587,6 @@ func handleProviderBots(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger
 					case http.MethodGet:
 						dbListBotActions(w, r, db, log, spID, id)
 					case http.MethodPost:
-						ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-						defer cancel()
 						var body struct {
 							ConversationID string `json:"conversationId"`
 							UserID         string `json:"userId"`
@@ -600,6 +598,10 @@ func handleProviderBots(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger
 							writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 							return
 						}
+
+						// All actions → gRPC (bot-service → ai-service)
+						ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+						defer cancel()
 						resp, err := svc.Bot.ExecuteBotAction(ctx, &botpb.ExecuteBotActionRequest{
 							BotId:             id,
 							ServiceProviderId: spID,
@@ -613,7 +615,13 @@ func handleProviderBots(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger
 							grpcErrToHTTP(w, err, log)
 							return
 						}
-						writeJSON(w, http.StatusOK, resp)
+						writeJSON(w, http.StatusOK, map[string]interface{}{
+							"success":        resp.GetSuccess(),
+							"outputJson":     resp.GetOutputJson(),
+							"policyDecision": resp.GetPolicyDecision(),
+							"policyReason":   resp.GetPolicyReason(),
+							"escalated":      resp.GetEscalated(),
+						})
 					default:
 						writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
 					}

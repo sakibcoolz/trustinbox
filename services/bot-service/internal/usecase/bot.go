@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,6 +11,7 @@ import (
 	bizerr "github.com/trustinbox/cornerstone/errors"
 	"github.com/trustinbox/cornerstone/events"
 	"github.com/trustinbox/cornerstone/tracing"
+	aiv1 "github.com/trustinbox/proto/gen/ai/v1"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
@@ -28,6 +30,7 @@ type BotUseCase struct {
 	actionRepo repository.BotActionLogRepository
 	statsRepo  repository.BotAnalyticsRepository
 	policy     PolicyChecker
+	aiClient   aiv1.AIServiceClient
 	publisher  events.Publisher
 	log        *zap.Logger
 }
@@ -41,6 +44,7 @@ func NewBotUseCase(
 	actionRepo repository.BotActionLogRepository,
 	statsRepo repository.BotAnalyticsRepository,
 	policy PolicyChecker,
+	aiClient aiv1.AIServiceClient,
 	publisher events.Publisher,
 	log *zap.Logger,
 ) *BotUseCase {
@@ -52,6 +56,7 @@ func NewBotUseCase(
 		actionRepo: actionRepo,
 		statsRepo:  statsRepo,
 		policy:     policy,
+		aiClient:   aiClient,
 		publisher:  publisher,
 		log:        log,
 	}
@@ -234,6 +239,11 @@ func (uc *BotUseCase) ExecuteAction(ctx context.Context, botID, spID, conversati
 		return "", false, bizerr.InvalidInput("bot is not active")
 	}
 
+	// Handle test_prompt: call AI service directly, skip permission/policy checks
+	if actionType == "test_prompt" {
+		return uc.executeTestPrompt(ctx, bot, inputJSON, start)
+	}
+
 	// Check tool permission
 	allowed, err := uc.permRepo.IsToolAllowed(ctx, botID, toolName)
 	if err != nil {
@@ -291,6 +301,72 @@ func (uc *BotUseCase) ExecuteAction(ctx context.Context, botID, spID, conversati
 		"tool_name":       toolName,
 		"duration_ms":     actionLog.DurationMS,
 	})
+
+	return outputJSON, false, nil
+}
+
+// executeTestPrompt handles test_prompt actions by calling the AI service directly.
+func (uc *BotUseCase) executeTestPrompt(ctx context.Context, bot *entity.Bot, inputJSON string, start time.Time) (string, bool, error) {
+	if uc.aiClient == nil {
+		return "", false, bizerr.Internal("ai service not configured", nil)
+	}
+
+	// Parse input: { "message": "...", "systemPrompt": "..." }
+	var input struct {
+		Message      string `json:"message"`
+		SystemPrompt string `json:"systemPrompt"`
+	}
+	if err := json.Unmarshal([]byte(inputJSON), &input); err != nil {
+		return "", false, bizerr.InvalidInput("invalid test_prompt input: " + err.Error())
+	}
+
+	// If no system prompt in input, try the bot's configured system prompt
+	systemPrompt := input.SystemPrompt
+	if systemPrompt == "" {
+		cfg, err := uc.configRepo.Get(ctx, bot.ID)
+		if err == nil && cfg.CustomSystemPrompt != "" {
+			systemPrompt = cfg.CustomSystemPrompt
+		}
+	}
+
+	// Build ChatCompletion request
+	messages := []*aiv1.ChatMessage{}
+	if systemPrompt != "" {
+		messages = append(messages, &aiv1.ChatMessage{Role: "system", Content: systemPrompt})
+	}
+	messages = append(messages, &aiv1.ChatMessage{Role: "user", Content: input.Message})
+
+	resp, err := uc.aiClient.ChatCompletion(ctx, &aiv1.ChatCompletionRequest{
+		Provider:          "openai",
+		Model:             "gpt-4o-mini",
+		Messages:          messages,
+		Temperature:       0.7,
+		MaxTokens:         1024,
+		BotId:             bot.ID,
+		ServiceProviderId: bot.ServiceProviderID,
+	})
+	if err != nil {
+		uc.log.Error("ai chat completion failed", zap.Error(err), zap.String("bot_id", bot.ID))
+		return "", false, bizerr.Internal("ai chat completion failed", err)
+	}
+
+	// Build response JSON matching frontend expectation: { "response": "..." }
+	result := map[string]interface{}{
+		"response":    resp.GetContent(),
+		"model":       resp.GetModel(),
+		"provider":    resp.GetProvider(),
+		"tokens_used": resp.GetPromptTokens() + resp.GetCompletionTokens(),
+	}
+	outputBytes, _ := json.Marshal(result)
+	outputJSON := string(outputBytes)
+
+	// Update analytics
+	uc.statsRepo.IncrementActions(ctx, bot.ID)
+
+	uc.log.Info("test_prompt executed",
+		zap.String("bot_id", bot.ID),
+		zap.Int("duration_ms", int(time.Since(start).Milliseconds())),
+	)
 
 	return outputJSON, false, nil
 }

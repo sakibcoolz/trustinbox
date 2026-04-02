@@ -16,9 +16,11 @@ import (
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
+	aiv1 "github.com/trustinbox/proto/gen/ai/v1"
 	pb "github.com/trustinbox/proto/gen/bot/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
@@ -60,8 +62,17 @@ func main() {
 	publisher := events.NewRedisStreamPublisher(rdb, log, "trustinbox:events")
 	defer publisher.Close()
 
+	// AI service gRPC client
+	aiAddr := config.GetEnv("AI_SERVICE_ADDR", "localhost:50057")
+	aiConn, err := grpc.NewClient(aiAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal("failed to connect to ai-service", zap.Error(err))
+	}
+	defer aiConn.Close()
+	aiClient := aiv1.NewAIServiceClient(aiConn)
+
 	// Use case
-	botUC := usecase.NewBotUseCase(botRepo, configRepo, permRepo, sourceRepo, actionRepo, statsRepo, nil, publisher, log)
+	botUC := usecase.NewBotUseCase(botRepo, configRepo, permRepo, sourceRepo, actionRepo, statsRepo, nil, aiClient, publisher, log)
 
 	// gRPC handler
 	handler := grpcdelivery.NewBotHandler(botUC)

@@ -334,14 +334,14 @@ func mapError(err error) error {
 	}
 	switch {
 	case bizerr.IsNotFound(err):
-		return status.Errorf(codes.NotFound, err.Error())
+		return status.Error(codes.NotFound, err.Error())
 	case bizerr.IsInvalidInput(err):
-		return status.Errorf(codes.InvalidArgument, err.Error())
+		return status.Error(codes.InvalidArgument, err.Error())
 	case bizerr.IsForbidden(err):
-		return status.Errorf(codes.PermissionDenied, err.Error())
+		return status.Error(codes.PermissionDenied, err.Error())
 	case bizerr.IsPolicyDenied(err):
-		return status.Errorf(codes.PermissionDenied, err.Error())
+		return status.Error(codes.PermissionDenied, err.Error())
 	default:
-		return status.Errorf(codes.Internal, err.Error())
+		return status.Error(codes.Internal, err.Error())
 	}
 }
