@@ -2,17 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation } from '@apollo/client';
 import {
   Building2, Mail, Lock, User, ArrowRight, ArrowLeft, CheckCircle,
   Globe, FileText, Upload, X, Shield, MapPin, Phone, Hash, AlertTriangle, Loader2,
 } from 'lucide-react';
-import { REGISTER_MUTATION } from '@/lib/graphql/auth';
-import { tokenManager } from '@/lib/token';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/useToast';
 import { Card } from '@/components/ui/Card';
-import { auth, ApiError, type RegisterPayload } from '@/lib/api';
+import { ApiError, type RegisterPayload } from '@/lib/api';
 
 const TOTAL_STEPS = 5;
 
@@ -51,7 +48,6 @@ export default function RegisterPage() {
   const router = useRouter();
   const toast = useToast();
   const { login: authLogin } = useAuth();
-  const [registerMutation] = useMutation(REGISTER_MUTATION);
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
@@ -244,27 +240,29 @@ export default function RegisterPage() {
         termsAccepted: form.termsAccepted,
       };
 
-      let data;
+      let res: Response;
       if (documents.length > 0) {
-        // Document upload requires multipart — use REST fallback
-        data = await auth.registerWithDocuments(payload, documents);
+        // Multipart upload with documents
+        const formData = new FormData();
+        formData.append('payload', JSON.stringify(payload));
+        documents.forEach((file) => formData.append('documents', file));
+        res = await fetch('/api/auth/register', { method: 'POST', body: formData });
       } else {
-        // Use GraphQL for non-document registration
-        try {
-          const result = await registerMutation({ variables: { input: payload } });
-          data = result.data?.register;
-        } catch {
-          // Fallback to REST if GraphQL fails
-          data = await auth.register(payload);
-        }
+        res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
       }
 
-      if (data?.accessToken) {
-        authLogin(data.accessToken, data.refreshToken);
-        sessionStorage.removeItem('register-form');
-        toast.success('Organization registered successfully', 'Welcome to TrustInbox!');
-        router.push('/');
-      }
+      const data = await res.json();
+      if (!res.ok) throw new ApiError(data.error || 'Registration failed', res.status);
+
+      // Cookies are set server-side — just update client state
+      authLogin();
+      sessionStorage.removeItem('register-form');
+      toast.success('Organization registered successfully', 'Welcome to TrustInbox!');
+      router.push('/');
     } catch (err) {
       setError(err instanceof ApiError ? friendlyError(err.message) : 'Registration failed. Please try again.');
     } finally {

@@ -1,4 +1,7 @@
-import { gql, useQuery, useLazyQuery, useMutation } from '@apollo/client';
+'use client';
+
+import { useData } from '@/lib/hooks/useData';
+import { useMutationHelper } from '@/lib/hooks/useMutationHelper';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -114,280 +117,109 @@ export function isImageType(fileType: string): boolean {
   return /^image\//i.test(fileType) || /\.(png|jpg|jpeg|gif|webp)$/i.test(fileType);
 }
 
-// ─── Fragments ──────────────────────────────────────────
-
-const DOCUMENT_FRAGMENT = gql`
-  fragment DocumentFields on Document {
-    id
-    fileName
-    fileType
-    fileSize
-    s3Key
-    status
-    classifications {
-      id
-      label
-      confidence
-      classifiedBy
-    }
-    shareCount
-    uploadedBy
-    uploadedByName
-    serviceProviderId
-    createdAt
-    updatedAt
-  }
-`;
-
-const DOCUMENT_VERSION_FRAGMENT = gql`
-  fragment DocumentVersionFields on DocumentVersion {
-    id
-    documentId
-    versionNumber
-    fileSize
-    uploadedBy
-    uploadedByName
-    createdAt
-  }
-`;
-
-// ─── Queries ────────────────────────────────────────────
-
-export const DOCUMENTS_QUERY = gql`
-  ${DOCUMENT_FRAGMENT}
-  query Documents(
-    $search: String
-    $classification: String
-    $status: DocumentStatus
-    $limit: Int
-    $offset: Int
-  ) {
-    documents(
-      search: $search
-      classification: $classification
-      status: $status
-      limit: $limit
-      offset: $offset
-    ) {
-      nodes {
-        ...DocumentFields
-      }
-      totalCount
-    }
-  }
-`;
-
-export const DOCUMENT_QUERY = gql`
-  ${DOCUMENT_FRAGMENT}
-  query Document($id: ID!) {
-    document(id: $id) {
-      ...DocumentFields
-    }
-  }
-`;
-
-export const DOCUMENT_VERSIONS_QUERY = gql`
-  ${DOCUMENT_VERSION_FRAGMENT}
-  query DocumentVersions($documentId: ID!) {
-    documentVersions(documentId: $documentId) {
-      ...DocumentVersionFields
-    }
-  }
-`;
-
-export const DOCUMENT_SHARES_QUERY = gql`
-  query DocumentShares($documentId: ID!) {
-    documentShares(documentId: $documentId) {
-      id
-      documentId
-      recipientVirtualId
-      shareContext
-      expiresAt
-      message
-      createdAt
-    }
-  }
-`;
-
-// ─── Mutations ──────────────────────────────────────────
-
-export const GENERATE_PRESIGNED_URL = gql`
-  mutation GeneratePresignedURL($fileName: String!, $fileType: String!) {
-    generatePresignedURL(fileName: $fileName, fileType: $fileType) {
-      url
-      s3Key
-      expiresAt
-    }
-  }
-`;
-
-export const CREATE_DOCUMENT = gql`
-  ${DOCUMENT_FRAGMENT}
-  mutation CreateDocument($input: CreateDocumentInput!) {
-    createDocument(input: $input) {
-      ...DocumentFields
-    }
-  }
-`;
-
-export const DELETE_DOCUMENT = gql`
-  mutation DeleteDocument($id: ID!) {
-    deleteDocument(id: $id) {
-      id
-      status
-    }
-  }
-`;
-
-export const ARCHIVE_DOCUMENT = gql`
-  mutation ArchiveDocument($id: ID!) {
-    archiveDocument(id: $id) {
-      id
-      status
-    }
-  }
-`;
-
-export const UPDATE_DOCUMENT_CLASSIFICATION = gql`
-  ${DOCUMENT_FRAGMENT}
-  mutation UpdateDocumentClassification($documentId: ID!, $classification: String!) {
-    updateDocumentClassification(documentId: $documentId, classification: $classification) {
-      ...DocumentFields
-    }
-  }
-`;
-
-export const SHARE_DOCUMENT = gql`
-  mutation ShareDocument($input: ShareDocumentInput!) {
-    shareDocument(input: $input) {
-      id
-      documentId
-      recipientVirtualId
-      shareContext
-      signedUrl
-      expiresAt
-      createdAt
-    }
-  }
-`;
-
-export const GENERATE_DOCUMENT_SHARE_URL = gql`
-  mutation GenerateDocumentShareURL($documentId: ID!, $expiry: String) {
-    generateDocumentShareURL(documentId: $documentId, expiry: $expiry) {
-      url
-      expiresAt
-    }
-  }
-`;
-
-export const TRACK_DOCUMENT_ACCESS = gql`
-  mutation TrackDocumentAccess($documentId: ID!, $accessType: String!) {
-    trackDocumentAccess(documentId: $documentId, accessType: $accessType)
-  }
-`;
-
 // ─── Hooks ──────────────────────────────────────────────
 
 export function useDocuments(variables: DocumentsVariables) {
   const { search, classification, status, limit = 25, offset = 0 } = variables;
-  return useQuery<{ documents: DocumentConnection }>(DOCUMENTS_QUERY, {
-    variables: {
-      search: search || undefined,
-      classification: classification || undefined,
-      status: status || undefined,
-      limit,
-      offset,
-    },
-    fetchPolicy: 'cache-and-network',
-  });
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (classification) params.set('classification', classification);
+  if (status) params.set('status', status);
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  const qs = params.toString();
+
+  const result = useData<DocumentConnection>(`/api/gateway/v1/documents?${qs}`);
+  return { ...result, data: result.data ? { documents: result.data } : undefined };
 }
 
 export function useDocument(id: string) {
-  return useQuery<{ document: DocumentNode }>(DOCUMENT_QUERY, {
-    variables: { id },
-    skip: !id,
-  });
+  const result = useData<DocumentNode>(
+    id ? `/api/gateway/v1/documents/${id}` : null,
+    { skip: !id },
+  );
+  return { ...result, data: result.data ? { document: result.data } : undefined };
 }
 
 export function useDocumentVersions(documentId: string) {
-  return useQuery<{ documentVersions: DocumentVersion[] }>(DOCUMENT_VERSIONS_QUERY, {
-    variables: { documentId },
-    skip: !documentId,
-  });
+  const result = useData<DocumentVersion[]>(
+    documentId ? `/api/gateway/v1/documents/${documentId}/versions` : null,
+    { skip: !documentId },
+  );
+  return { ...result, data: result.data ? { documentVersions: result.data } : undefined };
 }
 
 export function useDocumentShares(documentId: string) {
-  return useQuery<{ documentShares: DocumentShare[] }>(DOCUMENT_SHARES_QUERY, {
-    variables: { documentId },
-    skip: !documentId,
-  });
+  const result = useData<DocumentShare[]>(
+    documentId ? `/api/gateway/v1/documents/${documentId}/shares` : null,
+    { skip: !documentId },
+  );
+  return { ...result, data: result.data ? { documentShares: result.data } : undefined };
 }
 
 export function useGeneratePresignedURL() {
-  const [generate, result] = useMutation<{ generatePresignedURL: PresignedURLResponse }>(GENERATE_PRESIGNED_URL);
+  const { run, loading, error } = useMutationHelper<PresignedURLResponse>();
   return {
     generateURL: (fileName: string, fileType: string) =>
-      generate({ variables: { fileName, fileType } }),
-    loading: result.loading,
-    error: result.error,
+      run('/api/gateway/v1/documents/presigned-url', 'POST', { fileName, fileType }),
+    loading,
+    error,
   };
 }
 
 export function useCreateDocument() {
-  const [create, result] = useMutation(CREATE_DOCUMENT, {
-    refetchQueries: ['Documents'],
-  });
-  return { create, loading: result.loading, error: result.error };
+  const { run, loading, error } = useMutationHelper<DocumentNode>();
+  return {
+    create: (input: Record<string, unknown>) => run('/api/gateway/v1/documents', 'POST', input),
+    loading,
+    error,
+  };
 }
 
 export function useDeleteDocument() {
-  const [deleteMutation, result] = useMutation(DELETE_DOCUMENT, {
-    refetchQueries: ['Documents'],
-  });
+  const { run, loading, error } = useMutationHelper();
   return {
-    deleteDocument: (id: string) => deleteMutation({ variables: { id } }),
-    loading: result.loading,
-    error: result.error,
+    deleteDocument: (id: string) => run(`/api/gateway/v1/documents/${id}`, 'DELETE'),
+    loading,
+    error,
   };
 }
 
 export function useArchiveDocument() {
-  const [archive, result] = useMutation(ARCHIVE_DOCUMENT, {
-    refetchQueries: ['Documents'],
-  });
+  const { run, loading, error } = useMutationHelper();
   return {
-    archiveDocument: (id: string) => archive({ variables: { id } }),
-    loading: result.loading,
-    error: result.error,
+    archiveDocument: (id: string) => run(`/api/gateway/v1/documents/${id}/archive`, 'POST'),
+    loading,
+    error,
   };
 }
 
 export function useUpdateClassification() {
-  const [update, result] = useMutation(UPDATE_DOCUMENT_CLASSIFICATION);
+  const { run, loading, error } = useMutationHelper<DocumentNode>();
   return {
     updateClassification: (documentId: string, classification: string) =>
-      update({ variables: { documentId, classification } }),
-    loading: result.loading,
-    error: result.error,
+      run(`/api/gateway/v1/documents/${documentId}/classification`, 'PUT', { classification }),
+    loading,
+    error,
   };
 }
 
 export function useShareDocument() {
-  const [share, result] = useMutation(SHARE_DOCUMENT, {
-    refetchQueries: ['DocumentShares'],
-  });
-  return { share, loading: result.loading, error: result.error };
+  const { run, loading, error } = useMutationHelper<DocumentShare>();
+  return {
+    share: (input: Record<string, unknown>) => run('/api/gateway/v1/documents/share', 'POST', input),
+    loading,
+    error,
+  };
 }
 
 export function useDocumentSignedUrl() {
-  const [generate, result] = useMutation<{
-    generateDocumentShareURL: { url: string; expiresAt: string };
-  }>(GENERATE_DOCUMENT_SHARE_URL);
+  const { run, loading, error } = useMutationHelper<{ url: string; expiresAt: string }>();
   return {
     getSignedUrl: (documentId: string, expiry?: string) =>
-      generate({ variables: { documentId, expiry } }),
-    loading: result.loading,
-    error: result.error,
+      run(`/api/gateway/v1/documents/${documentId}/signed-url`, 'POST', { expiry }),
+    loading,
+    error,
   };
 }
 

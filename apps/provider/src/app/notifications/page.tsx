@@ -107,10 +107,11 @@ function NotificationsContent() {
   };
 
   const { data, loading } = useNotifications(queryOptions);
-  const { data: statsData } = useNotificationStats(spId, {
+  const statsRange = useMemo(() => ({
     from: new Date(Date.now() - 30 * 86_400_000).toISOString(),
     to: new Date().toISOString(),
-  });
+  }), []);
+  const { data: statsData } = useNotificationStats(spId, statsRange);
 
   // Live updates (5.15)
   useNotificationLiveUpdates(spId);

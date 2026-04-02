@@ -2,8 +2,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth as authApi, profile as profileApi } from '@/lib/api';
-import { tokenManager } from '@/lib/token';
 import type { MeUser, ServiceProviderMembership, ServiceProviderDetail } from '@/lib/graphql/types';
 
 // ─── Types ──────────────────────────────────────────────
@@ -16,7 +14,7 @@ interface AuthContextValue {
   role: string | null;
   activeServiceProvider: ServiceProviderDetail | null;
   serviceProviders: ServiceProviderMembership[];
-  login: (accessToken: string, refreshToken: string) => void;
+  login: () => void;
   logout: () => void;
   refreshSession: () => Promise<void>;
   switchServiceProvider: (spId: string) => void;
@@ -24,72 +22,57 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// ─── Cookie helper ──────────────────────────────────────
+
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 // ─── Provider ───────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [loggedIn, setLoggedIn] = useState(() => tokenManager.isAuthenticated());
+  const [loggedIn, setLoggedIn] = useState(() => getCookie('auth-status') === '1');
   const [user, setUser] = useState<MeUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchMe = useCallback(async () => {
-    if (!tokenManager.isAuthenticated()) return;
+    if (getCookie('auth-status') !== '1') return;
     setLoading(true);
     try {
-      // Fetch user profile and service providers in parallel
-      const [meData, spData] = await Promise.all([
-        authApi.me(),
-        profileApi.serviceProviders().catch(() => ({ serviceProviders: [] })),
+      // Fetch user profile and service providers in parallel (cookies auto-sent)
+      const [meRes, spRes] = await Promise.all([
+        fetch('/api/auth/me'),
+        fetch('/api/auth/service-providers').catch(() => null),
       ]);
 
-      const memberships: ServiceProviderMembership[] = (spData.serviceProviders || []).map((sp) => ({
-        id: sp.id,
-        name: sp.name,
-        industry: sp.industry,
-        role: sp.role,
-        status: sp.verificationStatus ?? 'ACTIVE',
-      } as ServiceProviderMembership));
-
-      // Determine active SP
-      const activeSpId = tokenManager.getActiveSpId();
-      const activeMembership = activeSpId
-        ? memberships.find((sp) => sp.id === activeSpId)
-        : memberships[0];
-
-      // Auto-set active SP if not set
-      if (!activeSpId && activeMembership) {
-        tokenManager.setActiveSpId(activeMembership.id);
+      if (!meRes.ok) {
+        if (meRes.status === 401) {
+          // Try refreshing
+          const refreshRes = await fetch('/api/auth/refresh', { method: 'POST' });
+          if (refreshRes.ok) {
+            // Retry after refresh
+            const retryMe = await fetch('/api/auth/me');
+            if (!retryMe.ok) throw new Error('401');
+            const meData = await retryMe.json();
+            const retrySpRes = await fetch('/api/auth/service-providers').catch(() => null);
+            const spData = retrySpRes?.ok ? await retrySpRes.json() : { serviceProviders: [] };
+            buildUser(meData, spData);
+            return;
+          }
+          throw new Error('401');
+        }
+        throw new Error(`Failed: ${meRes.status}`);
       }
 
-      const activeSP: ServiceProviderDetail | null = activeMembership
-        ? {
-            id: activeMembership.id,
-            name: activeMembership.name,
-            industry: activeMembership.industry,
-            status: activeMembership.status,
-            memberCount: 0,
-            createdAt: '',
-          }
-        : null;
-
-      // Use SP role (e.g. SP_ADMIN) instead of base user role (CUSTOMER)
-      const role = activeMembership?.role ?? 'CUSTOMER';
-
-      setUser({
-        id: meData.id,
-        email: meData.email,
-        fullName: meData.fullName,
-        username: meData.username,
-        role,
-        createdAt: '',
-        serviceProviders: memberships,
-        activeServiceProvider: activeSP,
-      } as MeUser);
-      setError(null);
+      const meData = await meRes.json();
+      const spData = spRes?.ok ? await spRes.json() : { serviceProviders: [] };
+      buildUser(meData, spData);
     } catch (err) {
       if (err instanceof Error && err.message.includes('401')) {
-        tokenManager.clearTokens();
         setLoggedIn(false);
       }
       setError(err instanceof Error ? err.message : 'Failed to fetch user');
@@ -99,35 +82,96 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  function buildUser(
+    meData: { id: string; email: string; fullName: string; username: string; role?: string },
+    spData: { serviceProviders?: Array<Record<string, string>> } | Array<Record<string, string>>,
+  ) {
+    const rawSps = Array.isArray(spData)
+      ? spData
+      : (spData?.serviceProviders || []);
+
+    const memberships: ServiceProviderMembership[] = rawSps.map((sp) => ({
+      id: sp.id,
+      name: sp.name,
+      industry: sp.industry,
+      role: sp.role,
+      status: sp.verificationStatus ?? sp.verification_status ?? 'ACTIVE',
+    } as ServiceProviderMembership));
+
+    // Determine active SP from cookie
+    const activeSpId = getCookie('activeSpId');
+    const activeMembership = activeSpId
+      ? memberships.find((sp) => sp.id === activeSpId)
+      : memberships[0];
+
+    // Auto-set active SP cookie if not set
+    if (!activeSpId && activeMembership) {
+      fetch('/api/auth/active-sp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spId: activeMembership.id }),
+      }).catch(() => {});
+    }
+
+    const activeSP: ServiceProviderDetail | null = activeMembership
+      ? {
+          id: activeMembership.id,
+          name: activeMembership.name,
+          industry: activeMembership.industry,
+          status: activeMembership.status,
+          memberCount: 0,
+          createdAt: '',
+        }
+      : null;
+
+    const role = activeMembership?.role ?? meData.role ?? 'CUSTOMER';
+
+    setUser({
+      id: meData.id,
+      email: meData.email,
+      fullName: meData.fullName,
+      username: meData.username,
+      role,
+      createdAt: '',
+      serviceProviders: memberships,
+      activeServiceProvider: activeSP,
+    } as MeUser);
+    setError(null);
+  }
+
   // Fetch user on mount and when loggedIn changes
   useEffect(() => {
     if (loggedIn) {
       fetchMe();
-      tokenManager.scheduleRefresh();
     } else {
       setUser(null);
     }
   }, [loggedIn, fetchMe]);
 
-  const login = useCallback(
-    (accessToken: string, refreshToken: string) => {
-      tokenManager.setTokens(accessToken, refreshToken);
-      setLoggedIn(true);
-      fetchMe();
-    },
-    [fetchMe],
-  );
+  // Schedule periodic token refresh (every 12 minutes)
+  useEffect(() => {
+    if (!loggedIn) return;
+    const timer = setInterval(() => {
+      fetch('/api/auth/refresh', { method: 'POST' }).catch(() => {});
+    }, 12 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, [loggedIn]);
+
+  const login = useCallback(() => {
+    setLoggedIn(true);
+    fetchMe();
+  }, [fetchMe]);
 
   const logout = useCallback(async () => {
-    tokenManager.clearTokens();
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     setLoggedIn(false);
     setUser(null);
     router.push('/auth/login');
   }, [router]);
 
   const refreshSession = useCallback(async () => {
-    const success = await tokenManager.refresh();
-    if (success) {
+    const res = await fetch('/api/auth/refresh', { method: 'POST' });
+    if (res.ok) {
       fetchMe();
     } else {
       logout();
@@ -135,8 +179,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchMe, logout]);
 
   const switchServiceProvider = useCallback(
-    (spId: string) => {
-      tokenManager.setActiveSpId(spId);
+    async (spId: string) => {
+      await fetch('/api/auth/active-sp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spId }),
+      });
       fetchMe();
     },
     [fetchMe],

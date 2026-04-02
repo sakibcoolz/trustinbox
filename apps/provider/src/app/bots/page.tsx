@@ -3,17 +3,12 @@
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { Search, X, Bot as BotIcon } from 'lucide-react';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { formatRelativeTime } from '@/lib/format';
-import {
-  useBots,
-  useUpdateBot,
-  getStatusConfig,
-  BotStatus,
-  Bot,
-} from '@/lib/graphql/bots';
+import { useData } from '@/lib/hooks/useData';
+import { useUpdateBot } from '@/lib/mutations/bots';
 import { useToast } from '@/components/Toast';
+import { type Bot, type BotStatus, getStatusConfig } from '@/lib/types';
 
 const STATUS_CHIPS: { label: string; value: BotStatus | null }[] = [
   { label: 'All', value: null },
@@ -23,11 +18,9 @@ const STATUS_CHIPS: { label: string; value: BotStatus | null }[] = [
   { label: 'Archived', value: 'ARCHIVED' },
 ];
 
-function BotStatusToggle({ bot }: { bot: Bot }) {
-  const { activeServiceProvider } = useAuth();
-  const spId = activeServiceProvider?.id ?? '';
+function BotStatusToggle({ bot, onUpdated }: { bot: Bot; onUpdated?: () => void }) {
   const canDeploy = usePermission('bots:deploy');
-  const { update, loading } = useUpdateBot();
+  const { execute: update, loading } = useUpdateBot();
   const { success, error: toastError } = useToast();
 
   if (!canDeploy) return null;
@@ -40,8 +33,9 @@ function BotStatusToggle({ bot }: { bot: Bot }) {
     e.stopPropagation();
     const newStatus: BotStatus = isActive ? 'PAUSED' : 'ACTIVE';
     try {
-      await update({ botId: bot.id, serviceProviderId: spId, status: newStatus });
+      await update(bot.id, { status: newStatus });
       success(newStatus === 'ACTIVE' ? 'Bot activated' : 'Bot paused');
+      onUpdated?.();
     } catch {
       toastError('Failed to update bot status');
     }
@@ -57,8 +51,6 @@ function BotStatusToggle({ bot }: { bot: Bot }) {
 }
 
 function BotsContent() {
-  const { activeServiceProvider } = useAuth();
-  const spId = activeServiceProvider?.id ?? '';
   const canCreate = usePermission('bots:create');
 
   const [statusFilter, setStatusFilter] = useState<BotStatus | null>(null);
@@ -70,8 +62,9 @@ function BotsContent() {
     return () => clearTimeout(t);
   }, [searchTerm]);
 
-  const { data, loading, error, refetch } = useBots({ serviceProviderId: spId, status: statusFilter });
-  const bots = data?.bots?.nodes ?? [];
+  const url = `/api/bots${statusFilter ? `?status=${statusFilter}` : ''}`;
+  const { data, loading, error, refetch } = useData<{ nodes?: Bot[] }>(url, { deps: [statusFilter] });
+  const bots = data?.nodes ?? [];
 
   const filteredBots = useMemo(() => {
     if (!debouncedSearch) return bots;
@@ -179,15 +172,15 @@ function BotsContent() {
                   <div className="w-10 h-10 rounded-lg bg-accent-purple/20 flex items-center justify-center text-accent-purple text-sm font-medium overflow-hidden">
                     {bot.avatarUrl
                       ? <img src={bot.avatarUrl} alt={bot.name} className="w-full h-full object-cover" />
-                      : bot.name.charAt(0)}
+                      : (bot.name?.charAt(0) || <BotIcon size={18} />)}
                   </div>
                   <div className="flex items-center gap-2">
-                    <BotStatusToggle bot={bot} />
+                    <BotStatusToggle bot={bot} onUpdated={refetch} />
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${sc.className}`}>{sc.label}</span>
                   </div>
                 </div>
-                <h3 className="font-medium text-sm">{bot.name}</h3>
-                <p className="text-xs text-text-muted mt-1 line-clamp-2">{bot.purpose}</p>
+                <h3 className="font-medium text-sm">{bot.name || 'Unnamed Bot'}</h3>
+                <p className="text-xs text-text-muted mt-1 line-clamp-2">{bot.purpose || 'No purpose set'}</p>
                 {bot.department && <p className="text-xs text-text-secondary mt-1">{bot.department}</p>}
                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-border-primary">
                   <div className="flex gap-4">

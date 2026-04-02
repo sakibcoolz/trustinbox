@@ -19,9 +19,8 @@ export default function DocumentPreview({ documentId, fileName, fileType, isOpen
 
   useEffect(() => {
     if (isOpen && documentId) {
-      getSignedUrl(documentId, '15m').then(({ data }) => {
-        const signedUrl = data?.generateDocumentShareURL?.url;
-        if (signedUrl) setUrl(signedUrl);
+      getSignedUrl(documentId, '15m').then((result) => {
+        if (result?.url) setUrl(result.url);
       });
     }
     return () => setUrl(null);

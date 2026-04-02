@@ -1,4 +1,7 @@
-import { gql, useQuery, useMutation } from '@apollo/client';
+'use client';
+
+import { useData } from '@/lib/hooks/useData';
+import { useMutationHelper } from '@/lib/hooks/useMutationHelper';
 
 // ─── Types (14.5) ───────────────────────────────────────────────────────────
 
@@ -96,9 +99,6 @@ export interface RateLimitInfo {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export function getAPIKeyStatus(key: APIKey): { label: string; className: string } {
-  if (key.scopes.length === 0 && !key.expiresAt && !key.lastUsedAt) {
-    // Revoked keys would be filtered server side or have a flag; use prefix heuristic
-  }
   if (key.expiresAt && new Date(key.expiresAt) < new Date()) {
     return { label: 'Expired', className: 'bg-status-warning/10 text-status-warning' };
   }
@@ -123,147 +123,47 @@ export const EXPIRY_OPTIONS = [
   { label: 'Never', value: 0 },
 ] as const;
 
-// ─── Fragments ───────────────────────────────────────────────────────────────
-
-export const API_KEY_FIELDS = gql`
-  fragment APIKeyFields on APIKey {
-    id
-    serviceProviderId
-    name
-    prefix
-    scopes
-    expiresAt
-    lastUsedAt
-    createdAt
-  }
-`;
-
-// ─── Queries (14.5) ─────────────────────────────────────────────────────────
-
-export const GET_API_KEYS = gql`
-  ${API_KEY_FIELDS}
-  query GetAPIKeys($serviceProviderId: ID!) {
-    apiKeys(serviceProviderId: $serviceProviderId) {
-      nodes {
-        ...APIKeyFields
-      }
-      totalCount
-    }
-  }
-`;
-
-// ─── Queries (14.7) ─────────────────────────────────────────────────────────
-
-export const GET_INTEGRATION_CONFIGS = gql`
-  query GetIntegrationConfigs($serviceProviderId: ID!) {
-    integrationConfigs(serviceProviderId: $serviceProviderId) {
-      name
-      status
-      config
-      lastSyncAt
-      errorMessage
-    }
-  }
-`;
-
-// ─── Queries (14.3) ─────────────────────────────────────────────────────────
-
-export const GET_INTEGRATION_LOGS = gql`
-  query GetIntegrationLogs($serviceProviderId: ID!, $integration: String, $status: String, $limit: Int, $offset: Int) {
-    integrationLogs(serviceProviderId: $serviceProviderId, integration: $integration, status: $status, limit: $limit, offset: $offset) {
-      nodes {
-        id
-        integration
-        event
-        status
-        details
-        timestamp
-      }
-      totalCount
-    }
-  }
-`;
-
-// ─── Queries (14.4) ─────────────────────────────────────────────────────────
-
-export const GET_RATE_LIMIT_INFO = gql`
-  query GetRateLimitInfo($serviceProviderId: ID!) {
-    rateLimitInfo(serviceProviderId: $serviceProviderId) {
-      currentUsage
-      limit
-      resetsAt
-      scopeBreakdown {
-        scope
-        usage
-        limit
-      }
-    }
-  }
-`;
-
-// ─── Mutations (14.6) ───────────────────────────────────────────────────────
-
-export const CREATE_API_KEY = gql`
-  ${API_KEY_FIELDS}
-  mutation CreateAPIKey($input: CreateAPIKeyInput!) {
-    createAPIKey(input: $input) {
-      apiKey {
-        ...APIKeyFields
-      }
-      secret
-    }
-  }
-`;
-
-export const REVOKE_API_KEY = gql`
-  mutation RevokeAPIKey($input: RevokeAPIKeyInput!) {
-    revokeAPIKey(input: $input)
-  }
-`;
-
 // ─── Hooks (14.5) ───────────────────────────────────────────────────────────
 
 export function useAPIKeys(serviceProviderId: string) {
-  return useQuery<{ apiKeys: APIKeyConnection }>(GET_API_KEYS, {
-    variables: { serviceProviderId },
-    skip: !serviceProviderId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<APIKeyConnection>(
+    serviceProviderId ? `/api/gateway/v1/api-keys?serviceProviderId=${serviceProviderId}` : null,
+    { skip: !serviceProviderId },
+  );
+  return { ...result, data: result.data ? { apiKeys: result.data } : undefined };
 }
 
 // ─── Hooks (14.6) ───────────────────────────────────────────────────────────
 
 export function useCreateAPIKey() {
-  const [create, result] = useMutation<{ createAPIKey: APIKeyWithSecret }>(CREATE_API_KEY, {
-    refetchQueries: ['GetAPIKeys'],
-  });
+  const { run, loading, error } = useMutationHelper<APIKeyWithSecret>();
   return {
-    create: (input: CreateAPIKeyInput) => create({ variables: { input } }),
-    data: result.data?.createAPIKey ?? null,
-    loading: result.loading,
-    error: result.error,
+    create: (input: CreateAPIKeyInput) =>
+      run('/api/gateway/v1/api-keys', 'POST', input),
+    data: null as APIKeyWithSecret | null,
+    loading,
+    error,
   };
 }
 
 export function useRevokeAPIKey() {
-  const [revoke, result] = useMutation(REVOKE_API_KEY, {
-    refetchQueries: ['GetAPIKeys'],
-  });
+  const { run, loading, error } = useMutationHelper();
   return {
-    revoke: (input: RevokeAPIKeyInput) => revoke({ variables: { input } }),
-    loading: result.loading,
-    error: result.error,
+    revoke: (input: RevokeAPIKeyInput) =>
+      run(`/api/gateway/v1/api-keys/${input.apiKeyId}/revoke`, 'POST', input),
+    loading,
+    error,
   };
 }
 
 // ─── Hooks (14.7) ───────────────────────────────────────────────────────────
 
 export function useIntegrationConfigs(serviceProviderId: string) {
-  return useQuery<{ integrationConfigs: IntegrationConfig[] }>(GET_INTEGRATION_CONFIGS, {
-    variables: { serviceProviderId },
-    skip: !serviceProviderId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<IntegrationConfig[]>(
+    serviceProviderId ? `/api/gateway/v1/integrations?serviceProviderId=${serviceProviderId}` : null,
+    { skip: !serviceProviderId },
+  );
+  return { ...result, data: result.data ? { integrationConfigs: result.data } : undefined };
 }
 
 // ─── Hooks (14.3) ───────────────────────────────────────────────────────────
@@ -272,27 +172,26 @@ export function useIntegrationLogs(
   serviceProviderId: string,
   options?: { integration?: string; status?: string; limit?: number; offset?: number },
 ) {
-  return useQuery<{ integrationLogs: IntegrationLogConnection }>(GET_INTEGRATION_LOGS, {
-    variables: {
-      serviceProviderId,
-      integration: options?.integration,
-      status: options?.status,
-      limit: options?.limit ?? 25,
-      offset: options?.offset ?? 0,
-    },
-    skip: !serviceProviderId,
-    fetchPolicy: 'cache-and-network',
-    pollInterval: 30000, // auto-refresh every 30s
-  });
+  const params = new URLSearchParams({ serviceProviderId });
+  if (options?.integration) params.set('integration', options.integration);
+  if (options?.status) params.set('status', options.status);
+  params.set('limit', String(options?.limit ?? 25));
+  params.set('offset', String(options?.offset ?? 0));
+  const qs = params.toString();
+
+  const result = useData<IntegrationLogConnection>(
+    serviceProviderId ? `/api/gateway/v1/integrations/logs?${qs}` : null,
+    { skip: !serviceProviderId },
+  );
+  return { ...result, data: result.data ? { integrationLogs: result.data } : undefined };
 }
 
 // ─── Hooks (14.4) ───────────────────────────────────────────────────────────
 
 export function useRateLimitInfo(serviceProviderId: string) {
-  return useQuery<{ rateLimitInfo: RateLimitInfo }>(GET_RATE_LIMIT_INFO, {
-    variables: { serviceProviderId },
-    skip: !serviceProviderId,
-    fetchPolicy: 'cache-and-network',
-    pollInterval: 60000, // refresh every minute
-  });
+  const result = useData<RateLimitInfo>(
+    serviceProviderId ? `/api/gateway/v1/rate-limits?serviceProviderId=${serviceProviderId}` : null,
+    { skip: !serviceProviderId },
+  );
+  return { ...result, data: result.data ? { rateLimitInfo: result.data } : undefined };
 }

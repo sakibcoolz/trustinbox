@@ -50,8 +50,7 @@ function BotTestPanel({ systemPrompt, botId }: { systemPrompt: string; botId: st
         actionType: 'test_prompt',
         inputJson: JSON.stringify({ message: userMsg, systemPrompt }),
       });
-      const output = result.data?.executeBotAction;
-      const text = output?.outputJson ? JSON.parse(output.outputJson).response ?? 'No response' : 'No response';
+      const text = result?.outputJson ? JSON.parse(result.outputJson).response ?? 'No response' : 'No response';
       setMessages((prev) => [...prev, { role: 'bot', text }]);
     } catch {
       setMessages((prev) => [...prev, { role: 'bot', text: 'Error: unable to get response' }]);

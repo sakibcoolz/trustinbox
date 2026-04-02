@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useMemo } from 'react';
 import { ArrowLeft, Edit, Copy, XCircle, Rocket, Users, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -40,9 +40,12 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
 
   // Queries
   const { data: campaignData, loading: campaignLoading, error: campaignError } = useCampaign(id, spId);
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const { data: analyticsData } = useCampaignAnalytics({ serviceProviderId: spId, campaignId: id, from: thirtyDaysAgo.toISOString(), to: now.toISOString() });
+  const analyticsRange = useMemo(() => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return { from: thirtyDaysAgo.toISOString(), to: now.toISOString() };
+  }, []);
+  const { data: analyticsData } = useCampaignAnalytics({ serviceProviderId: spId, campaignId: id, ...analyticsRange });
   const { data: targetsData, loading: targetsLoading } = useCampaignTargets(
     { campaignId: id, serviceProviderId: spId, limit: PAGE_SIZE, offset: targetsPage * PAGE_SIZE, status: targetFilter === 'ALL' ? undefined : targetFilter }
   );

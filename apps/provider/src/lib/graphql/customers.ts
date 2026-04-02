@@ -1,4 +1,7 @@
-import { gql, useQuery, useLazyQuery } from '@apollo/client';
+'use client';
+
+import { useState, useCallback } from 'react';
+import { useData } from '@/lib/hooks/useData';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -117,176 +120,6 @@ export interface PolicyCheckResult {
   appliedRules: string[];
 }
 
-// ─── Queries ────────────────────────────────────────────
-
-export const CUSTOMER_LIST_QUERY = gql`
-  query CustomerList(
-    $search: String
-    $category: NotificationCategory
-    $status: String
-    $orderBy: OrderByInput
-    $first: Int
-    $after: String
-  ) {
-    conversations(
-      search: $search
-      category: $category
-      status: $status
-      orderBy: $orderBy
-      first: $first
-      after: $after
-    ) {
-      nodes {
-        id
-        status
-        serviceProvider {
-          id
-          name
-        }
-        createdAt
-        updatedAt
-      }
-      totalCount
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-    }
-  }
-`;
-
-export const CUSTOMER_DETAIL_QUERY = gql`
-  query CustomerDetail($virtualId: String!) {
-    notifications(recipientVirtualId: $virtualId, limit: 20) {
-      nodes {
-        id
-        category
-        title
-        body
-        priority
-        status
-        createdAt
-      }
-      totalCount
-    }
-    callbackRequests(virtualId: $virtualId, limit: 10) {
-      nodes {
-        id
-        reason
-        details
-        status
-        requestedAt
-        respondedAt
-      }
-      totalCount
-    }
-  }
-`;
-
-export const CUSTOMER_TIMELINE_QUERY = gql`
-  query CustomerTimeline($virtualId: String!, $limit: Int, $offset: Int) {
-    customerTimeline(virtualId: $virtualId, limit: $limit, offset: $offset) {
-      nodes {
-        id
-        type
-        title
-        description
-        timestamp
-        metadata
-      }
-      totalCount
-    }
-  }
-`;
-
-export const CHECK_COMMUNICATION_POLICY = gql`
-  query CheckCommunicationPolicy(
-    $serviceProviderId: ID!
-    $category: NotificationCategory!
-    $channel: String!
-  ) {
-    checkCommunicationPolicy(
-      serviceProviderId: $serviceProviderId
-      category: $category
-      channel: $channel
-    ) {
-      allowed
-      decisionCode
-      reason
-      appliedRules
-    }
-  }
-`;
-
-export const CUSTOMER_NOTES_QUERY = gql`
-  query CustomerNotes($virtualId: String!) {
-    customerNotes(virtualId: $virtualId) {
-      id
-      content
-      authorName
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-export const CUSTOMER_TAGS_QUERY = gql`
-  query CustomerTags($virtualId: String!) {
-    customerTags(virtualId: $virtualId) {
-      id
-      label
-      color
-    }
-  }
-`;
-
-// ─── Mutations ──────────────────────────────────────────
-
-export const ADD_CUSTOMER_NOTE = gql`
-  mutation AddCustomerNote($virtualId: String!, $content: String!) {
-    addCustomerNote(virtualId: $virtualId, content: $content) {
-      id
-      content
-      authorName
-      createdAt
-    }
-  }
-`;
-
-export const UPDATE_CUSTOMER_NOTE = gql`
-  mutation UpdateCustomerNote($id: ID!, $content: String!) {
-    updateCustomerNote(id: $id, content: $content) {
-      id
-      content
-      updatedAt
-    }
-  }
-`;
-
-export const DELETE_CUSTOMER_NOTE = gql`
-  mutation DeleteCustomerNote($id: ID!) {
-    deleteCustomerNote(id: $id)
-  }
-`;
-
-export const ADD_CUSTOMER_TAG = gql`
-  mutation AddCustomerTag($virtualId: String!, $label: String!) {
-    addCustomerTag(virtualId: $virtualId, label: $label) {
-      id
-      label
-      color
-    }
-  }
-`;
-
-export const REMOVE_CUSTOMER_TAG = gql`
-  mutation RemoveCustomerTag($virtualId: String!, $tagId: ID!) {
-    removeCustomerTag(virtualId: $virtualId, tagId: $tagId)
-  }
-`;
-
 // ─── Hooks ──────────────────────────────────────────────
 
 export interface CustomerListOptions {
@@ -300,57 +133,77 @@ export interface CustomerListOptions {
 
 export function useCustomers(options: CustomerListOptions) {
   const { search, category, status, sort, first = 25, after } = options;
-  return useQuery<{ conversations: CustomerConnection }>(CUSTOMER_LIST_QUERY, {
-    variables: {
-      search: search || undefined,
-      category: category?.length === 1 ? category[0] : undefined,
-      status: status?.length === 1 ? status[0] : undefined,
-      orderBy: sort ? { field: sort.field, direction: sort.direction.toUpperCase() } : { field: 'lastContactAt', direction: 'DESC' },
-      first,
-      after: after || undefined,
-    },
-    fetchPolicy: 'cache-and-network',
-  });
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (category?.length === 1) params.set('category', category[0]);
+  if (status?.length === 1) params.set('status', status[0]);
+  if (sort) {
+    params.set('orderByField', sort.field);
+    params.set('orderByDirection', sort.direction.toUpperCase());
+  }
+  params.set('first', String(first));
+  if (after) params.set('after', after);
+  const qs = params.toString();
+
+  const result = useData<CustomerConnection>(`/api/gateway/v1/customers?${qs}`);
+  return { ...result, data: result.data ? { conversations: result.data } : undefined };
 }
 
 export function useCustomerDetail(virtualId: string) {
-  return useQuery(CUSTOMER_DETAIL_QUERY, {
-    variables: { virtualId },
-    skip: !virtualId,
-  });
+  const result = useData<{ notifications: { nodes: CustomerNotification[]; totalCount: number }; callbackRequests: { nodes: CustomerCallback[]; totalCount: number } }>(
+    virtualId ? `/api/gateway/v1/customers/${virtualId}` : null,
+    { skip: !virtualId },
+  );
+  return result;
 }
 
 export function useCustomerTimeline(virtualId: string, limit = 20, offset = 0) {
-  return useQuery(CUSTOMER_TIMELINE_QUERY, {
-    variables: { virtualId, limit, offset },
-    skip: !virtualId,
-  });
+  const result = useData<{ nodes: TimelineEvent[]; totalCount: number }>(
+    virtualId ? `/api/gateway/v1/customers/${virtualId}/timeline?limit=${limit}&offset=${offset}` : null,
+    { skip: !virtualId },
+  );
+  return { ...result, data: result.data ? { customerTimeline: result.data } : undefined };
 }
 
 export function useCheckPolicy() {
-  const [check, { data, loading, error }] = useLazyQuery<{
-    checkCommunicationPolicy: PolicyCheckResult;
-  }>(CHECK_COMMUNICATION_POLICY);
+  const [result, setResult] = useState<PolicyCheckResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | undefined>();
 
-  return {
-    checkPolicy: (serviceProviderId: string, category: string, channel: string) =>
-      check({ variables: { serviceProviderId, category, channel } }),
-    result: data?.checkCommunicationPolicy ?? null,
-    loading,
-    error,
-  };
+  const checkPolicy = useCallback(async (serviceProviderId: string, category: string, channel: string) => {
+    setLoading(true);
+    setError(undefined);
+    try {
+      const params = new URLSearchParams({ serviceProviderId, category, channel });
+      const res = await fetch(`/api/gateway/v1/policy/check?${params}`);
+      if (!res.ok) throw new Error('Policy check failed');
+      const data = await res.json();
+      setResult(data);
+      return data;
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      setError(err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { checkPolicy, result, loading, error };
 }
 
 export function useCustomerNotes(virtualId: string) {
-  return useQuery<{ customerNotes: CustomerNote[] }>(CUSTOMER_NOTES_QUERY, {
-    variables: { virtualId },
-    skip: !virtualId,
-  });
+  const result = useData<CustomerNote[]>(
+    virtualId ? `/api/gateway/v1/customers/${virtualId}/notes` : null,
+    { skip: !virtualId },
+  );
+  return { ...result, data: result.data ? { customerNotes: result.data } : undefined };
 }
 
 export function useCustomerTags(virtualId: string) {
-  return useQuery<{ customerTags: CustomerTag[] }>(CUSTOMER_TAGS_QUERY, {
-    variables: { virtualId },
-    skip: !virtualId,
-  });
+  const result = useData<CustomerTag[]>(
+    virtualId ? `/api/gateway/v1/customers/${virtualId}/tags` : null,
+    { skip: !virtualId },
+  );
+  return { ...result, data: result.data ? { customerTags: result.data } : undefined };
 }

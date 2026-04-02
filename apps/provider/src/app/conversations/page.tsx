@@ -111,7 +111,7 @@ function ConversationsContent() {
     offset,
   };
 
-  const { data, loading, fetchMore } = useConversations(queryOptions);
+  const { data, loading } = useConversations(queryOptions);
   const { data: statsData } = useConversationStats(spId);
 
   // Live updates (6.15)
@@ -124,34 +124,49 @@ function ConversationsContent() {
 
   // ── Infinite scroll (6.1) ──
   const [loadingMore, setLoadingMore] = useState(false);
+  const [extraConversations, setExtraConversations] = useState<typeof conversations>([]);
+
+  // Reset extra conversations when query options change
+  useEffect(() => {
+    setExtraConversations([]);
+  }, [statusFilter, searchQuery, unreadOnly, sortConfig.field, sortConfig.direction]);
+
+  const allConversations = [...conversations, ...extraConversations];
+  const allHasMore = allConversations.length < totalCount;
 
   useEffect(() => {
     const container = listRef.current;
     if (!container) return;
 
     function handleScroll() {
-      if (!container || loadingMore || !hasMore) return;
+      if (!container || loadingMore || !allHasMore) return;
       const { scrollTop, scrollHeight, clientHeight } = container;
       if (scrollHeight - scrollTop - clientHeight < 200) {
         setLoadingMore(true);
-        fetchMore({
-          variables: { offset: conversations.length },
-          updateQuery: (prev, { fetchMoreResult }) => {
-            if (!fetchMoreResult) return prev;
-            return {
-              conversations: {
-                ...fetchMoreResult.conversations,
-                nodes: [...prev.conversations.nodes, ...fetchMoreResult.conversations.nodes],
-              },
-            };
-          },
-        }).finally(() => setLoadingMore(false));
+        const nextOffset = allConversations.length;
+        const params = new URLSearchParams();
+        if (queryOptions.status) params.set('status', queryOptions.status);
+        if (queryOptions.search) params.set('search', queryOptions.search);
+        if (queryOptions.unreadOnly) params.set('unreadOnly', 'true');
+        params.set('orderByField', queryOptions.orderBy?.field ?? 'updatedAt');
+        params.set('orderByDirection', queryOptions.orderBy?.direction ?? 'DESC');
+        params.set('limit', String(PAGE_SIZE));
+        params.set('offset', String(nextOffset));
+
+        fetch(`/api/conversations?${params}`)
+          .then((res) => res.ok ? res.json() : null)
+          .then((moreData) => {
+            if (moreData?.nodes) {
+              setExtraConversations((prev) => [...prev, ...moreData.nodes]);
+            }
+          })
+          .finally(() => setLoadingMore(false));
       }
     }
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [conversations.length, fetchMore, hasMore, loadingMore]);
+  }, [allConversations.length, allHasMore, loadingMore, queryOptions]);
 
   return (
     <div className="p-8 space-y-6">
@@ -265,9 +280,9 @@ function ConversationsContent() {
 
       {/* Conversation List (6.1) */}
       <div ref={listRef} className="space-y-2 max-h-[calc(100vh-380px)] overflow-y-auto">
-        {loading && conversations.length === 0 ? (
+        {loading && allConversations.length === 0 ? (
           <ConversationSkeletonCards />
-        ) : conversations.length === 0 ? (
+        ) : allConversations.length === 0 ? (
           <EmptyState
             icon={MessageSquare}
             title="No conversations found"
@@ -279,7 +294,7 @@ function ConversationsContent() {
           />
         ) : (
           <>
-            {conversations.map((conv) => (
+            {allConversations.map((conv) => (
               <ConversationCard key={conv.id} conversation={conv} />
             ))}
             {loadingMore && (

@@ -1,7 +1,6 @@
 /// <reference types="vitest/globals" />
 import React from 'react';
 import { render, type RenderOptions } from '@testing-library/react';
-import { MockedProvider, type MockedResponse } from '@apollo/client/testing';
 import type { MeUser, ServiceProviderDetail, ServiceProviderMembership } from '@/lib/graphql/types';
 
 // ─── Mock Auth Context ──────────────────────────────────
@@ -80,23 +79,51 @@ export function getMockAuthValue() {
   return currentAuthValue;
 }
 
+// ─── Fetch Mock Helpers ─────────────────────────────────
+
+export interface FetchMockRoute {
+  url: string | RegExp;
+  method?: string;
+  response: unknown;
+  status?: number;
+}
+
+export function setupFetchMock(routes: FetchMockRoute[] = []) {
+  const originalFetch = global.fetch;
+  global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const method = (init?.method ?? 'GET').toUpperCase();
+
+    for (const route of routes) {
+      const urlMatch = typeof route.url === 'string' ? url.includes(route.url) : route.url.test(url);
+      const methodMatch = !route.method || route.method.toUpperCase() === method;
+      if (urlMatch && methodMatch) {
+        return new Response(JSON.stringify(route.response), {
+          status: route.status ?? 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+  }) as typeof global.fetch;
+
+  return () => { global.fetch = originalFetch; };
+}
+
 // ─── Wrapper Providers ──────────────────────────────────
 
 interface WrapperOptions {
   auth?: Partial<MockAuthValue>;
-  mocks?: MockedResponse[];
+  fetchRoutes?: FetchMockRoute[];
 }
 
-export function createWrapper({ auth, mocks = [] }: WrapperOptions = {}) {
+export function createWrapper({ auth }: WrapperOptions = {}) {
   const authValue = createAuthValue(auth);
   setMockAuthValue(authValue);
 
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return (
-      <MockedProvider mocks={mocks} addTypename={false}>
-        {children}
-      </MockedProvider>
-    );
+    return <>{children}</>;
   };
 }
 
@@ -104,9 +131,11 @@ export function renderWithProviders(
   ui: React.ReactElement,
   options: WrapperOptions & { renderOptions?: Omit<RenderOptions, 'wrapper'> } = {},
 ) {
-  const { auth, mocks, renderOptions } = options;
-  const Wrapper = createWrapper({ auth, mocks });
-  return render(ui, { wrapper: Wrapper, ...renderOptions });
+  const { auth, fetchRoutes, renderOptions } = options;
+  const cleanup = fetchRoutes ? setupFetchMock(fetchRoutes) : undefined;
+  const Wrapper = createWrapper({ auth });
+  const result = render(ui, { wrapper: Wrapper, ...renderOptions });
+  return { ...result, cleanupFetch: cleanup };
 }
 
 // ─── Mock Data Factories ────────────────────────────────

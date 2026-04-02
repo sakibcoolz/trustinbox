@@ -1,4 +1,4 @@
-import { gql, useQuery } from '@apollo/client';
+import { useData } from '@/lib/hooks/useData';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -74,132 +74,39 @@ export interface BotPerformanceData {
   satisfactionScore: number;
 }
 
-// ─── Queries ─────────────────────────────────────────────────────────────────
-
-export const GET_ANALYTICS_OVERVIEW = gql`
-  query GetAnalyticsOverview($serviceProviderId: ID!, $from: DateTime!, $to: DateTime!) {
-    dashboardAnalytics(serviceProviderId: $serviceProviderId, from: $from, to: $to) {
-      notificationsSent
-      notificationsDelivered
-      notificationsRead
-      notificationsRejected
-      callbacksRequested
-      callbacksApproved
-      callbacksRejected
-      messagesSent
-      messagesReceived
-      documentsShared
-      campaignsLaunched
-      botActions
-      botEscalations
-      spamReports
-      policyDenials
-      webhookDeliveries
-      webhookFailures
-      activeConversations
-      deliveryRate
-      readRate
-    }
-  }
-`;
-
-export const GET_DAILY_ANALYTICS = gql`
-  query GetDailyAnalytics($serviceProviderId: ID!, $from: DateTime!, $to: DateTime!) {
-    dailyAnalytics(serviceProviderId: $serviceProviderId, from: $from, to: $to) {
-      date
-      notificationsSent
-      notificationsDelivered
-      notificationsRead
-      callbacksRequested
-      callbacksApproved
-      messagesSent
-      documentsShared
-      botActions
-      spamReports
-      policyDenials
-    }
-  }
-`;
-
-export const GET_NOTIFICATION_ANALYTICS = gql`
-  query GetNotificationAnalytics($serviceProviderId: ID!, $from: DateTime!, $to: DateTime!) {
-    notificationAnalytics(serviceProviderId: $serviceProviderId, from: $from, to: $to) {
-      totalSent
-      totalDelivered
-      totalRead
-      totalRejected
-      deliveryRate
-      readRate
-    }
-  }
-`;
-
-export const GET_CALLBACK_ANALYTICS = gql`
-  query GetCallbackAnalytics($serviceProviderId: ID!, $from: DateTime!, $to: DateTime!) {
-    callbackAnalytics(serviceProviderId: $serviceProviderId, from: $from, to: $to) {
-      totalRequested
-      totalApproved
-      totalRejected
-      totalExpired
-      approvalRate
-      avgResponseTimeHours
-    }
-  }
-`;
-
-export const GET_BOT_PERFORMANCE_ANALYTICS = gql`
-  query GetBotPerformanceAnalytics($serviceProviderId: ID!, $botId: ID!, $from: DateTime, $to: DateTime) {
-    botPerformanceAnalytics(serviceProviderId: $serviceProviderId, botId: $botId, from: $from, to: $to) {
-      totalConversations
-      totalMessages
-      totalActions
-      totalEscalations
-      escalationRate
-      avgResponseTimeMs
-      resolutionRate
-      satisfactionScore
-    }
-  }
-`;
-
 // ─── Hooks ───────────────────────────────────────────────────────────────────
 
+function analyticsUrl(path: string, vars: AnalyticsDateVars) {
+  const params = new URLSearchParams({ from: vars.from, to: vars.to });
+  return vars.serviceProviderId ? `/api/analytics/${path}?${params}` : null;
+}
+
 export function useAnalyticsOverview(vars: AnalyticsDateVars) {
-  return useQuery<{ dashboardAnalytics: AnalyticsOverviewData }>(GET_ANALYTICS_OVERVIEW, {
-    variables: vars,
-    skip: !vars.serviceProviderId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<AnalyticsOverviewData>(analyticsUrl('overview', vars), { skip: !vars.serviceProviderId, deps: [vars.from, vars.to] });
+  return { ...result, data: result.data ? { dashboardAnalytics: result.data } : undefined };
 }
 
 export function useDailyAnalytics(vars: AnalyticsDateVars) {
-  return useQuery<{ dailyAnalytics: DailyAnalyticsEntry[] }>(GET_DAILY_ANALYTICS, {
-    variables: vars,
-    skip: !vars.serviceProviderId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<DailyAnalyticsEntry[]>(analyticsUrl('daily', vars), { skip: !vars.serviceProviderId, deps: [vars.from, vars.to] });
+  return { ...result, data: result.data ? { dailyAnalytics: result.data } : undefined };
 }
 
 export function useNotificationAnalytics(vars: AnalyticsDateVars) {
-  return useQuery<{ notificationAnalytics: NotificationAnalyticsData }>(GET_NOTIFICATION_ANALYTICS, {
-    variables: vars,
-    skip: !vars.serviceProviderId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<NotificationAnalyticsData>(analyticsUrl('notifications', vars), { skip: !vars.serviceProviderId, deps: [vars.from, vars.to] });
+  return { ...result, data: result.data ? { notificationAnalytics: result.data } : undefined };
 }
 
 export function useCallbackAnalytics(vars: AnalyticsDateVars) {
-  return useQuery<{ callbackAnalytics: CallbackAnalyticsData }>(GET_CALLBACK_ANALYTICS, {
-    variables: vars,
-    skip: !vars.serviceProviderId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<CallbackAnalyticsData>(analyticsUrl('callbacks', vars), { skip: !vars.serviceProviderId, deps: [vars.from, vars.to] });
+  return { ...result, data: result.data ? { callbackAnalytics: result.data } : undefined };
 }
 
 export function useBotPerformanceAnalytics(vars: { serviceProviderId: string; botId: string; from?: string; to?: string }) {
-  return useQuery<{ botPerformanceAnalytics: BotPerformanceData }>(GET_BOT_PERFORMANCE_ANALYTICS, {
-    variables: vars,
-    skip: !vars.serviceProviderId || !vars.botId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const params = new URLSearchParams();
+  if (vars.botId) params.set('botId', vars.botId);
+  if (vars.from) params.set('from', vars.from);
+  if (vars.to) params.set('to', vars.to);
+  const url = vars.serviceProviderId && vars.botId ? `/api/analytics/bots?${params}` : null;
+  const result = useData<BotPerformanceData>(url, { skip: !vars.serviceProviderId || !vars.botId, deps: [vars.from, vars.to] });
+  return { ...result, data: result.data ? { botPerformanceAnalytics: result.data } : undefined };
 }

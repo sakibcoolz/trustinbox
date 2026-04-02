@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, User, ExternalLink, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useQuery } from '@apollo/client';
-import { CUSTOMER_LIST_QUERY, type CustomerRow } from '@/lib/graphql/customers';
+import { useData } from '@/lib/hooks/useData';
+import type { CustomerRow, CustomerConnection } from '@/lib/graphql/customers';
 
 interface CustomerLookupProps {
   mode?: 'single' | 'multi';
@@ -49,15 +49,14 @@ export default function CustomerLookup({
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // GraphQL search (min 2 chars)
+  // Search via API route (min 2 chars)
   const shouldSearch = debouncedQuery.length >= 2;
-  const { data, loading } = useQuery(CUSTOMER_LIST_QUERY, {
-    variables: { search: debouncedQuery, first: 10 },
-    skip: !shouldSearch,
-    fetchPolicy: 'cache-and-network',
-  });
+  const { data, loading } = useData<CustomerConnection>(
+    shouldSearch ? `/api/gateway/v1/customers?search=${encodeURIComponent(debouncedQuery)}&first=10` : null,
+    { skip: !shouldSearch },
+  );
 
-  const results: CustomerRow[] = data?.conversations?.nodes ?? [];
+  const results: CustomerRow[] = data?.nodes ?? [];
   const selectedSet = new Set(selected);
 
   const handleSelect = useCallback(

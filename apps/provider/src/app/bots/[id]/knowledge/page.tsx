@@ -224,19 +224,16 @@ function KnowledgeContent({ params }: { params: Promise<{ id: string }> }) {
   const spId = activeServiceProvider?.id ?? '';
   const [showAdd, setShowAdd] = useState(false);
 
-  const { data, loading, error, startPolling, stopPolling } = useBotKnowledgeSources(id, spId);
+  const { data, loading, error, refetch } = useBotKnowledgeSources(id, spId);
   const sources: KnowledgeSource[] = data?.botKnowledgeSources ?? [];
 
   const hasProcessing = sources.some((s) => s.status === 'PENDING' || s.status === 'PROCESSING');
 
   useEffect(() => {
-    if (hasProcessing) {
-      startPolling(5000);
-    } else {
-      stopPolling();
-    }
-    return () => stopPolling();
-  }, [hasProcessing, startPolling, stopPolling]);
+    if (!hasProcessing) return;
+    const interval = setInterval(() => refetch(), 5000);
+    return () => clearInterval(interval);
+  }, [hasProcessing, refetch]);
 
   if (loading) {
     return (

@@ -61,10 +61,17 @@ export default function ComposeNotificationPage() {
   // ── Send (5.13) ──
   const { send: sendNotification, loading: sendLoading } = useSendNotification();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+
+  const validationErrors: Record<string, string> = {};
+  if (!form.subject.trim()) validationErrors.subject = 'Subject is required';
+  if (!form.body.trim()) validationErrors.body = 'Body is required';
+  if (form.recipients.length === 0) validationErrors.recipients = 'At least one recipient is required';
 
   function handleSendClick() {
-    if (!form.subject || !form.body || form.recipients.length === 0) {
-      toast.error('Please fill in subject, body, and at least one recipient.');
+    setAttempted(true);
+    if (Object.keys(validationErrors).length > 0) {
+      toast.error('Please fill in all required fields.');
       return;
     }
     setShowConfirm(true);
@@ -141,6 +148,7 @@ export default function ComposeNotificationPage() {
             policyLoading={policyLoading}
             onPolicyCheck={handlePolicyCheck}
             disabled={sendLoading}
+            errors={attempted ? validationErrors : {}}
           />
         </div>
 

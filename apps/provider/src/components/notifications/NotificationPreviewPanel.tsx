@@ -48,6 +48,12 @@ function MetaRow({ label, value }: { label: string; value: string }) {
 // ─── SMS Preview ────────────────────────────────────────
 
 function SmsPreview({ form }: { form: ComposeForm }) {
+  const text = form.subject
+    ? `${form.subject}\n${form.body}`
+    : form.body;
+  const charCount = text.length;
+  const segments = Math.max(1, Math.ceil(charCount / 160));
+
   return (
     <div className="flex justify-center">
       <div className="w-64 bg-bg-primary rounded-2xl border border-border-secondary p-4 space-y-3">
@@ -55,12 +61,20 @@ function SmsPreview({ form }: { form: ComposeForm }) {
           <Smartphone size={14} />
           <span>SMS Preview</span>
         </div>
+        {form.subject && (
+          <p className="text-[10px] text-text-muted italic">
+            Subject is prepended to SMS body
+          </p>
+        )}
         <div className="bg-accent-blue/10 rounded-xl rounded-tl-none px-3 py-2">
           <p className="text-sm text-text-primary whitespace-pre-wrap">
-            {form.body || 'Message body will appear here…'}
+            {text || 'Message body will appear here…'}
           </p>
         </div>
-        <p className="text-[10px] text-text-muted text-right">Now</p>
+        <div className="flex items-center justify-between text-[10px] text-text-muted">
+          <span>{charCount}/160 · {segments} segment{segments !== 1 ? 's' : ''}</span>
+          <span>Now</span>
+        </div>
       </div>
     </div>
   );

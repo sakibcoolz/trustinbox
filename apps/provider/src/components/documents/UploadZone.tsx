@@ -45,23 +45,19 @@ export default function UploadZone({ onUploadComplete }: UploadZoneProps) {
   async function processFile(item: UploadItem) {
     updateUpload(item.id, { status: 'uploading', progress: 0 });
     try {
-      const { data } = await generateURL(item.file.name, item.file.type);
-      if (!data?.generatePresignedURL) throw new Error('Failed to get upload URL');
+      const presigned = await generateURL(item.file.name, item.file.type);
+      if (!presigned) throw new Error('Failed to get upload URL');
 
-      const { url, s3Key } = data.generatePresignedURL;
+      const { url, s3Key } = presigned;
       await uploadToS3(url, item.file, (percent) => {
         updateUpload(item.id, { progress: percent });
       });
 
       await create({
-        variables: {
-          input: {
-            fileName: item.file.name,
-            fileType: item.file.type,
-            fileSize: item.file.size,
-            s3Key,
-          },
-        },
+        fileName: item.file.name,
+        fileType: item.file.type,
+        fileSize: item.file.size,
+        s3Key,
       });
 
       updateUpload(item.id, { status: 'complete', progress: 100 });

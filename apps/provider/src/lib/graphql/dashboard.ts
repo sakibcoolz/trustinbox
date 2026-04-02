@@ -1,4 +1,4 @@
-import { gql, useQuery, useSubscription } from '@apollo/client';
+import { useData } from '@/lib/hooks/useData';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -64,94 +64,21 @@ export interface DashboardLiveUpdate {
   };
 }
 
-// ─── Queries ────────────────────────────────────────────
-
-export const DASHBOARD_ANALYTICS_QUERY = gql`
-  query DashboardAnalytics($spId: ID!, $dateRange: DateRangeInput!) {
-    dashboardAnalytics(spId: $spId, dateRange: $dateRange) {
-      notificationsSent
-      previousNotificationsSent
-      deliveryRate
-      previousDeliveryRate
-      activeCallbacks
-      previousActiveCallbacks
-      openConversations
-      previousOpenConversations
-      activeCampaigns
-      previousActiveCampaigns
-      botInteractions
-      previousBotInteractions
-
-      dailyDelivery {
-        date
-        sent
-        delivered
-        failed
-      }
-
-      policyBreakdown {
-        allowed
-        blockedByDND
-        blockedByPreference
-        rateLimited
-        total
-      }
-
-      recentActivity {
-        id
-        type
-        title
-        description
-        targetId
-        targetType
-        timestamp
-      }
-    }
-  }
-`;
-
-// ─── Subscription ───────────────────────────────────────
-
-export const DASHBOARD_LIVE_UPDATES_SUBSCRIPTION = gql`
-  subscription DashboardLiveUpdates($spId: ID!) {
-    providerNotificationDelivered(spId: $spId) {
-      type
-      notificationId
-      status
-      timestamp
-      delta {
-        notificationsSent
-        deliveryRate
-        activeCallbacks
-        openConversations
-      }
-    }
-  }
-`;
-
 // ─── Hooks ──────────────────────────────────────────────
 
 export function useDashboardAnalytics(spId: string, dateRange: DateRangeInput) {
-  return useQuery<{ dashboardAnalytics: DashboardAnalytics }>(DASHBOARD_ANALYTICS_QUERY, {
-    variables: { spId, dateRange },
-    skip: !spId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const params = new URLSearchParams();
+  if (dateRange.from) params.set('from', dateRange.from);
+  if (dateRange.to) params.set('to', dateRange.to);
+  const url = spId ? `/api/analytics/dashboard?${params}` : null;
+  const result = useData<DashboardAnalytics>(url, { skip: !spId, deps: [dateRange.from, dateRange.to] });
+  return { ...result, data: result.data ? { dashboardAnalytics: result.data } : undefined };
 }
 
 export function useDashboardLiveUpdates(
-  spId: string,
-  onUpdate?: (event: DashboardLiveUpdate) => void,
+  _spId: string,
+  _onUpdate?: (event: DashboardLiveUpdate) => void,
 ) {
-  return useSubscription<{ providerNotificationDelivered: DashboardLiveUpdate }>(
-    DASHBOARD_LIVE_UPDATES_SUBSCRIPTION,
-    {
-      variables: { spId },
-      skip: !spId,
-      onData: ({ data: subData }) => {
-        const event = subData?.data?.providerNotificationDelivered;
-        if (event && onUpdate) onUpdate(event);
-      },
-    },
-  );
+  // Subscription replaced by SSE in Phase 4
+  return { data: undefined };
 }

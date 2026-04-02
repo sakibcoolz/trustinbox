@@ -8,7 +8,12 @@ interface CampaignProgressBarProps {
 }
 
 export default function CampaignProgressBar({ campaign, showLive }: CampaignProgressBarProps) {
-  const { targetCount, sentCount, deliveredCount, failedCount, readCount, status } = campaign;
+  const targetCount = campaign.targetCount ?? 0;
+  const sentCount = campaign.sentCount ?? 0;
+  const deliveredCount = campaign.deliveredCount ?? 0;
+  const failedCount = campaign.failedCount ?? 0;
+  const readCount = campaign.readCount ?? 0;
+  const { status } = campaign;
 
   if (status === 'DRAFT_CAMPAIGN' || status === 'SCHEDULED') return null;
 

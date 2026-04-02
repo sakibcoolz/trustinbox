@@ -2,13 +2,8 @@
 
 import { useState } from 'react';
 import { Plus, Pencil, Trash2, X, Tag } from 'lucide-react';
-import { useMutation } from '@apollo/client';
+import { useMutationHelper } from '@/lib/hooks/useMutationHelper';
 import {
-  ADD_CUSTOMER_NOTE,
-  UPDATE_CUSTOMER_NOTE,
-  DELETE_CUSTOMER_NOTE,
-  ADD_CUSTOMER_TAG,
-  REMOVE_CUSTOMER_TAG,
   useCustomerNotes,
   useCustomerTags,
   type CustomerNote,
@@ -38,13 +33,13 @@ export function CustomerNotesSection({ virtualId }: CustomerNotesProps) {
   const [editContent, setEditContent] = useState('');
   const canDeleteOthers = usePermission('settings:team:manage');
 
-  const [addNote] = useMutation(ADD_CUSTOMER_NOTE);
-  const [updateNote] = useMutation(UPDATE_CUSTOMER_NOTE);
-  const [deleteNote] = useMutation(DELETE_CUSTOMER_NOTE);
+  const { run: addNote } = useMutationHelper();
+  const { run: updateNote } = useMutationHelper();
+  const { run: deleteNote } = useMutationHelper();
 
   async function handleAdd() {
     if (!content.trim()) return;
-    await addNote({ variables: { virtualId, content: content.trim() } });
+    await addNote(`/api/gateway/v1/customers/${virtualId}/notes`, 'POST', { content: content.trim() });
     setContent('');
     setShowForm(false);
     refetch();
@@ -52,13 +47,13 @@ export function CustomerNotesSection({ virtualId }: CustomerNotesProps) {
 
   async function handleUpdate(id: string) {
     if (!editContent.trim()) return;
-    await updateNote({ variables: { id, content: editContent.trim() } });
+    await updateNote(`/api/gateway/v1/customers/${virtualId}/notes/${id}`, 'PUT', { content: editContent.trim() });
     setEditingId(null);
     refetch();
   }
 
   async function handleDelete(id: string) {
-    await deleteNote({ variables: { id } });
+    await deleteNote(`/api/gateway/v1/customers/${virtualId}/notes/${id}`, 'DELETE');
     refetch();
   }
 
@@ -170,18 +165,18 @@ export function CustomerTagsSection({ virtualId }: CustomerTagsProps) {
   const [newTag, setNewTag] = useState('');
   const canManageTags = usePermission('settings:team:manage');
 
-  const [addTag] = useMutation(ADD_CUSTOMER_TAG);
-  const [removeTag] = useMutation(REMOVE_CUSTOMER_TAG);
+  const { run: addTag } = useMutationHelper();
+  const { run: removeTag } = useMutationHelper();
 
   async function handleAdd(label: string) {
-    await addTag({ variables: { virtualId, label } });
+    await addTag(`/api/gateway/v1/customers/${virtualId}/tags`, 'POST', { label });
     setShowDropdown(false);
     setNewTag('');
     refetch();
   }
 
   async function handleRemove(tagId: string) {
-    await removeTag({ variables: { virtualId, tagId } });
+    await removeTag(`/api/gateway/v1/customers/${virtualId}/tags/${tagId}`, 'DELETE');
     refetch();
   }
 

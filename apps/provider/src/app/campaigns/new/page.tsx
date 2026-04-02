@@ -99,6 +99,8 @@ function NewCampaignContent() {
         name: form.name,
         description: form.description || undefined,
         category: form.category,
+        subject: form.subject,
+        body: form.body,
         scheduledAt: form.scheduleType === 'scheduled' && form.scheduledAt ? form.scheduledAt : null,
       });
       success('Campaign saved as draft');
@@ -115,9 +117,11 @@ function NewCampaignContent() {
         name: form.name,
         description: form.description || undefined,
         category: form.category,
+        subject: form.subject,
+        body: form.body,
         scheduledAt: form.scheduleType === 'scheduled' && form.scheduledAt ? form.scheduledAt : null,
       });
-      const id = result.data?.createCampaign?.id;
+      const id = result?.id;
       if (id) {
         setCreatedCampaignId(id);
         setShowLaunchModal(true);
@@ -396,10 +400,10 @@ function NewCampaignContent() {
                       <span className="text-xs text-text-muted">({(policyPreview.totalTargets > 0 ? (policyPreview.blockedCount / policyPreview.totalTargets * 100).toFixed(1) : 0)}%)</span>
                     </div>
                   </div>
-                  {policyPreview.blockedReasons.length > 0 && (
+                  {(policyPreview.blockedReasons?.length ?? 0) > 0 && (
                     <div className="space-y-1 pt-2 border-t border-border-primary">
                       <p className="text-xs text-text-muted font-medium">Block Reasons:</p>
-                      {policyPreview.blockedReasons.map((br) => (
+                      {policyPreview.blockedReasons!.map((br) => (
                         <div key={br.decisionCode} className="flex items-center justify-between text-xs">
                           <span className="text-text-secondary">{br.reason}</span>
                           <span className="text-text-muted">{br.count}</span>

@@ -126,8 +126,8 @@ function DocumentsContent() {
       for (const id of Array.from(selected)) {
         const doc = documents.find((d) => d.id === id);
         if (!doc) continue;
-        const { data: urlData } = await getSignedUrl(id);
-        const url = urlData?.generateDocumentShareURL?.url;
+        const urlData = await getSignedUrl(id);
+        const url = urlData?.url;
         if (url) {
           const a = document.createElement('a');
           a.href = url;

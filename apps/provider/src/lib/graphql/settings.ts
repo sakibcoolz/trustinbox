@@ -1,4 +1,7 @@
-import { gql, useQuery, useMutation } from '@apollo/client';
+'use client';
+
+import { useData } from '@/lib/hooks/useData';
+import { useMutationHelper } from '@/lib/hooks/useMutationHelper';
 
 // ============================================================
 // TYPES
@@ -123,278 +126,60 @@ export function safeParseJson<T = unknown>(json: string | undefined | null, fall
 }
 
 // ============================================================
-// FRAGMENTS
-// ============================================================
-
-export const TEAM_MEMBER_FRAGMENT = gql`
-  fragment TeamMemberFields on TeamMember {
-    id
-    userId
-    serviceProviderId
-    username
-    email
-    fullName
-    role
-    status
-    createdAt
-  }
-`;
-
-export const TEAM_INVITATION_FRAGMENT = gql`
-  fragment TeamInvitationFields on TeamInvitation {
-    id
-    email
-    serviceProviderId
-    role
-    status
-    invitedBy
-    expiresAt
-    createdAt
-  }
-`;
-
-export const INDUSTRY_PROFILE_FRAGMENT = gql`
-  fragment IndustryProfileFields on IndustryProfile {
-    id
-    industryKey
-    displayName
-    description
-    defaultCategories
-    complianceHintsJson
-    documentTypesJson
-    callbackWorkflowsJson
-    botPromptPackJson
-    dashboardPresetsJson
-    analyticsPresetsJson
-    isActive
-    createdAt
-    updatedAt
-  }
-`;
-
-// ============================================================
-// QUERIES — Team Management (15.11)
-// ============================================================
-
-export const GET_TEAM_MEMBERS = gql`
-  ${TEAM_MEMBER_FRAGMENT}
-  query GetTeamMembers($serviceProviderId: ID!, $limit: Int, $offset: Int) {
-    teamMembers(serviceProviderId: $serviceProviderId, limit: $limit, offset: $offset) {
-      items {
-        ...TeamMemberFields
-      }
-      total
-    }
-  }
-`;
-
-export const GET_PENDING_INVITATIONS = gql`
-  ${TEAM_INVITATION_FRAGMENT}
-  query GetPendingInvitations($serviceProviderId: ID!, $limit: Int, $offset: Int) {
-    pendingInvitations(serviceProviderId: $serviceProviderId, limit: $limit, offset: $offset) {
-      items {
-        ...TeamInvitationFields
-      }
-      total
-    }
-  }
-`;
-
-// ============================================================
-// MUTATIONS — Team Management (15.10)
-// ============================================================
-
-export const INVITE_TEAM_MEMBER = gql`
-  mutation InviteTeamMember($input: InviteTeamMemberInput!) {
-    inviteTeamMember(input: $input) {
-      invitationId
-    }
-  }
-`;
-
-export const ACCEPT_INVITATION = gql`
-  mutation AcceptInvitation($token: String!) {
-    acceptInvitation(token: $token)
-  }
-`;
-
-export const REVOKE_INVITATION = gql`
-  mutation RevokeInvitation($invitationId: ID!, $serviceProviderId: ID!) {
-    revokeInvitation(invitationId: $invitationId, serviceProviderId: $serviceProviderId)
-  }
-`;
-
-export const CHANGE_TEAM_MEMBER_ROLE = gql`
-  mutation ChangeTeamMemberRole($input: ChangeTeamMemberRoleInput!) {
-    changeTeamMemberRole(input: $input)
-  }
-`;
-
-export const REMOVE_TEAM_MEMBER = gql`
-  mutation RemoveTeamMember($input: RemoveTeamMemberInput!) {
-    removeTeamMember(input: $input)
-  }
-`;
-
-// ============================================================
-// QUERIES — Industry Profiles (15.12)
-// ============================================================
-
-export const GET_INDUSTRY_PROFILE = gql`
-  ${INDUSTRY_PROFILE_FRAGMENT}
-  query GetIndustryProfile($industryKey: String!) {
-    industryProfile(industryKey: $industryKey) {
-      ...IndustryProfileFields
-    }
-  }
-`;
-
-export const GET_INDUSTRY_PROFILES = gql`
-  ${INDUSTRY_PROFILE_FRAGMENT}
-  query GetIndustryProfiles($activeOnly: Boolean, $limit: Int, $offset: Int) {
-    industryProfiles(activeOnly: $activeOnly, limit: $limit, offset: $offset) {
-      nodes {
-        ...IndustryProfileFields
-      }
-      totalCount
-    }
-  }
-`;
-
-// ============================================================
-// QUERIES — Organization Profile (15.13)
-// ============================================================
-
-export const GET_ORGANIZATION_PROFILE = gql`
-  query GetOrganizationProfile($serviceProviderId: ID!) {
-    serviceProvider(id: $serviceProviderId) {
-      id
-      slug
-      name
-      legalName
-      industry
-      description
-      verificationStatus
-      status
-      website
-    }
-  }
-`;
-
-// Aspirational — org profile extended fields not yet in schema
-export const UPDATE_ORGANIZATION_PROFILE = gql`
-  mutation UpdateOrganizationProfile($input: UpdateOrganizationProfileInput!) {
-    updateOrganizationProfile(input: $input) {
-      id
-      name
-      displayName
-      description
-      website
-      contactEmail
-      supportPhone
-      address
-      logoUrl
-      primaryColor
-      notificationFooter
-    }
-  }
-`;
-
-// Aspirational — team activity log
-export const GET_TEAM_ACTIVITY = gql`
-  query GetTeamActivity($serviceProviderId: ID!, $limit: Int, $offset: Int) {
-    teamActivity(serviceProviderId: $serviceProviderId, limit: $limit, offset: $offset) {
-      items {
-        id
-        type
-        actorName
-        targetName
-        description
-        metadata
-        createdAt
-      }
-      total
-    }
-  }
-`;
-
-// ============================================================
 // HOOKS — Team Management
 // ============================================================
 
 export function useTeamMembers(spId: string) {
-  return useQuery<{
-    teamMembers: { items: TeamMember[]; total: number };
-  }>(GET_TEAM_MEMBERS, {
-    variables: { serviceProviderId: spId },
-    skip: !spId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<{ items: TeamMember[]; total: number }>(
+    spId ? `/api/team/members?serviceProviderId=${spId}` : null,
+    { skip: !spId },
+  );
+  return { ...result, data: result.data ? { teamMembers: result.data } : undefined };
 }
 
 export function usePendingInvitations(spId: string) {
-  return useQuery<{
-    pendingInvitations: { items: TeamInvitation[]; total: number };
-  }>(GET_PENDING_INVITATIONS, {
-    variables: { serviceProviderId: spId },
-    skip: !spId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<{ items: TeamInvitation[]; total: number }>(
+    spId ? `/api/team/invitations?serviceProviderId=${spId}` : null,
+    { skip: !spId },
+  );
+  return { ...result, data: result.data ? { pendingInvitations: result.data } : undefined };
 }
 
 export function useInviteTeamMember(spId: string) {
-  const [mutate, { loading, error }] = useMutation(INVITE_TEAM_MEMBER, {
-    refetchQueries: [
-      { query: GET_TEAM_MEMBERS, variables: { serviceProviderId: spId } },
-      { query: GET_PENDING_INVITATIONS, variables: { serviceProviderId: spId } },
-    ],
-  });
+  const { run, loading, error } = useMutationHelper<{ invitationId: string }>();
   return {
     inviteTeamMember: (email: string, role: TeamRole) =>
-      mutate({ variables: { input: { serviceProviderId: spId, email, role } } }),
+      run('/api/team/invitations', 'POST', { serviceProviderId: spId, email, role }),
     loading,
     error,
   };
 }
 
 export function useRevokeInvitation(spId: string) {
-  const [mutate, { loading, error }] = useMutation(REVOKE_INVITATION, {
-    refetchQueries: [
-      { query: GET_PENDING_INVITATIONS, variables: { serviceProviderId: spId } },
-    ],
-  });
+  const { run, loading, error } = useMutationHelper();
   return {
     revokeInvitation: (invitationId: string) =>
-      mutate({ variables: { invitationId, serviceProviderId: spId } }),
+      run(`/api/team/invitations/revoke`, 'POST', { invitationId, serviceProviderId: spId }),
     loading,
     error,
   };
 }
 
 export function useChangeTeamMemberRole(spId: string) {
-  const [mutate, { loading, error }] = useMutation(CHANGE_TEAM_MEMBER_ROLE, {
-    refetchQueries: [
-      { query: GET_TEAM_MEMBERS, variables: { serviceProviderId: spId } },
-    ],
-  });
+  const { run, loading, error } = useMutationHelper();
   return {
     changeRole: (targetUserId: string, newRole: TeamRole) =>
-      mutate({ variables: { input: { serviceProviderId: spId, targetUserId, newRole } } }),
+      run('/api/team/members/role', 'PATCH', { serviceProviderId: spId, targetUserId, newRole }),
     loading,
     error,
   };
 }
 
 export function useRemoveTeamMember(spId: string) {
-  const [mutate, { loading, error }] = useMutation(REMOVE_TEAM_MEMBER, {
-    refetchQueries: [
-      { query: GET_TEAM_MEMBERS, variables: { serviceProviderId: spId } },
-      { query: GET_PENDING_INVITATIONS, variables: { serviceProviderId: spId } },
-    ],
-  });
+  const { run, loading, error } = useMutationHelper();
   return {
     removeMember: (targetUserId: string) =>
-      mutate({ variables: { input: { serviceProviderId: spId, targetUserId } } }),
+      run('/api/team/members/role', 'DELETE', { serviceProviderId: spId, targetUserId }),
     loading,
     error,
   };
@@ -405,22 +190,18 @@ export function useRemoveTeamMember(spId: string) {
 // ============================================================
 
 export function useIndustryProfile(key: string) {
-  return useQuery<{
-    industryProfile: IndustryProfile;
-  }>(GET_INDUSTRY_PROFILE, {
-    variables: { industryKey: key },
-    skip: !key,
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<IndustryProfile>(
+    key ? `/api/gateway/v1/industry-profiles/${key}` : null,
+    { skip: !key },
+  );
+  return { ...result, data: result.data ? { industryProfile: result.data } : undefined };
 }
 
 export function useIndustryProfiles(activeOnly = true) {
-  return useQuery<{
-    industryProfiles: { nodes: IndustryProfile[]; totalCount: number };
-  }>(GET_INDUSTRY_PROFILES, {
-    variables: { activeOnly },
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<{ nodes: IndustryProfile[]; totalCount: number }>(
+    `/api/gateway/v1/industry-profiles?activeOnly=${activeOnly}`,
+  );
+  return { ...result, data: result.data ? { industryProfiles: result.data } : undefined };
 }
 
 // ============================================================
@@ -428,24 +209,18 @@ export function useIndustryProfiles(activeOnly = true) {
 // ============================================================
 
 export function useOrganizationProfile(spId: string) {
-  return useQuery<{
-    serviceProvider: OrganizationProfile;
-  }>(GET_ORGANIZATION_PROFILE, {
-    variables: { serviceProviderId: spId },
-    skip: !spId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<OrganizationProfile>(
+    spId ? `/api/gateway/v1/service-providers/${spId}` : null,
+    { skip: !spId },
+  );
+  return { ...result, data: result.data ? { serviceProvider: result.data } : undefined };
 }
 
 export function useUpdateOrganizationProfile(spId: string) {
-  const [mutate, { loading, error }] = useMutation(UPDATE_ORGANIZATION_PROFILE, {
-    refetchQueries: [
-      { query: GET_ORGANIZATION_PROFILE, variables: { serviceProviderId: spId } },
-    ],
-  });
+  const { run, loading, error } = useMutationHelper<OrganizationProfile>();
   return {
     updateProfile: (input: Record<string, unknown>) =>
-      mutate({ variables: { input: { serviceProviderId: spId, ...input } } }),
+      run(`/api/gateway/v1/service-providers/${spId}`, 'PUT', { serviceProviderId: spId, ...input }),
     loading,
     error,
   };
@@ -456,11 +231,9 @@ export function useUpdateOrganizationProfile(spId: string) {
 // ============================================================
 
 export function useTeamActivity(spId: string) {
-  return useQuery<{
-    teamActivity: { items: TeamActivityEntry[]; total: number };
-  }>(GET_TEAM_ACTIVITY, {
-    variables: { serviceProviderId: spId, limit: 20 },
-    skip: !spId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<{ items: TeamActivityEntry[]; total: number }>(
+    spId ? `/api/gateway/v1/team-activity?serviceProviderId=${spId}&limit=20` : null,
+    { skip: !spId },
+  );
+  return { ...result, data: result.data ? { teamActivity: result.data } : undefined };
 }

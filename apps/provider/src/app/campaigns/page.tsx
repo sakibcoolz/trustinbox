@@ -240,12 +240,12 @@ function CampaignRow({ campaign: c }: { campaign: Campaign }) {
           <span className="text-xs text-text-muted">—</span>
         )}
       </td>
-      <td className="py-3 px-4 text-right text-sm">{c.targetCount.toLocaleString()}</td>
+      <td className="py-3 px-4 text-right text-sm">{(c.targetCount ?? 0).toLocaleString()}</td>
       <td className="py-3 px-4 text-right text-sm">
-        <span className={c.deliveredCount > 0 ? 'text-status-success' : ''}>{c.deliveredCount.toLocaleString()}</span>
+        <span className={(c.deliveredCount ?? 0) > 0 ? 'text-status-success' : ''}>{(c.deliveredCount ?? 0).toLocaleString()}</span>
       </td>
       <td className="py-3 px-4 text-right text-sm">
-        <span className={c.failedCount > 0 ? 'text-status-error' : ''}>{c.failedCount.toLocaleString()}</span>
+        <span className={(c.failedCount ?? 0) > 0 ? 'text-status-error' : ''}>{(c.failedCount ?? 0).toLocaleString()}</span>
       </td>
       <td className="py-3 px-4 text-xs text-text-muted" title={c.createdAt}>{formatRelativeTime(c.createdAt)}</td>
       <td className="py-3 px-4 text-right">

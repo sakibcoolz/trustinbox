@@ -1,14 +1,16 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/trustinbox/graphql-bff/internal/clients"
-	analyticspb "github.com/trustinbox/proto/gen/analytics/v1"
 	botpb "github.com/trustinbox/proto/gen/bot/v1"
 	commpb "github.com/trustinbox/proto/gen/communication/v1"
 	notifpb "github.com/trustinbox/proto/gen/notification/v1"
@@ -16,7 +18,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ─── Helpers ───────────────────────────────────────────────
@@ -61,9 +62,50 @@ func grpcErrToHTTP(w http.ResponseWriter, err error, log *zap.Logger) {
 
 // ─── Notifications /api/v1/notifications ───────────────────
 
-func handleProviderNotifications(svc *clients.ServiceClients, log *zap.Logger) http.HandlerFunc {
+func handleProviderNotifications(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		spID := spIDFromCtx(r.Context())
+
+		// Sub-route: /api/v1/notifications/{id}[/retry]
+		rest := strings.TrimPrefix(r.URL.Path, "/api/v1/notifications")
+		rest = strings.TrimPrefix(rest, "/")
+		if rest != "" {
+			parts := strings.SplitN(rest, "/", 2)
+			notifID := parts[0]
+			if len(parts) > 1 && parts[1] == "retry" {
+				// POST /api/v1/notifications/{id}/retry
+				if r.Method != http.MethodPost {
+					writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+					return
+				}
+				// Update status back to PENDING for re-delivery
+				res, err := db.ExecContext(r.Context(),
+					`UPDATE notifications SET status = 'PENDING'
+					 WHERE id = $1 AND service_provider_id = $2`,
+					notifID, spID,
+				)
+				if err != nil {
+					log.Error("retry notification", zap.Error(err))
+					writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+					return
+				}
+				n, _ := res.RowsAffected()
+				if n == 0 {
+					writeJSON(w, http.StatusNotFound, errorResponse{Error: "notification not found"})
+					return
+				}
+				writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+				return
+			}
+			// GET /api/v1/notifications/{id}
+			if r.Method == http.MethodGet {
+				handleProviderNotificationDetail(w, r, db, log, spID, notifID)
+				return
+			}
+			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+			return
+		}
+
 		switch r.Method {
 		case http.MethodPost:
 			var body struct {
@@ -93,18 +135,7 @@ func handleProviderNotifications(svc *clients.ServiceClients, log *zap.Logger) h
 			writeJSON(w, http.StatusCreated, resp)
 
 		case http.MethodGet:
-			resp, err := svc.Notification.ListNotifications(r.Context(), &notifpb.ListNotificationsRequest{
-				UserId:   r.URL.Query().Get("userId"),
-				Category: r.URL.Query().Get("category"),
-				Status:   r.URL.Query().Get("status"),
-				Limit:    queryInt(r, "limit", 20),
-				Offset:   queryInt(r, "offset", 0),
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
-				return
-			}
-			writeJSON(w, http.StatusOK, resp)
+			handleProviderNotificationList(w, r, db, log, spID)
 
 		default:
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -114,26 +145,31 @@ func handleProviderNotifications(svc *clients.ServiceClients, log *zap.Logger) h
 
 // ─── Callbacks /api/v1/callbacks ───────────────────────────
 
-func handleProviderCallbacks(svc *clients.ServiceClients, log *zap.Logger) http.HandlerFunc {
+func handleProviderCallbacks(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		spID := spIDFromCtx(r.Context())
-		id := lastPathSegment(r.URL.Path, "/api/v1/callbacks")
 
-		if id != "" {
-			// Single callback operations
-			switch r.Method {
-			case http.MethodGet:
-				resp, err := svc.Communication.GetCallbackRequest(r.Context(), &commpb.GetCallbackRequestRequest{
-					CallbackRequestId: id,
-				})
-				if err != nil {
-					grpcErrToHTTP(w, err, log)
+		// Sub-route: /api/v1/callbacks/{id}[/approve|reject]
+		rest := strings.TrimPrefix(r.URL.Path, "/api/v1/callbacks")
+		rest = strings.TrimPrefix(rest, "/")
+		if rest != "" {
+			parts := strings.SplitN(rest, "/", 2)
+			id := parts[0]
+			if len(parts) > 1 {
+				// POST /api/v1/callbacks/{id}/approve or /reject
+				if r.Method != http.MethodPost {
+					writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
 					return
 				}
-				writeJSON(w, http.StatusOK, resp)
-			default:
-				writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+				dbUpdateCallbackStatus(w, r, db, log, spID, id, parts[1])
+				return
 			}
+			// GET /api/v1/callbacks/{id}
+			if r.Method == http.MethodGet {
+				dbGetCallback(w, r, db, log, spID, id)
+				return
+			}
+			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
 			return
 		}
 
@@ -148,7 +184,9 @@ func handleProviderCallbacks(svc *clients.ServiceClients, log *zap.Logger) http.
 				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 				return
 			}
-			resp, err := svc.Communication.CreateCallbackRequest(r.Context(), &commpb.CreateCallbackRequestRequest{
+			ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+			defer cancel()
+			resp, err := svc.Communication.CreateCallbackRequest(ctx, &commpb.CreateCallbackRequestRequest{
 				UserId:            body.UserID,
 				ServiceProviderId: spID,
 				Reason:            body.Reason,
@@ -161,17 +199,7 @@ func handleProviderCallbacks(svc *clients.ServiceClients, log *zap.Logger) http.
 			writeJSON(w, http.StatusCreated, resp)
 
 		case http.MethodGet:
-			resp, err := svc.Communication.ListCallbackRequests(r.Context(), &commpb.ListCallbackRequestsRequest{
-				UserId: r.URL.Query().Get("userId"),
-				Status: r.URL.Query().Get("status"),
-				Limit:  queryInt(r, "limit", 20),
-				Offset: queryInt(r, "offset", 0),
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
-				return
-			}
-			writeJSON(w, http.StatusOK, resp)
+			dbListCallbacks(w, r, db, log, spID)
 
 		default:
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -181,7 +209,7 @@ func handleProviderCallbacks(svc *clients.ServiceClients, log *zap.Logger) http.
 
 // ─── Messages /api/v1/messages ─────────────────────────────
 
-func handleProviderMessages(svc *clients.ServiceClients, log *zap.Logger) http.HandlerFunc {
+func handleProviderMessages(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		spID := spIDFromCtx(r.Context())
 		switch r.Method {
@@ -195,7 +223,9 @@ func handleProviderMessages(svc *clients.ServiceClients, log *zap.Logger) http.H
 				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 				return
 			}
-			resp, err := svc.Communication.SendMessage(r.Context(), &commpb.SendMessageRequest{
+			ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+			defer cancel()
+			resp, err := svc.Communication.SendMessage(ctx, &commpb.SendMessageRequest{
 				ConversationId: body.ConversationID,
 				SenderType:     "SP_AGENT",
 				SenderRefId:    spID,
@@ -214,7 +244,9 @@ func handleProviderMessages(svc *clients.ServiceClients, log *zap.Logger) http.H
 				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "conversationId query parameter is required"})
 				return
 			}
-			resp, err := svc.Communication.ListMessages(r.Context(), &commpb.ListMessagesRequest{
+			ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+			defer cancel()
+			resp, err := svc.Communication.ListMessages(ctx, &commpb.ListMessagesRequest{
 				ConversationId: convID,
 				Limit:          queryInt(r, "limit", 50),
 				Offset:         queryInt(r, "offset", 0),
@@ -231,80 +263,169 @@ func handleProviderMessages(svc *clients.ServiceClients, log *zap.Logger) http.H
 	}
 }
 
-// ─── Documents /api/v1/documents ───────────────────────────
-
-func handleProviderDocuments(svc *clients.ServiceClients, log *zap.Logger) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		spID := spIDFromCtx(r.Context())
-		switch r.Method {
-		case http.MethodPost:
-			var body struct {
-				UserID       string `json:"userId"`
-				DocumentID   string `json:"documentId"`
-				ShareContext string `json:"shareContext"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
-				return
-			}
-			resp, err := svc.Communication.ShareDocument(r.Context(), &commpb.ShareDocumentRequest{
-				DocumentId:        body.DocumentID,
-				UserId:            body.UserID,
-				ServiceProviderId: spID,
-				ShareContext:      body.ShareContext,
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
-				return
-			}
-			writeJSON(w, http.StatusCreated, resp)
-
-		default:
-			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
-		}
-	}
-}
-
 // ─── Campaigns /api/v1/campaigns ───────────────────────────
 
-// Campaigns are a higher-level concept that wraps policy check + batch
-// notification sends.  Since no dedicated campaign gRPC service exists yet,
-// we use analytics for reads and the notification service for writes.
-func handleProviderCampaigns(svc *clients.ServiceClients, log *zap.Logger) http.HandlerFunc {
+func handleProviderCampaigns(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		spID := spIDFromCtx(r.Context())
-		id := lastPathSegment(r.URL.Path, "/api/v1/campaigns")
 
-		if id != "" && strings.HasSuffix(r.URL.Path, "/analytics") {
-			campaignID := lastPathSegment(r.URL.Path, "/api/v1/campaigns")
-			resp, err := svc.Analytics.GetCampaignAnalytics(r.Context(), &analyticspb.GetCampaignAnalyticsRequest{
-				ServiceProviderId: spID,
-				CampaignId:        campaignID,
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
+		rest := strings.TrimPrefix(r.URL.Path, "/api/v1/campaigns")
+		rest = strings.TrimPrefix(rest, "/")
+		if rest != "" {
+			parts := strings.SplitN(rest, "/", 2)
+			id := parts[0]
+
+			// Handle policy-preview (not a UUID)
+			if id == "policy-preview" {
+				if r.Method != http.MethodPost {
+					writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+					return
+				}
+				var body struct {
+					Category  string   `json:"category"`
+					TargetIDs []string `json:"targetUserIds"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+					return
+				}
+				// Count all customers for this SP
+				var totalTargets int
+				if len(body.TargetIDs) > 0 {
+					totalTargets = len(body.TargetIDs)
+				} else {
+					_ = db.QueryRowContext(r.Context(),
+						`SELECT COUNT(*) FROM customer_sp_relations WHERE service_provider_id = $1`, spID,
+					).Scan(&totalTargets)
+				}
+				// For advertisement category, simulate some policy blocking
+				blockedCount := 0
+				blockedReasons := make([]map[string]interface{}, 0)
+				if body.Category == "ADVERTISEMENT" {
+					blockedCount = totalTargets / 5 // ~20% may be blocked by DND/opt-out
+					if blockedCount > 0 {
+						blockedReasons = []map[string]interface{}{
+							{"decisionCode": "DND_ACTIVE", "reason": "Do Not Disturb is active", "count": blockedCount / 2},
+							{"decisionCode": "OPT_OUT", "reason": "User opted out of advertisements", "count": blockedCount - blockedCount/2},
+						}
+					}
+				}
+				writeJSON(w, http.StatusOK, map[string]interface{}{
+					"totalTargets":   totalTargets,
+					"allowedCount":   totalTargets - blockedCount,
+					"blockedCount":   blockedCount,
+					"blockedReasons": blockedReasons,
+				})
 				return
 			}
-			writeJSON(w, http.StatusOK, resp)
+
+			if len(parts) > 1 {
+				action := parts[1]
+
+				// GET sub-resources
+				if r.Method == http.MethodGet {
+					switch action {
+					case "analytics":
+						dbCampaignAnalytics(w, r, db, log, spID, id)
+						return
+					case "targets":
+						dbCampaignTargets(w, r, db, log, spID, id)
+						return
+					}
+					writeJSON(w, http.StatusNotFound, errorResponse{Error: "unknown sub-resource"})
+					return
+				}
+
+				// POST /api/v1/campaigns/{id}/launch, /cancel etc
+				if r.Method != http.MethodPost {
+					writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+					return
+				}
+				var newStatus string
+				switch action {
+				case "launch":
+					newStatus = "LAUNCHED"
+				case "cancel":
+					newStatus = "CANCELLED"
+				case "pause":
+					newStatus = "PAUSED"
+				default:
+					writeJSON(w, http.StatusBadRequest, errorResponse{Error: "unknown action"})
+					return
+				}
+				res, err := db.ExecContext(r.Context(),
+					`UPDATE campaigns SET status = $1, updated_at = NOW()
+					 WHERE id = $2 AND service_provider_id = $3`,
+					newStatus, id, spID)
+				if err != nil {
+					log.Error("update campaign status", zap.Error(err))
+					writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+					return
+				}
+				n, _ := res.RowsAffected()
+				if n == 0 {
+					writeJSON(w, http.StatusNotFound, errorResponse{Error: "campaign not found"})
+					return
+				}
+				writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+				return
+			}
+			// GET /api/v1/campaigns/{id}
+			if r.Method == http.MethodGet {
+				dbGetCampaign(w, r, db, log, spID, id)
+				return
+			}
+			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
 			return
 		}
 
 		switch r.Method {
 		case http.MethodGet:
-			// Return campaign analytics as a summary view
-			resp, err := svc.Analytics.GetDashboardStats(r.Context(), &analyticspb.GetDashboardStatsRequest{
-				ServiceProviderId: spID,
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
+			dbListCampaigns(w, r, db, log, spID)
+		case http.MethodPost:
+			var body struct {
+				Name        string  `json:"name"`
+				Description string  `json:"description"`
+				Category    string  `json:"category"`
+				Subject     string  `json:"subject"`
+				Body        string  `json:"body"`
+				ScheduledAt *string `json:"scheduledAt"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 				return
 			}
-			writeJSON(w, http.StatusOK, map[string]interface{}{
-				"campaignsLaunched": resp.CampaignsLaunched,
-				"totalSent":         resp.NotificationsSent,
-				"deliveryRate":      resp.DeliveryRate,
-				"readRate":          resp.ReadRate,
-			})
+			if body.Name == "" || body.Category == "" {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "name and category are required"})
+				return
+			}
+			title := body.Subject
+			if title == "" {
+				title = body.Name
+			}
+			content := body.Body
+			if content == "" {
+				content = body.Description
+			}
+
+			var scheduledAt interface{}
+			if body.ScheduledAt != nil && *body.ScheduledAt != "" {
+				scheduledAt = *body.ScheduledAt
+			}
+
+			var id string
+			err := db.QueryRowContext(r.Context(),
+				`INSERT INTO campaigns (service_provider_id, name, category, title, body, status, scheduled_at, metadata)
+				 VALUES ($1, $2, $3, $4, $5, 'DRAFT', $6, $7)
+				 RETURNING id`,
+				spID, body.Name, body.Category, title, content, scheduledAt, "{}",
+			).Scan(&id)
+			if err != nil {
+				log.Error("create campaign", zap.Error(err))
+				writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+				return
+			}
+			dbGetCampaign(w, r, db, log, spID, id)
 		default:
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
 		}
@@ -313,54 +434,49 @@ func handleProviderCampaigns(svc *clients.ServiceClients, log *zap.Logger) http.
 
 // ─── Webhooks /api/v1/webhooks ─────────────────────────────
 
-func handleProviderWebhooks(svc *clients.ServiceClients, log *zap.Logger) http.HandlerFunc {
+func handleProviderWebhooks(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		spID := spIDFromCtx(r.Context())
-		id := lastPathSegment(r.URL.Path, "/api/v1/webhooks")
 
-		// Deliveries sub-resource: /api/v1/webhooks/{id}/deliveries
-		if id != "" && strings.HasSuffix(r.URL.Path, "/deliveries") {
-			resp, err := svc.Webhook.ListDeliveries(r.Context(), &webhookpb.ListDeliveriesRequest{
-				SubscriptionId:    id,
-				ServiceProviderId: spID,
-				Limit:             queryInt(r, "limit", 20),
-				Offset:            queryInt(r, "offset", 0),
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
+		rest := strings.TrimPrefix(r.URL.Path, "/api/v1/webhooks")
+		rest = strings.TrimPrefix(rest, "/")
+		if rest != "" {
+			parts := strings.SplitN(rest, "/", 2)
+			id := parts[0]
+
+			// Sub-resources
+			if len(parts) > 1 {
+				sub := parts[1]
+				switch sub {
+				case "deliveries":
+					if r.Method == http.MethodGet {
+						dbListWebhookDeliveries(w, r, db, log, spID, id)
+						return
+					}
+				case "test":
+					if r.Method == http.MethodPost {
+						ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+						defer cancel()
+						resp, err := svc.Webhook.TestSubscription(ctx, &webhookpb.TestSubscriptionRequest{
+							SubscriptionId:    id,
+							ServiceProviderId: spID,
+						})
+						if err != nil {
+							grpcErrToHTTP(w, err, log)
+							return
+						}
+						writeJSON(w, http.StatusOK, resp)
+						return
+					}
+				}
+				writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
 				return
 			}
-			writeJSON(w, http.StatusOK, resp)
-			return
-		}
 
-		// Test sub-resource: POST /api/v1/webhooks/{id}/test
-		if id != "" && strings.HasSuffix(r.URL.Path, "/test") && r.Method == http.MethodPost {
-			resp, err := svc.Webhook.TestSubscription(r.Context(), &webhookpb.TestSubscriptionRequest{
-				SubscriptionId:    id,
-				ServiceProviderId: spID,
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
-				return
-			}
-			writeJSON(w, http.StatusOK, resp)
-			return
-		}
-
-		// Single resource
-		if id != "" {
+			// Single resource CRUD
 			switch r.Method {
 			case http.MethodGet:
-				resp, err := svc.Webhook.GetSubscription(r.Context(), &webhookpb.GetSubscriptionRequest{
-					SubscriptionId:    id,
-					ServiceProviderId: spID,
-				})
-				if err != nil {
-					grpcErrToHTTP(w, err, log)
-					return
-				}
-				writeJSON(w, http.StatusOK, resp)
+				dbGetWebhook(w, r, db, log, spID, id)
 
 			case http.MethodPut:
 				var body struct {
@@ -368,37 +484,44 @@ func handleProviderWebhooks(svc *clients.ServiceClients, log *zap.Logger) http.H
 					Description string   `json:"description"`
 					Events      []string `json:"events"`
 					Status      string   `json:"status"`
-					NewSecret   string   `json:"newSecret"`
 				}
 				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 					writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 					return
 				}
-				resp, err := svc.Webhook.UpdateSubscription(r.Context(), &webhookpb.UpdateSubscriptionRequest{
-					SubscriptionId:    id,
-					ServiceProviderId: spID,
-					Url:               body.URL,
-					Description:       body.Description,
-					Events:            body.Events,
-					Status:            body.Status,
-					NewSecret:         body.NewSecret,
-				})
+				eventsArr := "{" + strings.Join(body.Events, ",") + "}"
+				res, err := db.ExecContext(r.Context(),
+					`UPDATE webhook_subscriptions SET url = $1, description = $2, events = $3,
+					        status = $4, updated_at = NOW()
+					 WHERE id = $5 AND service_provider_id = $6`,
+					body.URL, body.Description, eventsArr, body.Status, id, spID)
 				if err != nil {
-					grpcErrToHTTP(w, err, log)
+					log.Error("update webhook", zap.Error(err))
+					writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
 					return
 				}
-				writeJSON(w, http.StatusOK, resp)
+				n, _ := res.RowsAffected()
+				if n == 0 {
+					writeJSON(w, http.StatusNotFound, errorResponse{Error: "webhook not found"})
+					return
+				}
+				dbGetWebhook(w, r, db, log, spID, id)
 
 			case http.MethodDelete:
-				resp, err := svc.Webhook.DeleteSubscription(r.Context(), &webhookpb.DeleteSubscriptionRequest{
-					SubscriptionId:    id,
-					ServiceProviderId: spID,
-				})
+				res, err := db.ExecContext(r.Context(),
+					`DELETE FROM webhook_subscriptions WHERE id = $1 AND service_provider_id = $2`,
+					id, spID)
 				if err != nil {
-					grpcErrToHTTP(w, err, log)
+					log.Error("delete webhook", zap.Error(err))
+					writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
 					return
 				}
-				writeJSON(w, http.StatusOK, resp)
+				n, _ := res.RowsAffected()
+				if n == 0 {
+					writeJSON(w, http.StatusNotFound, errorResponse{Error: "webhook not found"})
+					return
+				}
+				writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 
 			default:
 				writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -419,31 +542,23 @@ func handleProviderWebhooks(svc *clients.ServiceClients, log *zap.Logger) http.H
 				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 				return
 			}
-			resp, err := svc.Webhook.CreateSubscription(r.Context(), &webhookpb.CreateSubscriptionRequest{
-				ServiceProviderId: spID,
-				Url:               body.URL,
-				Description:       body.Description,
-				Events:            body.Events,
-				Secret:            body.Secret,
-			})
+			eventsArr := "{" + strings.Join(body.Events, ",") + "}"
+			var id string
+			err := db.QueryRowContext(r.Context(),
+				`INSERT INTO webhook_subscriptions (service_provider_id, url, description, events, secret_hash, status)
+				 VALUES ($1, $2, $3, $4, $5, 'active')
+				 RETURNING id`,
+				spID, body.URL, body.Description, eventsArr, body.Secret,
+			).Scan(&id)
 			if err != nil {
-				grpcErrToHTTP(w, err, log)
+				log.Error("create webhook", zap.Error(err))
+				writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
 				return
 			}
-			writeJSON(w, http.StatusCreated, resp)
+			dbGetWebhook(w, r, db, log, spID, id)
 
 		case http.MethodGet:
-			resp, err := svc.Webhook.ListSubscriptions(r.Context(), &webhookpb.ListSubscriptionsRequest{
-				ServiceProviderId: spID,
-				Status:            r.URL.Query().Get("status"),
-				Limit:             queryInt(r, "limit", 20),
-				Offset:            queryInt(r, "offset", 0),
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
-				return
-			}
-			writeJSON(w, http.StatusOK, resp)
+			dbListWebhooks(w, r, db, log, spID)
 
 		default:
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -453,118 +568,176 @@ func handleProviderWebhooks(svc *clients.ServiceClients, log *zap.Logger) http.H
 
 // ─── Bots /api/v1/bots ────────────────────────────────────
 
-func handleProviderBots(svc *clients.ServiceClients, log *zap.Logger) http.HandlerFunc {
+func handleProviderBots(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		spID := spIDFromCtx(r.Context())
-		id := lastPathSegment(r.URL.Path, "/api/v1/bots")
 
-		// Sub-resources: /api/v1/bots/{id}/actions, /config, /analytics
-		if id != "" && strings.HasSuffix(r.URL.Path, "/actions") {
-			if r.Method == http.MethodGet {
-				resp, err := svc.Bot.ListBotActionLogs(r.Context(), &botpb.ListBotActionLogsRequest{
-					BotId:             id,
-					ServiceProviderId: spID,
-					Limit:             queryInt(r, "limit", 20),
-					Offset:            queryInt(r, "offset", 0),
-				})
-				if err != nil {
-					grpcErrToHTTP(w, err, log)
-					return
-				}
-				writeJSON(w, http.StatusOK, resp)
-			} else if r.Method == http.MethodPost {
-				var body struct {
-					ConversationID string `json:"conversationId"`
-					UserID         string `json:"userId"`
-					ActionType     string `json:"actionType"`
-					ToolName       string `json:"toolName"`
-					InputJSON      string `json:"inputJson"`
-				}
-				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-					writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
-					return
-				}
-				resp, err := svc.Bot.ExecuteBotAction(r.Context(), &botpb.ExecuteBotActionRequest{
-					BotId:             id,
-					ServiceProviderId: spID,
-					ConversationId:    body.ConversationID,
-					UserId:            body.UserID,
-					ActionType:        body.ActionType,
-					ToolName:          body.ToolName,
-					InputJson:         body.InputJSON,
-				})
-				if err != nil {
-					grpcErrToHTTP(w, err, log)
-					return
-				}
-				writeJSON(w, http.StatusOK, resp)
-			} else {
-				writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
-			}
-			return
-		}
+		rest := strings.TrimPrefix(r.URL.Path, "/api/v1/bots")
+		rest = strings.TrimPrefix(rest, "/")
+		if rest != "" {
+			parts := strings.SplitN(rest, "/", 2)
+			id := parts[0]
 
-		if id != "" && strings.HasSuffix(r.URL.Path, "/config") {
-			switch r.Method {
-			case http.MethodGet:
-				resp, err := svc.Bot.GetBotConfiguration(r.Context(), &botpb.GetBotConfigurationRequest{
-					BotId:             id,
-					ServiceProviderId: spID,
-				})
-				if err != nil {
-					grpcErrToHTTP(w, err, log)
+			// Sub-resources
+			if len(parts) > 1 {
+				sub := parts[1]
+				switch sub {
+				case "actions":
+					switch r.Method {
+					case http.MethodGet:
+						dbListBotActions(w, r, db, log, spID, id)
+					case http.MethodPost:
+						ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+						defer cancel()
+						var body struct {
+							ConversationID string `json:"conversationId"`
+							UserID         string `json:"userId"`
+							ActionType     string `json:"actionType"`
+							ToolName       string `json:"toolName"`
+							InputJSON      string `json:"inputJson"`
+						}
+						if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+							writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+							return
+						}
+						resp, err := svc.Bot.ExecuteBotAction(ctx, &botpb.ExecuteBotActionRequest{
+							BotId:             id,
+							ServiceProviderId: spID,
+							ConversationId:    body.ConversationID,
+							UserId:            body.UserID,
+							ActionType:        body.ActionType,
+							ToolName:          body.ToolName,
+							InputJson:         body.InputJSON,
+						})
+						if err != nil {
+							grpcErrToHTTP(w, err, log)
+							return
+						}
+						writeJSON(w, http.StatusOK, resp)
+					default:
+						writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+					}
 					return
-				}
-				writeJSON(w, http.StatusOK, resp)
-			case http.MethodPut:
-				var body botpb.BotConfiguration
-				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-					writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
-					return
-				}
-				body.BotId = id
-				resp, err := svc.Bot.UpdateBotConfiguration(r.Context(), &botpb.UpdateBotConfigurationRequest{
-					BotId:             id,
-					ServiceProviderId: spID,
-					Configuration:     &body,
-				})
-				if err != nil {
-					grpcErrToHTTP(w, err, log)
-					return
-				}
-				writeJSON(w, http.StatusOK, resp)
-			default:
-				writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
-			}
-			return
-		}
 
-		if id != "" && strings.HasSuffix(r.URL.Path, "/analytics") {
-			resp, err := svc.Bot.GetBotAnalytics(r.Context(), &botpb.GetBotAnalyticsRequest{
-				BotId:             id,
-				ServiceProviderId: spID,
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
+				case "config":
+					switch r.Method {
+					case http.MethodGet:
+						dbGetBotConfig(w, r, db, log, spID, id)
+					case http.MethodPut:
+						var body struct {
+							Tone        string  `json:"tone"`
+							Style       string  `json:"writingStyle"`
+							Temperature float64 `json:"temperature"`
+							MaxTurns    int     `json:"maxTurnsBeforeEscalation"`
+							Prompt      string  `json:"customSystemPrompt"`
+						}
+						if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+							writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+							return
+						}
+						_, err := db.ExecContext(r.Context(),
+							`INSERT INTO bot_configurations (bot_id, tone, writing_style, temperature, max_turns_before_escalation, custom_system_prompt)
+							 VALUES ($1, $2, $3, $4, $5, $6)
+							 ON CONFLICT (bot_id) DO UPDATE SET
+							   tone = EXCLUDED.tone, writing_style = EXCLUDED.writing_style,
+							   temperature = EXCLUDED.temperature,
+							   max_turns_before_escalation = EXCLUDED.max_turns_before_escalation,
+							   custom_system_prompt = EXCLUDED.custom_system_prompt`,
+							id, body.Tone, body.Style, body.Temperature, body.MaxTurns, body.Prompt)
+						if err != nil {
+							log.Error("upsert bot config", zap.Error(err))
+							writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+							return
+						}
+						dbGetBotConfig(w, r, db, log, spID, id)
+					default:
+						writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+					}
+					return
+
+				case "analytics":
+					if r.Method == http.MethodGet {
+						dbGetBotAnalytics(w, r, db, log, spID, id)
+						return
+					}
+					writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+					return
+
+				case "permissions":
+					switch r.Method {
+					case http.MethodGet:
+						rows, err := db.QueryContext(r.Context(),
+							`SELECT id, bot_id, tool_name, is_allowed, constraints, created_at
+							 FROM bot_permissions WHERE bot_id = $1`, id)
+						if err != nil {
+							log.Error("list bot permissions", zap.Error(err))
+							writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+							return
+						}
+						defer rows.Close()
+						perms := []map[string]interface{}{}
+						for rows.Next() {
+							var pid, botID, toolName string
+							var isAllowed bool
+							var constraints sql.NullString
+							var createdAt time.Time
+							if err := rows.Scan(&pid, &botID, &toolName, &isAllowed, &constraints, &createdAt); err != nil {
+								log.Error("scan bot permission", zap.Error(err))
+								continue
+							}
+							p := map[string]interface{}{
+								"id":        pid,
+								"botId":     botID,
+								"toolName":  toolName,
+								"isAllowed": isAllowed,
+								"createdAt": createdAt,
+							}
+							if constraints.Valid {
+								p["constraints"] = json.RawMessage(constraints.String)
+							}
+							perms = append(perms, p)
+						}
+						writeJSON(w, http.StatusOK, perms)
+					case http.MethodPost:
+						var body struct {
+							ToolName string `json:"toolName"`
+							Enabled  bool   `json:"enabled"`
+						}
+						if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+							writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+							return
+						}
+						var pid string
+						err := db.QueryRowContext(r.Context(),
+							`INSERT INTO bot_permissions (bot_id, tool_name, is_allowed)
+							 VALUES ($1, $2, $3)
+							 ON CONFLICT (bot_id, tool_name) DO UPDATE SET is_allowed = EXCLUDED.is_allowed
+							 RETURNING id`,
+							id, body.ToolName, body.Enabled).Scan(&pid)
+						if err != nil {
+							log.Error("set bot permission", zap.Error(err))
+							writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+							return
+						}
+						writeJSON(w, http.StatusOK, map[string]interface{}{
+							"id":        pid,
+							"botId":     id,
+							"toolName":  body.ToolName,
+							"isAllowed": body.Enabled,
+						})
+					default:
+						writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+					}
+					return
+				}
+				writeJSON(w, http.StatusNotFound, errorResponse{Error: "unknown sub-resource"})
 				return
 			}
-			writeJSON(w, http.StatusOK, resp)
-			return
-		}
 
-		// Single resource
-		if id != "" {
+			// Single resource CRUD
 			switch r.Method {
 			case http.MethodGet:
-				resp, err := svc.Bot.GetBot(r.Context(), &botpb.GetBotRequest{
-					BotId:             id,
-					ServiceProviderId: spID,
-				})
-				if err != nil {
-					grpcErrToHTTP(w, err, log)
-					return
-				}
-				writeJSON(w, http.StatusOK, resp)
+				dbGetBot(w, r, db, log, spID, id)
 
 			case http.MethodPut:
 				var body struct {
@@ -578,31 +751,37 @@ func handleProviderBots(svc *clients.ServiceClients, log *zap.Logger) http.Handl
 					writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 					return
 				}
-				resp, err := svc.Bot.UpdateBot(r.Context(), &botpb.UpdateBotRequest{
-					BotId:             id,
-					ServiceProviderId: spID,
-					Name:              body.Name,
-					Purpose:           body.Purpose,
-					Department:        body.Department,
-					AvatarUrl:         body.AvatarURL,
-					Status:            body.Status,
-				})
+				res, err := db.ExecContext(r.Context(),
+					`UPDATE bots SET name = $1, purpose = $2, department = $3,
+					        avatar_url = $4, status = $5, updated_at = NOW()
+					 WHERE id = $6 AND service_provider_id = $7`,
+					body.Name, body.Purpose, body.Department, body.AvatarURL, body.Status, id, spID)
 				if err != nil {
-					grpcErrToHTTP(w, err, log)
+					log.Error("update bot", zap.Error(err))
+					writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
 					return
 				}
-				writeJSON(w, http.StatusOK, resp)
+				n, _ := res.RowsAffected()
+				if n == 0 {
+					writeJSON(w, http.StatusNotFound, errorResponse{Error: "bot not found"})
+					return
+				}
+				dbGetBot(w, r, db, log, spID, id)
 
 			case http.MethodDelete:
-				resp, err := svc.Bot.DeleteBot(r.Context(), &botpb.DeleteBotRequest{
-					BotId:             id,
-					ServiceProviderId: spID,
-				})
+				res, err := db.ExecContext(r.Context(),
+					`DELETE FROM bots WHERE id = $1 AND service_provider_id = $2`, id, spID)
 				if err != nil {
-					grpcErrToHTTP(w, err, log)
+					log.Error("delete bot", zap.Error(err))
+					writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
 					return
 				}
-				writeJSON(w, http.StatusOK, resp)
+				n, _ := res.RowsAffected()
+				if n == 0 {
+					writeJSON(w, http.StatusNotFound, errorResponse{Error: "bot not found"})
+					return
+				}
+				writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 
 			default:
 				writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -617,41 +796,51 @@ func handleProviderBots(svc *clients.ServiceClients, log *zap.Logger) http.Handl
 				Name              string `json:"name"`
 				Purpose           string `json:"purpose"`
 				Department        string `json:"department"`
-				IndustryProfileID string `json:"industryProfileId"`
 				AvatarURL         string `json:"avatarUrl"`
-				CreatedBySpUserID string `json:"createdBySpUserId"`
+				Description       string `json:"description"`
+				IndustryProfileID string `json:"industryProfileId"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 				return
 			}
-			resp, err := svc.Bot.CreateBot(r.Context(), &botpb.CreateBotRequest{
-				ServiceProviderId: spID,
-				Name:              body.Name,
-				Purpose:           body.Purpose,
-				Department:        body.Department,
-				IndustryProfileId: body.IndustryProfileID,
-				AvatarUrl:         body.AvatarURL,
-				CreatedBySpUserId: body.CreatedBySpUserID,
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
+			if body.Name == "" {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "name is required"})
 				return
 			}
-			writeJSON(w, http.StatusCreated, resp)
+			if body.Purpose == "" {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "purpose is required"})
+				return
+			}
+			spUserID := ""
+			if v := r.Context().Value(ctxUserIDKey); v != nil {
+				spUserID, _ = v.(string)
+			}
+			// Pass nil for empty nullable UUID columns
+			var spUserIDParam interface{}
+			if spUserID != "" {
+				spUserIDParam = spUserID
+			}
+			var industryProfileIDParam interface{}
+			if body.IndustryProfileID != "" {
+				industryProfileIDParam = body.IndustryProfileID
+			}
+			var id string
+			err := db.QueryRowContext(r.Context(),
+				`INSERT INTO bots (service_provider_id, name, purpose, department, avatar_url, industry_profile_id, status, created_by_sp_user_id)
+				 VALUES ($1, $2, $3, $4, $5, $6, 'DRAFT', $7)
+				 RETURNING id`,
+				spID, body.Name, body.Purpose, body.Department, body.AvatarURL, industryProfileIDParam, spUserIDParam,
+			).Scan(&id)
+			if err != nil {
+				log.Error("create bot", zap.Error(err))
+				writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+				return
+			}
+			dbGetBot(w, r, db, log, spID, id)
 
 		case http.MethodGet:
-			resp, err := svc.Bot.ListBots(r.Context(), &botpb.ListBotsRequest{
-				ServiceProviderId: spID,
-				Status:            r.URL.Query().Get("status"),
-				Limit:             queryInt(r, "limit", 20),
-				Offset:            queryInt(r, "offset", 0),
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
-				return
-			}
-			writeJSON(w, http.StatusOK, resp)
+			dbListBots(w, r, db, log, spID)
 
 		default:
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -661,7 +850,7 @@ func handleProviderBots(svc *clients.ServiceClients, log *zap.Logger) http.Handl
 
 // ─── Analytics /api/v1/analytics ───────────────────────────
 
-func handleProviderAnalytics(svc *clients.ServiceClients, log *zap.Logger) http.HandlerFunc {
+func handleProviderAnalytics(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
@@ -671,93 +860,182 @@ func handleProviderAnalytics(svc *clients.ServiceClients, log *zap.Logger) http.
 		spID := spIDFromCtx(r.Context())
 		sub := lastPathSegment(r.URL.Path, "/api/v1/analytics")
 
-		parseTimes := func() (*timestamppb.Timestamp, *timestamppb.Timestamp) {
-			from := r.URL.Query().Get("from")
-			to := r.URL.Query().Get("to")
-			var fromTS, toTS *timestamppb.Timestamp
-			if t, err := parseRFC3339(from); err == nil {
-				fromTS = timestamppb.New(t)
-			}
-			if t, err := parseRFC3339(to); err == nil {
-				toTS = timestamppb.New(t)
-			}
-			return fromTS, toTS
-		}
-
 		switch sub {
 		case "dashboard", "":
-			fromTS, toTS := parseTimes()
-			resp, err := svc.Analytics.GetDashboardStats(r.Context(), &analyticspb.GetDashboardStatsRequest{
-				ServiceProviderId: spID,
-				From:              fromTS,
-				To:                toTS,
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
-				return
-			}
-			writeJSON(w, http.StatusOK, resp)
-
+			dbAnalyticsDashboard(w, r, db, log, spID)
 		case "daily":
-			fromTS, toTS := parseTimes()
-			resp, err := svc.Analytics.GetDailyAnalytics(r.Context(), &analyticspb.GetDailyAnalyticsRequest{
-				ServiceProviderId: spID,
-				From:              fromTS,
-				To:                toTS,
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
-				return
-			}
-			writeJSON(w, http.StatusOK, resp)
-
+			dbAnalyticsDaily(w, r, db, log, spID)
 		case "notifications":
-			fromTS, toTS := parseTimes()
-			resp, err := svc.Analytics.GetNotificationAnalytics(r.Context(), &analyticspb.GetNotificationAnalyticsRequest{
-				ServiceProviderId: spID,
-				From:              fromTS,
-				To:                toTS,
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
-				return
-			}
-			writeJSON(w, http.StatusOK, resp)
-
+			dbAnalyticsNotifications(w, r, db, log, spID)
 		case "callbacks":
-			fromTS, toTS := parseTimes()
-			resp, err := svc.Analytics.GetCallbackAnalytics(r.Context(), &analyticspb.GetCallbackAnalyticsRequest{
-				ServiceProviderId: spID,
-				From:              fromTS,
-				To:                toTS,
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
-				return
-			}
-			writeJSON(w, http.StatusOK, resp)
-
+			dbAnalyticsCallbacks(w, r, db, log, spID)
 		case "bots":
-			fromTS, toTS := parseTimes()
-			botID := r.URL.Query().Get("botId")
-			resp, err := svc.Analytics.GetBotPerformanceAnalytics(r.Context(), &analyticspb.GetBotPerformanceAnalyticsRequest{
-				ServiceProviderId: spID,
-				BotId:             botID,
-				From:              fromTS,
-				To:                toTS,
-			})
-			if err != nil {
-				grpcErrToHTTP(w, err, log)
-				return
-			}
-			writeJSON(w, http.StatusOK, resp)
-
+			dbAnalyticsBots(w, r, db, log, spID)
+		case "overview":
+			dbAnalyticsOverview(w, r, db, log, spID)
 		default:
 			writeJSON(w, http.StatusNotFound, errorResponse{Error: "unknown analytics sub-resource"})
 		}
 	}
 }
 
-func parseRFC3339(s string) (time.Time, error) {
-	return time.Parse(time.RFC3339, s)
+// ─── Provider notification list (DB-based) ─────────────────
+
+func handleProviderNotificationList(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, spID string) {
+	limit := queryInt(r, "limit", 25)
+	offset := queryInt(r, "offset", 0)
+	if limit > 100 {
+		limit = 100
+	}
+
+	category := r.URL.Query().Get("category")
+	statusFilter := r.URL.Query().Get("status")
+	search := r.URL.Query().Get("search")
+
+	where := "WHERE n.service_provider_id = $1"
+	args := []interface{}{spID}
+	argN := 2
+
+	if category != "" {
+		where += fmt.Sprintf(" AND n.category = $%d", argN)
+		args = append(args, category)
+		argN++
+	}
+	if statusFilter != "" {
+		where += fmt.Sprintf(" AND n.status = $%d", argN)
+		args = append(args, statusFilter)
+		argN++
+	}
+	if search != "" {
+		where += fmt.Sprintf(" AND (n.title ILIKE $%d OR n.body ILIKE $%d)", argN, argN)
+		args = append(args, "%"+search+"%")
+		argN++
+	}
+
+	var total int
+	countQ := "SELECT COUNT(*) FROM notifications n " + where
+	if err := db.QueryRowContext(r.Context(), countQ, args...).Scan(&total); err != nil {
+		log.Error("count provider notifications", zap.Error(err))
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+		return
+	}
+
+	q := fmt.Sprintf(`SELECT n.id, n.category, n.title, n.body, n.priority, n.status,
+	             COALESCE(n.metadata, '{}'::jsonb),
+	             n.user_id, n.created_at
+	      FROM notifications n
+	      %s
+	      ORDER BY n.created_at DESC
+	      LIMIT $%d OFFSET $%d`, where, argN, argN+1)
+	args = append(args, limit, offset)
+
+	rows, err := db.QueryContext(r.Context(), q, args...)
+	if err != nil {
+		log.Error("list provider notifications", zap.Error(err))
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+		return
+	}
+	defer rows.Close()
+
+	type notifRow struct {
+		ID                 string                 `json:"id"`
+		Category           string                 `json:"category"`
+		Title              string                 `json:"title"`
+		Body               string                 `json:"body"`
+		Priority           string                 `json:"priority"`
+		Status             string                 `json:"status"`
+		Channel            string                 `json:"channel"`
+		RecipientVirtualID string                 `json:"recipientVirtualId"`
+		Metadata           map[string]interface{} `json:"metadata"`
+		ServiceProvider    struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"serviceProvider"`
+		CreatedAt string `json:"createdAt"`
+	}
+
+	nodes := make([]notifRow, 0)
+	for rows.Next() {
+		var n notifRow
+		var metadataBytes []byte
+		var userID, createdAt string
+		if err := rows.Scan(&n.ID, &n.Category, &n.Title, &n.Body, &n.Priority, &n.Status,
+			&metadataBytes, &userID, &createdAt); err != nil {
+			log.Error("scan provider notification", zap.Error(err))
+			continue
+		}
+		n.CreatedAt = createdAt
+		n.RecipientVirtualID = userID
+		n.Channel = "IN_APP"
+		n.ServiceProvider.ID = spID
+		if len(metadataBytes) > 0 {
+			_ = json.Unmarshal(metadataBytes, &n.Metadata)
+		}
+		if n.Metadata == nil {
+			n.Metadata = map[string]interface{}{}
+		}
+		nodes = append(nodes, n)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"nodes":      nodes,
+		"totalCount": total,
+	})
+}
+
+// ─── Provider notification detail (DB-based) ───────────────
+
+func handleProviderNotificationDetail(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, spID, notifID string) {
+	var n struct {
+		ID                 string `json:"id"`
+		Category           string `json:"category"`
+		Title              string `json:"title"`
+		Body               string `json:"body"`
+		Priority           string `json:"priority"`
+		Status             string `json:"status"`
+		Channel            string `json:"channel"`
+		RecipientVirtualID string `json:"recipientVirtualId"`
+		ServiceProvider    struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"serviceProvider"`
+		CreatedAt        string        `json:"createdAt"`
+		DeliveryAttempts []interface{} `json:"deliveryAttempts"`
+		PolicyDecision   struct {
+			Allowed      bool     `json:"allowed"`
+			DecisionCode string   `json:"decisionCode"`
+			Reason       string   `json:"reason"`
+			AppliedRules []string `json:"appliedRules"`
+			EvaluatedAt  string   `json:"evaluatedAt"`
+		} `json:"policyDecision"`
+	}
+
+	var userID, createdAt string
+	err := db.QueryRowContext(r.Context(),
+		`SELECT id, category, title, body, priority, status, user_id, created_at
+		 FROM notifications
+		 WHERE id = $1 AND service_provider_id = $2`,
+		notifID, spID,
+	).Scan(&n.ID, &n.Category, &n.Title, &n.Body, &n.Priority, &n.Status, &userID, &createdAt)
+	if err == sql.ErrNoRows {
+		writeJSON(w, http.StatusNotFound, errorResponse{Error: "notification not found"})
+		return
+	}
+	if err != nil {
+		log.Error("get provider notification", zap.Error(err))
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+		return
+	}
+	n.CreatedAt = createdAt
+	n.RecipientVirtualID = userID
+	n.Channel = "IN_APP"
+	n.ServiceProvider.ID = spID
+	n.DeliveryAttempts = []interface{}{}
+	n.PolicyDecision.Allowed = true
+	n.PolicyDecision.DecisionCode = "ALLOWED"
+	n.PolicyDecision.Reason = "Policy evaluation data not yet available"
+	n.PolicyDecision.AppliedRules = []string{}
+	n.PolicyDecision.EvaluatedAt = createdAt
+
+	writeJSON(w, http.StatusOK, n)
 }

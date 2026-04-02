@@ -287,13 +287,13 @@ function TablePagination({
 }) {
   const { page, pageSize, total } = pagination;
   const totalPages = Math.ceil(total / pageSize);
-  const start = (page - 1) * pageSize + 1;
+  const start = total > 0 ? (page - 1) * pageSize + 1 : 0;
   const end = Math.min(page * pageSize, total);
 
   return (
     <div className="flex items-center justify-between gap-4 px-4 py-3 text-xs text-text-muted">
       <div className="flex items-center gap-2">
-        <span>Showing {start}–{end} of {total}</span>
+        <span>{total === 0 ? 'No results' : `Showing ${start}–${end} of ${total}`}</span>
         <span className="text-border-secondary">|</span>
         <span>Rows:</span>
         <select

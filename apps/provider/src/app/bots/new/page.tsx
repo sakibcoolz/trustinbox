@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, ArrowRight, Bot, Loader2, Send, Trash2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -71,13 +71,12 @@ function BotTestPanel({ systemPrompt, botId }: { systemPrompt: string; botId?: s
         actionType: 'test_prompt',
         inputJson: JSON.stringify({ message: userMsg, systemPrompt }),
       });
-      const output = result.data?.executeBotAction;
-      if (output?.policyDecision === 'DENIED') {
-        setMessages((prev) => [...prev, { role: 'bot', text: `Policy denied: ${output.policyReason ?? 'Unknown reason'}` }]);
-      } else if (output?.escalated) {
+      if (result?.policyDecision === 'DENIED') {
+        setMessages((prev) => [...prev, { role: 'bot', text: `Policy denied: ${result.policyReason ?? 'Unknown reason'}` }]);
+      } else if (result?.escalated) {
         setMessages((prev) => [...prev, { role: 'bot', text: '↗ This would be escalated to a human agent.' }]);
       } else {
-        const text = output?.outputJson ? JSON.parse(output.outputJson).response ?? 'No response' : 'No response';
+        const text = result?.outputJson ? JSON.parse(result.outputJson).response ?? 'No response' : 'No response';
         setMessages((prev) => [...prev, { role: 'bot', text }]);
       }
     } catch {
@@ -195,7 +194,7 @@ function NewBotContent() {
         department: form.department || undefined,
         industryProfileId: form.industryProfileId || undefined,
       });
-      const botId = result.data?.createBot?.id;
+      const botId = result?.id;
       if (!botId) throw new Error('No bot ID returned');
       setCreatedBotId(botId);
 
@@ -489,14 +488,5 @@ function NewBotContent() {
 }
 
 export default function NewBotPage() {
-  return (
-    <Suspense fallback={
-      <div className="p-8 space-y-6 max-w-4xl">
-        <div className="h-8 w-48 bg-bg-tertiary rounded animate-pulse" />
-        <div className="h-64 bg-bg-tertiary rounded-xl animate-pulse" />
-      </div>
-    }>
-      <NewBotContent />
-    </Suspense>
-  );
+  return <NewBotContent />;
 }

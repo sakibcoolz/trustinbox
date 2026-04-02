@@ -37,6 +37,7 @@ interface NotificationComposerProps {
   policyLoading: boolean;
   onPolicyCheck: () => void;
   disabled?: boolean;
+  errors?: Record<string, string>;
 }
 
 const CATEGORY_OPTIONS = [
@@ -63,6 +64,7 @@ export default function NotificationComposer({
   policyLoading,
   onPolicyCheck,
   disabled,
+  errors = {},
 }: NotificationComposerProps) {
   function update<K extends keyof ComposeForm>(field: K, value: ComposeForm[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -117,7 +119,7 @@ export default function NotificationComposer({
       </div>
 
       {/* Recipients */}
-      <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-4">
+      <div className={`bg-bg-card border rounded-xl p-6 space-y-4 ${errors.recipients ? 'border-status-error' : 'border-border-primary'}`}>
         <h3 className="text-sm font-semibold">Recipients</h3>
         <CustomerLookup
           mode="multi"
@@ -127,32 +129,35 @@ export default function NotificationComposer({
           maxSelections={50}
           disabled={disabled}
         />
+        {errors.recipients && <p className="text-xs text-status-error">{errors.recipients}</p>}
       </div>
 
       {/* Content */}
       <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-4">
         <h3 className="text-sm font-semibold">Content</h3>
         <div>
-          <label className="block text-xs text-text-muted mb-1.5">Subject</label>
+          <label className="block text-xs text-text-muted mb-1.5">Subject <span className="text-status-error">*</span></label>
           <input
             type="text"
             value={form.subject}
             onChange={(e) => update('subject', e.target.value)}
             disabled={disabled}
-            className="w-full px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active disabled:opacity-50"
+            className={`w-full px-3 py-2 bg-bg-input border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active disabled:opacity-50 ${errors.subject ? 'border-status-error' : 'border-border-secondary'}`}
             placeholder="Notification subject"
           />
+          {errors.subject && <p className="text-xs text-status-error mt-1">{errors.subject}</p>}
         </div>
         <div>
-          <label className="block text-xs text-text-muted mb-1.5">Body</label>
+          <label className="block text-xs text-text-muted mb-1.5">Body <span className="text-status-error">*</span></label>
           <textarea
             value={form.body}
             onChange={(e) => update('body', e.target.value)}
             disabled={disabled}
             rows={5}
-            className="w-full px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active resize-none disabled:opacity-50"
+            className={`w-full px-3 py-2 bg-bg-input border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active resize-none disabled:opacity-50 ${errors.body ? 'border-status-error' : 'border-border-secondary'}`}
             placeholder="Notification message…"
           />
+          {errors.body && <p className="text-xs text-status-error mt-1">{errors.body}</p>}
         </div>
       </div>
 

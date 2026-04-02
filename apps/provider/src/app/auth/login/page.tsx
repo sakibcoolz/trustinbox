@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, AlertTriangle, Loader2 } from 'lucide-react';
-import { auth, profile } from '@/lib/api';
-import { tokenManager } from '@/lib/token';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/useToast';
 import { Card } from '@/components/ui/Card';
@@ -71,15 +69,17 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const data = await auth.login(email, password);
-
-      if (!data?.accessToken) {
-        toast.error('Login failed', 'Invalid response from server');
+      // Call our server-side auth route (sets httpOnly cookies)
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error('Login failed', data.error || 'Invalid credentials');
         return;
       }
-
-      const { accessToken, refreshToken } = data;
-      login(accessToken, refreshToken);
 
       // Remember email
       if (rememberMe) {
@@ -88,24 +88,35 @@ export default function LoginPage() {
         localStorage.removeItem('rememberedEmail');
       }
 
-      // Fetch service providers
-      try {
-        const spData = await profile.serviceProviders();
-        const sps: ServiceProviderMembership[] = (spData?.serviceProviders || []).map((sp) => ({
-          id: sp.id,
-          name: sp.name,
-          industry: sp.industry,
-          role: sp.role,
-          status: sp.verificationStatus,
-        } as ServiceProviderMembership));
+      // Notify auth context (triggers fetchMe via cookies)
+      login();
 
-        if (sps.length > 1) {
-          setSPList(sps);
-          setShowSPPicker(true);
-          return;
-        }
-        if (sps.length === 1) {
-          tokenManager.setActiveSpId(sps[0].id);
+      // Fetch service providers (cookies auto-sent)
+      try {
+        const spRes = await fetch('/api/auth/service-providers');
+        if (spRes.ok) {
+          const spData = await spRes.json();
+          const raw = spData?.serviceProviders || spData || [];
+          const sps: ServiceProviderMembership[] = (Array.isArray(raw) ? raw : []).map((sp: Record<string, string>) => ({
+            id: sp.id,
+            name: sp.name,
+            industry: sp.industry,
+            role: sp.role,
+            status: sp.verificationStatus ?? sp.verification_status ?? 'ACTIVE',
+          } as ServiceProviderMembership));
+
+          if (sps.length > 1) {
+            setSPList(sps);
+            setShowSPPicker(true);
+            return;
+          }
+          if (sps.length === 1) {
+            await fetch('/api/auth/active-sp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ spId: sps[0].id }),
+            });
+          }
         }
       } catch {
         // SP fetch failed — proceed without
@@ -125,7 +136,15 @@ export default function LoginPage() {
     e.preventDefault();
     setForgotLoading(true);
     try {
-      await auth.forgotPassword(forgotEmail);
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to send reset email');
+      }
       setForgotSent(true);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to send reset email';
@@ -135,8 +154,12 @@ export default function LoginPage() {
     }
   }
 
-  function selectSP(sp: ServiceProviderMembership) {
-    tokenManager.setActiveSpId(sp.id);
+  async function selectSP(sp: ServiceProviderMembership) {
+    await fetch('/api/auth/active-sp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spId: sp.id }),
+    });
     const redirect = searchParams.get('redirect') || '/';
     router.push(redirect);
   }

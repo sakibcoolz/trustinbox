@@ -130,8 +130,7 @@ function CreateKeyForm({ spId, onClose, onCreated }: { spId: string; onClose: ()
         scopes,
         expiresInDays: expiresInDays || undefined,
       });
-      const created = result.data?.createAPIKey;
-      if (created) onCreated(created);
+      if (result) onCreated(result);
     } catch {
       toastError('Failed to create API key');
     }

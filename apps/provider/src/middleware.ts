@@ -27,9 +27,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for auth-status cookie (set by client after login)
+  // Check for auth cookies (httpOnly accessToken is the source of truth)
+  const hasToken = request.cookies.get('accessToken')?.value;
   const authStatus = request.cookies.get('auth-status')?.value;
-  if (!authStatus) {
+  if (!hasToken && !authStatus) {
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);

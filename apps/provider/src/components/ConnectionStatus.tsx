@@ -1,38 +1,42 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { onWsStateChange, type WsConnectionState } from '@/lib/apollo-provider';
+import { useState, useCallback } from 'react';
+import { useSSE, type SSEStatus } from '@/lib/hooks/useSSE';
 
-const STATE_CONFIG: Record<WsConnectionState, { color: string; pulse: boolean; label: string; tooltip: string }> = {
+const STATE_CONFIG: Record<SSEStatus, { color: string; pulse: boolean; label: string; tooltip: string }> = {
   connected: {
     color: 'bg-status-success',
     pulse: false,
     label: 'Live',
-    tooltip: 'WebSocket connected — receiving real-time updates',
+    tooltip: 'SSE connected — receiving real-time updates',
   },
-  reconnecting: {
+  connecting: {
     color: 'bg-status-warning',
     pulse: true,
-    label: 'Reconnecting…',
-    tooltip: 'Reconnecting to server — updates may be delayed',
+    label: 'Connecting…',
+    tooltip: 'Connecting to server — updates may be delayed',
   },
   disconnected: {
     color: 'bg-status-error',
     pulse: false,
     label: 'Offline',
-    tooltip: 'Disconnected — using polling fallback',
+    tooltip: 'Disconnected — click to reconnect',
+  },
+  error: {
+    color: 'bg-status-error',
+    pulse: false,
+    label: 'Error',
+    tooltip: 'Connection error — will retry automatically',
   },
 };
 
 export default function ConnectionStatus() {
-  const [state, setState] = useState<WsConnectionState>('disconnected');
   const [showTooltip, setShowTooltip] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  const noop = useCallback(() => {}, []);
+  const { status } = useSSE(noop);
 
-  useEffect(() => {
-    return onWsStateChange(setState);
-  }, []);
-
-  const config = STATE_CONFIG[state];
+  const config = STATE_CONFIG[status];
 
   return (
     <div

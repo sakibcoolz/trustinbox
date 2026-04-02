@@ -6,15 +6,19 @@ import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
-import { createClient, type Client as WsClient } from 'graphql-ws';
+import { type Client as WsClient } from 'graphql-ws';
 import { useMemo } from 'react';
-import { tokenManager } from './token';
 
 const GRAPHQL_URL = process.env.NEXT_PUBLIC_GRAPHQL_URL || '/graphql';
-const WS_URL = process.env.NEXT_PUBLIC_GRAPHQL_WS_URL || (typeof window !== 'undefined'
-  ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/graphql`
-  : 'ws://localhost-0.taildb081d.ts.net:4000/graphql');
 const ENABLE_BATCHING = process.env.NEXT_PUBLIC_ENABLE_BATCH_REQUESTS === 'true';
+
+// ─── Cookie helper ──────────────────────────────────────
+
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 // ─── HTTP Link (17.5 — BatchHttpLink behind feature flag) ──
 
@@ -22,15 +26,13 @@ const httpLink = ENABLE_BATCHING
   ? new BatchHttpLink({ uri: GRAPHQL_URL, batchMax: 5, batchInterval: 20 })
   : new HttpLink({ uri: GRAPHQL_URL });
 
-// ─── Auth Link — inject headers ─────────────────────────
+// ─── Auth Link — inject SP header (tokens sent via cookies) ─
 
 const authLink = setContext((_, { headers }) => {
-  const token = tokenManager.getAccessToken();
-  const spId = tokenManager.getActiveSpId();
+  const spId = getCookie('activeSpId');
   return {
     headers: {
       ...headers,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(spId ? { 'X-Service-Provider-Id': spId } : {}),
     },
   };
@@ -62,18 +64,11 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
       switch (code) {
         case 'UNAUTHENTICATED':
           return new Observable((observer) => {
-            tokenManager.refresh().then((success) => {
-              if (success) {
-                const oldHeaders = operation.getContext().headers;
-                operation.setContext({
-                  headers: {
-                    ...oldHeaders,
-                    Authorization: `Bearer ${tokenManager.getAccessToken()}`,
-                  },
-                });
+            fetch('/api/auth/refresh', { method: 'POST' }).then((res) => {
+              if (res.ok) {
+                // Cookies updated server-side, retry the operation
                 forward(operation).subscribe(observer);
               } else {
-                tokenManager.clearTokens();
                 if (typeof window !== 'undefined') {
                   window.location.href = '/auth/login';
                 }
@@ -109,7 +104,6 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
     if ('statusCode' in networkError) {
       const status = (networkError as { statusCode: number }).statusCode;
       if (status === 401) {
-        tokenManager.clearTokens();
         if (typeof window !== 'undefined') {
           window.location.href = '/auth/login';
         }
@@ -153,39 +147,11 @@ export function getWsState(): WsConnectionState {
 }
 
 // ─── WebSocket Link (16.1 + 16.4) ──────────────────────
+// Disabled: backend is REST-only; no GraphQL WS endpoint available.
+// Subscriptions will be re-enabled when the gateway supports WS.
 
 let wsClient: WsClient | null = null;
-
-const wsLink = typeof window !== 'undefined'
-  ? (() => {
-      wsClient = createClient({
-        url: WS_URL,
-        connectionParams: () => {
-          const token = tokenManager.getAccessToken();
-          const spId = tokenManager.getActiveSpId();
-          return {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...(spId ? { 'X-Service-Provider-Id': spId } : {}),
-          };
-        },
-        retryAttempts: 10,
-        retryWait: async (retries) => {
-          // Exponential backoff: 1s, 2s, 4s, 8s, ... max 30s
-          const delay = Math.min(1000 * Math.pow(2, retries), 30000);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        },
-        shouldRetry: () => true,
-        keepAlive: 10000,
-        on: {
-          connected: () => setWsState('connected'),
-          connecting: () => setWsState('reconnecting'),
-          closed: () => setWsState('disconnected'),
-          error: () => setWsState('disconnected'),
-        },
-      });
-      return new GraphQLWsLink(wsClient);
-    })()
-  : null;
+const wsLink: GraphQLWsLink | null = null;
 
 export function getWsClient(): WsClient | null {
   return wsClient;

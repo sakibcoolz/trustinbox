@@ -2,10 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation, useQuery } from '@apollo/client';
 import { CheckCircle, XCircle, ArrowRight, Mail, Lock, User, Loader2, Building2, Shield } from 'lucide-react';
-import { LOGIN_MUTATION, REGISTER_MUTATION, ACCEPT_INVITATION_MUTATION, VALIDATE_INVITATION_QUERY } from '@/lib/graphql/auth';
-import { tokenManager } from '@/lib/token';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/useToast';
 import { Card } from '@/components/ui/Card';
@@ -20,6 +17,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ token: 
   const [step, setStep] = useState<'loading' | 'choice' | 'register' | 'login' | 'success' | 'error'>('loading');
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [invitation, setInvitation] = useState<InvitationValidation | null>(null);
 
   // Register form
   const [regForm, setRegForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
@@ -27,45 +25,48 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ token: 
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
 
   // Validate invitation on mount
-  const { data: invData, loading: invLoading, error: invError } = useQuery(VALIDATE_INVITATION_QUERY, {
-    variables: { token },
-    fetchPolicy: 'network-only',
-  });
-  const invitation: InvitationValidation | null = invData?.validateInvitation ?? null;
-
-  // GraphQL mutations
-  const [loginMutation] = useMutation(LOGIN_MUTATION);
-  const [registerMutation] = useMutation(REGISTER_MUTATION);
-  const [acceptInvitation] = useMutation(ACCEPT_INVITATION_MUTATION);
-
-  // Handle invitation validation result
   useEffect(() => {
-    if (invLoading) return;
-    if (invError || !invitation?.valid) {
-      setError(invError?.message || 'This invitation link is invalid or has expired.');
-      setStep('error');
-      return;
+    async function validate() {
+      try {
+        const res = await fetch(`/api/auth/invite/validate?token=${encodeURIComponent(token)}`);
+        const data = await res.json();
+        if (!res.ok || !data.valid) {
+          setError(data.error || 'This invitation link is invalid or has expired.');
+          setStep('error');
+          return;
+        }
+        setInvitation(data);
+        if (data.email) {
+          setRegForm((prev) => ({ ...prev, email: data.email }));
+          setLoginForm((prev) => ({ ...prev, email: data.email }));
+        }
+        if (isAuthenticated) {
+          handleAcceptDirect();
+          return;
+        }
+        setStep('choice');
+      } catch {
+        setError('Failed to validate invitation.');
+        setStep('error');
+      }
     }
-    // Pre-fill email from invitation
-    if (invitation.email) {
-      setRegForm((prev) => ({ ...prev, email: invitation.email! }));
-      setLoginForm((prev) => ({ ...prev, email: invitation.email! }));
-    }
-    // If user is already authenticated, skip to accept directly
-    if (isAuthenticated) {
-      handleAcceptDirect();
-      return;
-    }
-    setStep('choice');
-  }, [invLoading, invError, invitation]); // eslint-disable-line react-hooks/exhaustive-deps
+    validate();
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleAcceptDirect() {
     setActionLoading(true);
     try {
-      const { data } = await acceptInvitation({ variables: { token } });
-      if (data?.acceptInvitation?.success) {
+      const res = await fetch('/api/auth/invite/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
         setStep('success');
-        toast.success('Invitation accepted!', `You've joined ${data.acceptInvitation.serviceProvider?.name || 'the organization'}.`);
+        toast.success('Invitation accepted!', `You've joined ${data.serviceProvider?.name || 'the organization'}.`);
+      } else {
+        throw new Error(data.error || 'Failed to accept invitation');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to accept invitation');
@@ -79,16 +80,30 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ token: 
     setActionLoading(true);
     setError('');
     try {
-      const { data: loginData } = await loginMutation({
-        variables: { input: { email: loginForm.email, password: loginForm.password } },
+      // Login via our cookie route
+      const loginRes = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginForm.email, password: loginForm.password }),
       });
-      if (loginData?.login?.accessToken) {
-        authLogin(loginData.login.accessToken, loginData.login.refreshToken);
+      if (!loginRes.ok) {
+        const loginData = await loginRes.json();
+        throw new Error(loginData.error || 'Login failed');
       }
-      const { data: acceptData } = await acceptInvitation({ variables: { token } });
-      if (acceptData?.acceptInvitation?.success) {
+      authLogin();
+
+      // Accept the invitation
+      const acceptRes = await fetch('/api/auth/invite/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const acceptData = await acceptRes.json();
+      if (acceptRes.ok && acceptData.success) {
         setStep('success');
-        toast.success('Welcome!', `You've joined ${acceptData.acceptInvitation.serviceProvider?.name || 'the organization'}.`);
+        toast.success('Welcome!', `You've joined ${acceptData.serviceProvider?.name || 'the organization'}.`);
+      } else {
+        throw new Error(acceptData.error || 'Failed to accept invitation');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to accept invitation');
@@ -109,23 +124,35 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ token: 
     setActionLoading(true);
     setError('');
     try {
-      const { data: regData } = await registerMutation({
-        variables: {
-          input: {
-            email: regForm.email,
-            password: regForm.password,
-            fullName: regForm.fullName,
-            username: regForm.email.split('@')[0],
-          },
-        },
+      // Register via our cookie route
+      const regRes = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: regForm.email,
+          password: regForm.password,
+          fullName: regForm.fullName,
+          username: regForm.email.split('@')[0],
+        }),
       });
-      if (regData?.register?.accessToken) {
-        authLogin(regData.register.accessToken, regData.register.refreshToken);
+      if (!regRes.ok) {
+        const regData = await regRes.json();
+        throw new Error(regData.error || 'Registration failed');
       }
-      const { data: acceptData } = await acceptInvitation({ variables: { token } });
-      if (acceptData?.acceptInvitation?.success) {
+      authLogin();
+
+      // Accept the invitation
+      const acceptRes = await fetch('/api/auth/invite/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const acceptData = await acceptRes.json();
+      if (acceptRes.ok && acceptData.success) {
         setStep('success');
-        toast.success('Account created!', `You've joined ${acceptData.acceptInvitation.serviceProvider?.name || 'the organization'}.`);
+        toast.success('Account created!', `You've joined ${acceptData.serviceProvider?.name || 'the organization'}.`);
+      } else {
+        throw new Error(acceptData.error || 'Failed to accept invitation');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to accept invitation');
@@ -136,7 +163,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ token: 
 
   const inputCls = 'w-full pl-10 pr-4 py-2.5 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active';
 
-  if (step === 'loading' || invLoading) {
+  if (step === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg-primary">
         <div className="text-center">

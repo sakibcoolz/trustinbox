@@ -1,4 +1,8 @@
-import { gql, useQuery, useLazyQuery, useMutation, useSubscription } from '@apollo/client';
+'use client';
+
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useData } from '@/lib/hooks/useData';
+import { useMutationHelper } from '@/lib/hooks/useMutationHelper';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -130,368 +134,118 @@ export function getSenderStyle(senderType: SenderType) {
   return styles[senderType] ?? styles.CUSTOMER;
 }
 
-// ─── Fragments ──────────────────────────────────────────
-
-const MESSAGE_FRAGMENT = gql`
-  fragment MessageFields on Message {
-    id
-    conversationId
-    senderType
-    senderName
-    content
-    messageType
-    readStatus
-    metadata
-    createdAt
-  }
-`;
-
-// ─── Queries ────────────────────────────────────────────
-
-export const CONVERSATION_LIST_QUERY = gql`
-  query ConversationList(
-    $status: ConversationStatus
-    $search: String
-    $unreadOnly: Boolean
-    $orderByField: String
-    $orderByDirection: String
-    $limit: Int
-    $offset: Int
-  ) {
-    conversations(
-      status: $status
-      search: $search
-      unreadOnly: $unreadOnly
-      orderBy: { field: $orderByField, direction: $orderByDirection }
-      limit: $limit
-      offset: $offset
-    ) {
-      nodes {
-        id
-        status
-        participants {
-          id
-          virtualPublicId
-          displayName
-        }
-        assignee {
-          id
-          name
-          role
-        }
-        unreadCount
-        messages(limit: 1) {
-          nodes {
-            ...MessageFields
-          }
-          totalCount
-        }
-        createdAt
-        updatedAt
-      }
-      totalCount
-    }
-  }
-  ${MESSAGE_FRAGMENT}
-`;
-
-export const CONVERSATION_DETAIL_QUERY = gql`
-  query ConversationDetail($id: ID!, $messageLimit: Int, $messageOffset: Int) {
-    conversation(id: $id) {
-      id
-      status
-      participants {
-        id
-        virtualPublicId
-        displayName
-      }
-      assignee {
-        id
-        name
-        role
-      }
-      unreadCount
-      messages(limit: $messageLimit, offset: $messageOffset) {
-        nodes {
-          ...MessageFields
-        }
-        totalCount
-      }
-      sharedDocuments {
-        id
-        name
-        fileType
-        fileSize
-        sharedAt
-        sharedBy
-      }
-      relatedCallbacks {
-        id
-        status
-        requestedAt
-        notes
-      }
-      createdAt
-      updatedAt
-    }
-  }
-  ${MESSAGE_FRAGMENT}
-`;
-
-export const CONVERSATION_STATS_QUERY = gql`
-  query ConversationStats($serviceProviderId: ID!) {
-    conversationStats(serviceProviderId: $serviceProviderId) {
-      open
-      closed
-      archived
-      unreadTotal
-    }
-  }
-`;
-
-export const TEAM_MEMBERS_QUERY = gql`
-  query TeamMembers($serviceProviderId: ID!, $role: String) {
-    teamMembers(serviceProviderId: $serviceProviderId, role: $role) {
-      id
-      name
-      email
-      role
-      avatarUrl
-      activeConversations
-    }
-  }
-`;
-
-// ─── Mutations ──────────────────────────────────────────
-
-export const SEND_MESSAGE_MUTATION = gql`
-  mutation SendMessage($input: SendMessageInput!) {
-    sendMessage(input: $input) {
-      ...MessageFields
-    }
-  }
-  ${MESSAGE_FRAGMENT}
-`;
-
-export const ASSIGN_CONVERSATION_MUTATION = gql`
-  mutation AssignConversation($conversationId: ID!, $agentId: ID!) {
-    assignConversation(conversationId: $conversationId, agentId: $agentId) {
-      id
-      assignee {
-        id
-        name
-        role
-      }
-    }
-  }
-`;
-
-export const ARCHIVE_CONVERSATION_MUTATION = gql`
-  mutation ArchiveConversation($id: ID!) {
-    archiveConversation(id: $id) {
-      id
-      status
-    }
-  }
-`;
-
-// ─── Subscriptions ──────────────────────────────────────
-
-export const PROVIDER_MESSAGE_RECEIVED_SUBSCRIPTION = gql`
-  subscription ProviderMessageReceived($serviceProviderId: ID!) {
-    providerMessageReceived(serviceProviderId: $serviceProviderId) {
-      ...MessageFields
-    }
-  }
-  ${MESSAGE_FRAGMENT}
-`;
-
-export const MESSAGE_RECEIVED_SUBSCRIPTION = gql`
-  subscription MessageReceived($conversationId: ID!) {
-    messageReceived(conversationId: $conversationId) {
-      ...MessageFields
-    }
-  }
-  ${MESSAGE_FRAGMENT}
-`;
-
 // ─── Hooks ──────────────────────────────────────────────
 
 export function useConversations(options: ConversationListOptions) {
-  return useQuery<{ conversations: ConversationConnection }>(CONVERSATION_LIST_QUERY, {
-    variables: {
-      status: options.status,
-      search: options.search,
-      unreadOnly: options.unreadOnly,
-      orderByField: options.orderBy?.field ?? 'updatedAt',
-      orderByDirection: options.orderBy?.direction ?? 'DESC',
-      limit: options.limit ?? 20,
-      offset: options.offset ?? 0,
-    },
-    fetchPolicy: 'cache-and-network',
-  });
+  const params = new URLSearchParams();
+  if (options.status) params.set('status', options.status);
+  if (options.search) params.set('search', options.search);
+  if (options.unreadOnly) params.set('unreadOnly', 'true');
+  params.set('orderByField', options.orderBy?.field ?? 'updatedAt');
+  params.set('orderByDirection', options.orderBy?.direction ?? 'DESC');
+  params.set('limit', String(options.limit ?? 20));
+  params.set('offset', String(options.offset ?? 0));
+  const qs = params.toString();
+
+  const result = useData<ConversationConnection>(`/api/conversations?${qs}`);
+  return { ...result, data: result.data ? { conversations: result.data } : undefined };
 }
 
 export function useConversation(id: string) {
-  const result = useQuery<{ conversation: ConversationDetail }>(CONVERSATION_DETAIL_QUERY, {
-    variables: { id, messageLimit: 50, messageOffset: 0 },
-    skip: !id,
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<ConversationDetail>(
+    id ? `/api/conversations/${id}` : null,
+    { skip: !id },
+  );
 
-  const fetchMoreMessages = () => {
-    const currentCount = result.data?.conversation.messages.nodes.length ?? 0;
-    return result.fetchMore({
-      variables: { messageOffset: currentCount },
-      updateQuery: (prev, { fetchMoreResult }) => {
-        if (!fetchMoreResult) return prev;
-        return {
-          conversation: {
-            ...prev.conversation,
-            messages: {
-              ...fetchMoreResult.conversation.messages,
-              nodes: [
-                ...fetchMoreResult.conversation.messages.nodes,
-                ...prev.conversation.messages.nodes,
-              ],
-            },
-          },
-        };
-      },
-    });
-  };
+  const [allMessages, setAllMessages] = useState<MessageNode[]>([]);
+  const totalCountRef = useRef(0);
 
-  const hasMoreMessages =
-    (result.data?.conversation.messages.nodes.length ?? 0) <
-    (result.data?.conversation.messages.totalCount ?? 0);
+  // Sync fetched messages
+  useEffect(() => {
+    if (result.data) {
+      setAllMessages(result.data.messages?.nodes ?? []);
+      totalCountRef.current = result.data.messages?.totalCount ?? 0;
+    }
+  }, [result.data]);
 
-  return { ...result, fetchMoreMessages, hasMoreMessages };
+  const fetchMoreMessages = useCallback(async () => {
+    const currentCount = allMessages.length;
+    const res = await fetch(`/api/conversations/${id}?messageLimit=50&messageOffset=${currentCount}`);
+    if (!res.ok) return;
+    const data: ConversationDetail = await res.json();
+    const olderMessages = data.messages?.nodes ?? [];
+    setAllMessages(prev => [...olderMessages, ...prev]);
+  }, [id, allMessages.length]);
+
+  const hasMoreMessages = allMessages.length < totalCountRef.current;
+
+  const wrappedData = result.data
+    ? {
+        conversation: {
+          ...result.data,
+          messages: { nodes: allMessages, totalCount: totalCountRef.current },
+        },
+      }
+    : undefined;
+
+  return { ...result, data: wrappedData, fetchMoreMessages, hasMoreMessages };
 }
 
 export function useConversationStats(spId: string) {
-  return useQuery<{ conversationStats: ConversationStats }>(CONVERSATION_STATS_QUERY, {
-    variables: { serviceProviderId: spId },
-    skip: !spId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const result = useData<ConversationStats>(
+    spId ? `/api/gateway/conversations/stats?serviceProviderId=${spId}` : null,
+    { skip: !spId },
+  );
+  return { ...result, data: result.data ? { conversationStats: result.data } : undefined };
 }
 
 export function useTeamMembers(spId: string, role?: string) {
-  return useQuery<{ teamMembers: TeamMember[] }>(TEAM_MEMBERS_QUERY, {
-    variables: { serviceProviderId: spId, role },
-    skip: !spId,
-  });
+  const params = new URLSearchParams();
+  if (role) params.set('role', role);
+  const qs = params.toString();
+
+  const result = useData<TeamMember[]>(
+    spId ? `/api/team/members${qs ? `?${qs}` : ''}` : null,
+    { skip: !spId },
+  );
+  return { ...result, data: result.data ? { teamMembers: result.data } : undefined };
 }
 
 export function useSendMessage() {
-  const [sendMutation, result] = useMutation(SEND_MESSAGE_MUTATION);
-
-  const sendMessage = (input: SendMessageInput) =>
-    sendMutation({
-      variables: { input },
-      optimisticResponse: {
-        sendMessage: {
-          id: `temp-${Date.now()}`,
-          conversationId: input.conversationId,
-          senderType: 'AGENT',
-          senderName: 'You',
-          content: input.content,
-          messageType: input.messageType ?? 'TEXT',
-          readStatus: 'SENT',
-          metadata: input.metadata ?? null,
-          createdAt: new Date().toISOString(),
-          __typename: 'Message',
-        },
-      },
-      update(cache, { data }) {
-        if (!data?.sendMessage) return;
-        const msg = data.sendMessage;
-        const msgRef = cache.identify({ __typename: 'Message', id: msg.id });
-        cache.modify({
-          id: cache.identify({ __typename: 'Conversation', id: input.conversationId }),
-          fields: {
-            messages(existing = { nodes: [], totalCount: 0 }) {
-              return {
-                ...existing,
-                nodes: [...existing.nodes, { __ref: msgRef }],
-                totalCount: existing.totalCount + 1,
-              };
-            },
-            updatedAt() {
-              return msg.createdAt;
-            },
-          },
-        });
-      },
-    });
-
-  return { sendMessage, loading: result.loading, error: result.error };
+  const { run, loading, error } = useMutationHelper<MessageNode>();
+  return {
+    sendMessage: (input: SendMessageInput) =>
+      run(`/api/conversations/${input.conversationId}/messages`, 'POST', input),
+    loading,
+    error,
+  };
 }
 
 export function useAssignConversation() {
-  const [assign, result] = useMutation(ASSIGN_CONVERSATION_MUTATION);
+  const { run, loading, error } = useMutationHelper();
   return {
     assign: (conversationId: string, agentId: string) =>
-      assign({
-        variables: { conversationId, agentId },
-        refetchQueries: ['ConversationDetail'],
-      }),
-    loading: result.loading,
-    error: result.error,
+      run(`/api/gateway/v1/conversations/${conversationId}/assign`, 'POST', { agentId }),
+    loading,
+    error,
   };
 }
 
 export function useArchiveConversation() {
-  const [archive, result] = useMutation(ARCHIVE_CONVERSATION_MUTATION);
+  const { run, loading, error } = useMutationHelper();
   return {
     archive: (id: string) =>
-      archive({
-        variables: { id },
-        refetchQueries: ['ConversationList', 'ConversationStats'],
-      }),
-    loading: result.loading,
-    error: result.error,
+      run(`/api/gateway/v1/conversations/${id}/archive`, 'POST'),
+    loading,
+    error,
   };
 }
 
-export function useProviderMessageSubscription(spId: string) {
-  return useSubscription<{ providerMessageReceived: MessageNode }>(
-    PROVIDER_MESSAGE_RECEIVED_SUBSCRIPTION,
-    {
-      variables: { serviceProviderId: spId },
-      skip: !spId,
-    },
-  );
+// Subscription stubs — will be replaced with SSE in Phase 4
+export function useProviderMessageSubscription(_spId: string) {
+  return { data: undefined as { providerMessageReceived: MessageNode } | undefined };
 }
 
-export function useMessageSubscription(conversationId: string) {
-  return useSubscription<{ messageReceived: MessageNode }>(MESSAGE_RECEIVED_SUBSCRIPTION, {
-    variables: { conversationId },
-    skip: !conversationId,
-    onData({ client, data: subscriptionData }) {
-      const newMessage = subscriptionData.data?.messageReceived;
-      if (!newMessage) return;
-
-      client.cache.modify({
-        id: client.cache.identify({ __typename: 'Conversation', id: conversationId }),
-        fields: {
-          messages(existing = { nodes: [], totalCount: 0 }) {
-            const msgRef = client.cache.identify({ __typename: 'Message', id: newMessage.id });
-            const alreadyExists = existing.nodes.some(
-              (ref: { __ref?: string }) => ref.__ref === msgRef,
-            );
-            if (alreadyExists) return existing;
-            return {
-              ...existing,
-              nodes: [...existing.nodes, { __ref: msgRef }],
-              totalCount: existing.totalCount + 1,
-            };
-          },
-          updatedAt() {
-            return newMessage.createdAt;
-          },
-        },
-      });
-    },
-  });
+export function useMessageSubscription(_conversationId: string) {
+  return { data: undefined as { messageReceived: MessageNode } | undefined };
 }

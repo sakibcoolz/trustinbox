@@ -31,8 +31,8 @@ export default function DocumentManager({
   const documents = data?.documents?.nodes ?? [];
 
   async function handleDownload(doc: DocumentNode) {
-    const { data: urlData } = await getSignedUrl(doc.id);
-    const url = urlData?.generateDocumentShareURL?.url;
+    const urlData = await getSignedUrl(doc.id);
+    const url = urlData?.url;
     if (url) {
       const a = document.createElement('a');
       a.href = url;

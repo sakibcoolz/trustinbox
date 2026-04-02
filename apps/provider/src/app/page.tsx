@@ -1,69 +1,19 @@
-'use client';
-
 import { Suspense } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useDashboardAnalytics, useDashboardLiveUpdates } from '@/lib/graphql/dashboard';
-import { useDateRange } from '@/hooks/useDateRange';
-import { useAutoRefresh } from '@/hooks/useAutoRefresh';
-import { DashboardKPICards } from '@/components/dashboard/KPICards';
-import { DeliveryChart } from '@/components/dashboard/DeliveryChart';
-import { PolicyChart } from '@/components/dashboard/PolicyChart';
-import { ActivityTimeline } from '@/components/dashboard/ActivityTimeline';
-import { QuickActions } from '@/components/dashboard/QuickActions';
-import { DateRangeSelector } from '@/components/dashboard/DateRangeSelector';
-import { AutoRefresh } from '@/components/dashboard/AutoRefresh';
+import { fetchDashboardAnalytics } from '@/lib/data/dashboard';
+import DashboardClient from './DashboardClient';
+import type { DashboardAnalytics } from '@/lib/graphql/dashboard';
 
-function DashboardContent() {
-  const { activeServiceProvider } = useAuth();
-  const { range, updateRange } = useDateRange();
-  const spId = activeServiceProvider?.id ?? '';
+export default async function DashboardPage() {
+  let initialData: DashboardAnalytics | null = null;
+  try {
+    initialData = await fetchDashboardAnalytics() as unknown as DashboardAnalytics;
+  } catch {
+    // Render client with null — it will show empty state
+  }
 
-  const { data, loading, refetch } = useDashboardAnalytics(spId, {
-    from: range.from.toISOString(),
-    to: range.to.toISOString(),
-  });
-  const analytics = data?.dashboardAnalytics;
-  const { enabled: liveEnabled, setEnabled: setLiveEnabled, lastUpdated } = useAutoRefresh(refetch);
-
-  // Real-time subscription — optimistic counter updates
-  useDashboardLiveUpdates(spId);
-
-  return (
-    <div className="p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="text-text-secondary text-sm mt-1">Overview of your communication metrics</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <DateRangeSelector value={range} onChange={updateRange} />
-          <AutoRefresh enabled={liveEnabled} onToggle={setLiveEnabled} lastUpdated={lastUpdated} />
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <QuickActions />
-
-      {/* KPI Cards */}
-      <DashboardKPICards data={analytics} loading={loading} />
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DeliveryChart data={analytics?.dailyDelivery ?? []} loading={loading} />
-        <PolicyChart data={analytics?.policyBreakdown} loading={loading} />
-      </div>
-
-      {/* Activity Timeline */}
-      <ActivityTimeline activities={analytics?.recentActivity ?? []} loading={loading} />
-    </div>
-  );
-}
-
-export default function DashboardPage() {
   return (
     <Suspense fallback={<DashboardSkeleton />}>
-      <DashboardContent />
+      <DashboardClient initialData={initialData} />
     </Suspense>
   );
 }

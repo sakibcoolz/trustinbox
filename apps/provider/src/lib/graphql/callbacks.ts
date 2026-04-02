@@ -1,4 +1,6 @@
-import { gql, useQuery, useLazyQuery, useMutation, useSubscription } from '@apollo/client';
+import { useData } from '@/lib/hooks/useData';
+import { useMutationHelper } from '@/lib/hooks/useMutationHelper';
+import { useState, useCallback } from 'react';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -107,263 +109,85 @@ export function getPriorityConfig(priority: CallbackPriority) {
   return map[priority] ?? { label: priority, color: 'text-text-muted' };
 }
 
-// ─── Fragments ──────────────────────────────────────────
-
-const CALLBACK_REQUEST_FRAGMENT = gql`
-  fragment CallbackRequestFields on CallbackRequest {
-    id
-    userId
-    customerVirtualId
-    serviceProviderId
-    reason
-    details
-    status
-    priority
-    requestedAt
-    respondedAt
-    assignedAgentId
-    assignedAgentName
-    approvedSlotStart
-    approvedSlotEnd
-    rejectionReason
-    outcome
-    callDuration
-    completionNotes
-    followUpDate
-    createdAt
-    updatedAt
-  }
-`;
-
-// ─── Queries ────────────────────────────────────────────
-
-export const CALLBACK_REQUESTS_QUERY = gql`
-  ${CALLBACK_REQUEST_FRAGMENT}
-  query CallbackRequests(
-    $status: CallbackRequestStatus
-    $search: String
-    $agentId: ID
-    $from: DateTime
-    $to: DateTime
-    $limit: Int
-    $offset: Int
-  ) {
-    callbackRequests(
-      status: $status
-      search: $search
-      agentId: $agentId
-      from: $from
-      to: $to
-      limit: $limit
-      offset: $offset
-    ) {
-      nodes {
-        ...CallbackRequestFields
-      }
-      totalCount
-    }
-  }
-`;
-
-export const CALLBACK_REQUEST_QUERY = gql`
-  ${CALLBACK_REQUEST_FRAGMENT}
-  query CallbackRequest($id: ID!) {
-    callbackRequest(id: $id) {
-      ...CallbackRequestFields
-    }
-  }
-`;
-
-export const CALLBACK_STATS_QUERY = gql`
-  query CallbackStats($serviceProviderId: ID!) {
-    callbackStats(serviceProviderId: $serviceProviderId) {
-      pending
-      approved
-      rejected
-      expired
-      rescheduled
-      completedThisWeek
-      scheduledToday
-    }
-  }
-`;
-
-// ─── Mutations ──────────────────────────────────────────
-
-export const APPROVE_CALLBACK_REQUEST = gql`
-  ${CALLBACK_REQUEST_FRAGMENT}
-  mutation ApproveCallbackRequest($input: ApproveCallbackRequestInput!) {
-    approveCallbackRequest(input: $input) {
-      ...CallbackRequestFields
-    }
-  }
-`;
-
-export const REJECT_CALLBACK_REQUEST = gql`
-  ${CALLBACK_REQUEST_FRAGMENT}
-  mutation RejectCallbackRequest($input: RejectCallbackRequestInput!) {
-    rejectCallbackRequest(input: $input) {
-      ...CallbackRequestFields
-    }
-  }
-`;
-
-export const CREATE_CALLBACK_REQUEST = gql`
-  ${CALLBACK_REQUEST_FRAGMENT}
-  mutation CreateCallbackRequest($input: CreateCallbackRequestInput!) {
-    createCallbackRequest(input: $input) {
-      ...CallbackRequestFields
-    }
-  }
-`;
-
-export const COMPLETE_CALLBACK_REQUEST = gql`
-  ${CALLBACK_REQUEST_FRAGMENT}
-  mutation CompleteCallbackRequest($input: CompleteCallbackRequestInput!) {
-    completeCallbackRequest(input: $input) {
-      ...CallbackRequestFields
-    }
-  }
-`;
-
-export const ASSIGN_CALLBACK_REQUEST = gql`
-  ${CALLBACK_REQUEST_FRAGMENT}
-  mutation AssignCallbackRequest($callbackRequestId: ID!, $agentId: ID!) {
-    assignCallbackRequest(callbackRequestId: $callbackRequestId, agentId: $agentId) {
-      ...CallbackRequestFields
-    }
-  }
-`;
-
-// ─── Subscriptions ──────────────────────────────────────
-
-export const PROVIDER_CALLBACK_REQUEST_CREATED = gql`
-  ${CALLBACK_REQUEST_FRAGMENT}
-  subscription ProviderCallbackRequestCreated($serviceProviderId: ID!) {
-    providerCallbackRequestCreated(serviceProviderId: $serviceProviderId) {
-      ...CallbackRequestFields
-    }
-  }
-`;
-
-// ─── Hooks ──────────────────────────────────────────────
+// ─── Query Hooks ────────────────────────────────────────
 
 export function useCallbackRequests(variables: CallbackRequestsVariables) {
   const { status, search, agentId, from, to, limit = 25, offset = 0 } = variables;
-  return useQuery<{ callbackRequests: CallbackRequestConnection }>(CALLBACK_REQUESTS_QUERY, {
-    variables: {
-      status: status === 'ALL' ? undefined : status,
-      search: search || undefined,
-      agentId: agentId || undefined,
-      from: from || undefined,
-      to: to || undefined,
-      limit,
-      offset,
-    },
-    fetchPolicy: 'cache-and-network',
-  });
+  const params = new URLSearchParams();
+  if (status && status !== 'ALL') params.set('status', status);
+  if (search) params.set('search', search);
+  if (agentId) params.set('agentId', agentId);
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  const url = `/api/callbacks?${params}`;
+  const result = useData<CallbackRequestConnection>(url, { deps: [status, search, agentId, from, to, limit, offset] });
+  return { ...result, data: result.data ? { callbackRequests: result.data } : undefined };
 }
 
 export function useCallbackRequest(id: string) {
-  return useQuery<{ callbackRequest: CallbackRequest }>(CALLBACK_REQUEST_QUERY, {
-    variables: { id },
-    skip: !id,
-  });
+  const url = id ? `/api/gateway/v1/callbacks/${id}` : null;
+  const result = useData<CallbackRequest>(url, { skip: !id });
+  return { ...result, data: result.data ? { callbackRequest: result.data } : undefined };
 }
 
 export function useCallbackStats(serviceProviderId: string) {
-  return useQuery<{ callbackStats: CallbackStats }>(CALLBACK_STATS_QUERY, {
-    variables: { serviceProviderId },
-    skip: !serviceProviderId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const url = serviceProviderId ? `/api/analytics/callbacks?summary=true` : null;
+  const result = useData<CallbackStats>(url, { skip: !serviceProviderId });
+  return { ...result, data: result.data ? { callbackStats: result.data } : undefined };
 }
 
+// ─── Mutation Hooks ─────────────────────────────────────
+
 export function useApproveCallbackRequest() {
-  const [approve, result] = useMutation(APPROVE_CALLBACK_REQUEST, {
-    refetchQueries: ['CallbackRequests', 'CallbackStats'],
-  });
+  const { run, loading, error } = useMutationHelper();
   return {
-    approve: (input: ApproveCallbackInput) => approve({ variables: { input } }),
-    loading: result.loading,
-    error: result.error,
+    approve: (input: ApproveCallbackInput) => run(`/api/callbacks/${input.callbackRequestId}/approve`, 'POST', input),
+    loading, error,
   };
 }
 
 export function useRejectCallbackRequest() {
-  const [reject, result] = useMutation(REJECT_CALLBACK_REQUEST, {
-    refetchQueries: ['CallbackRequests', 'CallbackStats'],
-  });
+  const { run, loading, error } = useMutationHelper();
   return {
-    reject: (input: RejectCallbackInput) => reject({ variables: { input } }),
-    loading: result.loading,
-    error: result.error,
+    reject: (input: RejectCallbackInput) => run(`/api/callbacks/${input.callbackRequestId}/reject`, 'POST', input),
+    loading, error,
   };
 }
 
 export function useCreateCallbackRequest() {
-  const [create, result] = useMutation(CREATE_CALLBACK_REQUEST, {
-    refetchQueries: ['CallbackRequests', 'CallbackStats'],
-  });
+  const { run, loading, error } = useMutationHelper<CallbackRequest>();
   return {
-    create: (input: CreateCallbackInput) => create({ variables: { input } }),
-    loading: result.loading,
-    error: result.error,
+    create: (input: CreateCallbackInput) => run('/api/callbacks', 'POST', input),
+    loading, error,
   };
 }
 
 export function useCompleteCallbackRequest() {
-  const [complete, result] = useMutation(COMPLETE_CALLBACK_REQUEST, {
-    refetchQueries: ['CallbackRequests', 'CallbackStats'],
-  });
+  const { run, loading, error } = useMutationHelper();
   return {
-    complete: (input: CompleteCallbackInput) => complete({ variables: { input } }),
-    loading: result.loading,
-    error: result.error,
+    complete: (input: CompleteCallbackInput) => run(`/api/callbacks/${input.callbackRequestId}/complete`, 'POST', input),
+    loading, error,
   };
 }
 
 export function useAssignCallbackRequest() {
-  const [assign, result] = useMutation(ASSIGN_CALLBACK_REQUEST, {
-    refetchQueries: ['CallbackRequests'],
-  });
+  const { run, loading, error } = useMutationHelper();
   return {
     assign: (callbackRequestId: string, agentId: string) =>
-      assign({ variables: { callbackRequestId, agentId } }),
-    loading: result.loading,
-    error: result.error,
+      run(`/api/callbacks/${callbackRequestId}/assign`, 'POST', { agentId }),
+    loading, error,
   };
 }
 
-export function useCallbackRequestCreated(serviceProviderId: string) {
-  return useSubscription<{ providerCallbackRequestCreated: CallbackRequest }>(
-    PROVIDER_CALLBACK_REQUEST_CREATED,
-    {
-      variables: { serviceProviderId },
-      skip: !serviceProviderId,
-    },
-  );
+// ─── Subscription (replaced by SSE in Phase 4) ─────────
+
+export function useCallbackRequestCreated(_serviceProviderId: string) {
+  return { data: undefined };
 }
 
-// ─── Policy Check for Callbacks (reuse from customers) ──
-
-export const CHECK_CALLBACK_POLICY = gql`
-  query CheckCallbackPolicy(
-    $serviceProviderId: ID!
-    $userId: ID!
-  ) {
-    checkCommunicationPolicy(
-      serviceProviderId: $serviceProviderId
-      category: PERSONAL
-      channel: "CALLBACK"
-    ) {
-      allowed
-      decisionCode
-      reason
-      appliedRules
-    }
-  }
-`;
+// ─── Policy Check ───────────────────────────────────────
 
 export interface PolicyCheckResult {
   allowed: boolean;
@@ -373,15 +197,25 @@ export interface PolicyCheckResult {
 }
 
 export function useCheckCallbackPolicy() {
-  const [check, { data, loading, error }] = useLazyQuery<{
-    checkCommunicationPolicy: PolicyCheckResult;
-  }>(CHECK_CALLBACK_POLICY);
+  const [result, setResult] = useState<PolicyCheckResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | undefined>();
 
-  return {
-    checkPolicy: (serviceProviderId: string, userId: string) =>
-      check({ variables: { serviceProviderId, userId } }),
-    result: data?.checkCommunicationPolicy ?? null,
-    loading,
-    error,
-  };
+  const checkPolicy = useCallback(async (serviceProviderId: string, userId: string) => {
+    setLoading(true);
+    setError(undefined);
+    try {
+      const res = await fetch(`/api/gateway/v1/policy/check?category=PERSONAL&channel=CALLBACK&userId=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setResult(data);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error(String(e)));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { checkPolicy, result, loading, error };
 }

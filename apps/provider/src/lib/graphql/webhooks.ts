@@ -1,4 +1,7 @@
-import { gql, useQuery, useMutation, useSubscription } from '@apollo/client';
+'use client';
+
+import { useData } from '@/lib/hooks/useData';
+import { useMutationHelper } from '@/lib/hooks/useMutationHelper';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -116,218 +119,95 @@ export const WEBHOOK_EVENTS = [
   'BotActionExecuted', 'BotEscalated',
 ] as const;
 
-// ─── Fragments ───────────────────────────────────────────────────────────────
-
-export const WEBHOOK_SUBSCRIPTION_FIELDS = gql`
-  fragment WebhookSubscriptionFields on WebhookSubscription {
-    id
-    serviceProviderId
-    url
-    description
-    events
-    status
-    failureCount
-    maxRetries
-    lastDeliveryAt
-    lastFailureAt
-    createdAt
-    updatedAt
-  }
-`;
-
-export const WEBHOOK_DELIVERY_FIELDS = gql`
-  fragment WebhookDeliveryFields on WebhookDelivery {
-    id
-    subscriptionId
-    eventType
-    eventId
-    responseStatus
-    attemptCount
-    status
-    durationMs
-    createdAt
-    completedAt
-  }
-`;
-
-// ─── Queries (12.10) ────────────────────────────────────────────────────────
-
-export const GET_WEBHOOK_SUBSCRIPTIONS = gql`
-  ${WEBHOOK_SUBSCRIPTION_FIELDS}
-  query GetWebhookSubscriptions($serviceProviderId: ID!, $status: WebhookSubscriptionStatus, $limit: Int, $offset: Int) {
-    webhookSubscriptions(serviceProviderId: $serviceProviderId, status: $status, limit: $limit, offset: $offset) {
-      nodes {
-        ...WebhookSubscriptionFields
-      }
-      totalCount
-    }
-  }
-`;
-
-export const GET_WEBHOOK_SUBSCRIPTION = gql`
-  ${WEBHOOK_SUBSCRIPTION_FIELDS}
-  query GetWebhookSubscription($id: ID!, $serviceProviderId: ID!) {
-    webhookSubscription(id: $id, serviceProviderId: $serviceProviderId) {
-      ...WebhookSubscriptionFields
-    }
-  }
-`;
-
-export const GET_WEBHOOK_DELIVERIES = gql`
-  ${WEBHOOK_DELIVERY_FIELDS}
-  query GetWebhookDeliveries($subscriptionId: ID!, $serviceProviderId: ID!, $status: WebhookDeliveryStatus, $limit: Int, $offset: Int) {
-    webhookDeliveries(subscriptionId: $subscriptionId, serviceProviderId: $serviceProviderId, status: $status, limit: $limit, offset: $offset) {
-      nodes {
-        ...WebhookDeliveryFields
-      }
-      totalCount
-    }
-  }
-`;
-
-// ─── Mutations (12.9) ───────────────────────────────────────────────────────
-
-export const CREATE_WEBHOOK_SUBSCRIPTION = gql`
-  ${WEBHOOK_SUBSCRIPTION_FIELDS}
-  mutation CreateWebhookSubscription($input: CreateWebhookSubscriptionInput!) {
-    createWebhookSubscription(input: $input) {
-      ...WebhookSubscriptionFields
-    }
-  }
-`;
-
-export const UPDATE_WEBHOOK_SUBSCRIPTION = gql`
-  ${WEBHOOK_SUBSCRIPTION_FIELDS}
-  mutation UpdateWebhookSubscription($input: UpdateWebhookSubscriptionInput!) {
-    updateWebhookSubscription(input: $input) {
-      ...WebhookSubscriptionFields
-    }
-  }
-`;
-
-export const DELETE_WEBHOOK_SUBSCRIPTION = gql`
-  mutation DeleteWebhookSubscription($subscriptionId: ID!, $serviceProviderId: ID!) {
-    deleteWebhookSubscription(subscriptionId: $subscriptionId, serviceProviderId: $serviceProviderId)
-  }
-`;
-
-export const TEST_WEBHOOK_SUBSCRIPTION = gql`
-  mutation TestWebhookSubscription($subscriptionId: ID!, $serviceProviderId: ID!) {
-    testWebhookSubscription(subscriptionId: $subscriptionId, serviceProviderId: $serviceProviderId) {
-      success
-      responseStatus
-      responseBody
-      durationMs
-    }
-  }
-`;
-
-export const RETRY_WEBHOOK_DELIVERY = gql`
-  mutation RetryWebhookDelivery($deliveryId: ID!, $serviceProviderId: ID!) {
-    retryWebhookDelivery(deliveryId: $deliveryId, serviceProviderId: $serviceProviderId)
-  }
-`;
-
-// ─── Subscription (12.11) ───────────────────────────────────────────────────
-
-export const WEBHOOK_DELIVERY_COMPLETED = gql`
-  ${WEBHOOK_DELIVERY_FIELDS}
-  subscription WebhookDeliveryCompleted($serviceProviderId: ID!) {
-    providerWebhookDeliveryCompleted(serviceProviderId: $serviceProviderId) {
-      ...WebhookDeliveryFields
-    }
-  }
-`;
-
 // ─── Hooks ───────────────────────────────────────────────────────────────────
 
 export function useWebhookSubscriptions(serviceProviderId: string, status?: WebhookSubscriptionStatus | null) {
-  return useQuery<{ webhookSubscriptions: WebhookSubscriptionConnection }>(GET_WEBHOOK_SUBSCRIPTIONS, {
-    variables: { serviceProviderId, status, limit: 50, offset: 0 },
-    skip: !serviceProviderId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  params.set('limit', '50');
+  params.set('offset', '0');
+  const qs = params.toString();
+
+  const result = useData<WebhookSubscriptionConnection>(
+    serviceProviderId ? `/api/webhooks?${qs}` : null,
+    { skip: !serviceProviderId },
+  );
+  return { ...result, data: result.data ? { webhookSubscriptions: result.data } : undefined };
 }
 
 export function useWebhookSubscription(id: string, serviceProviderId: string) {
-  return useQuery<{ webhookSubscription: WebhookSubscription }>(GET_WEBHOOK_SUBSCRIPTION, {
-    variables: { id, serviceProviderId },
-    skip: !id || !serviceProviderId,
-  });
+  const result = useData<WebhookSubscription>(
+    id && serviceProviderId ? `/api/webhooks/${id}` : null,
+    { skip: !id || !serviceProviderId },
+  );
+  return { ...result, data: result.data ? { webhookSubscription: result.data } : undefined };
 }
 
 export function useWebhookDeliveries(subscriptionId: string, serviceProviderId: string, status?: WebhookDeliveryStatus | null, limit = 25, offset = 0) {
-  return useQuery<{ webhookDeliveries: WebhookDeliveryConnection }>(GET_WEBHOOK_DELIVERIES, {
-    variables: { subscriptionId, serviceProviderId, status, limit, offset },
-    skip: !subscriptionId || !serviceProviderId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  const qs = params.toString();
+
+  const result = useData<WebhookDeliveryConnection>(
+    subscriptionId && serviceProviderId ? `/api/gateway/v1/webhooks/${subscriptionId}/deliveries?${qs}` : null,
+    { skip: !subscriptionId || !serviceProviderId },
+  );
+  return { ...result, data: result.data ? { webhookDeliveries: result.data } : undefined };
 }
 
 export function useCreateWebhookSubscription() {
-  const [create, result] = useMutation(CREATE_WEBHOOK_SUBSCRIPTION, {
-    refetchQueries: ['GetWebhookSubscriptions'],
-  });
+  const { run, loading, error } = useMutationHelper<WebhookSubscription>();
   return {
-    create: (input: CreateWebhookSubscriptionInput) => create({ variables: { input } }),
-    loading: result.loading,
-    error: result.error,
+    create: (input: CreateWebhookSubscriptionInput) => run('/api/webhooks', 'POST', input),
+    loading,
+    error,
   };
 }
 
 export function useUpdateWebhookSubscription() {
-  const [update, result] = useMutation(UPDATE_WEBHOOK_SUBSCRIPTION, {
-    refetchQueries: ['GetWebhookSubscriptions'],
-  });
+  const { run, loading, error } = useMutationHelper<WebhookSubscription>();
   return {
-    update: (input: UpdateWebhookSubscriptionInput) => update({ variables: { input } }),
-    loading: result.loading,
-    error: result.error,
+    update: (input: UpdateWebhookSubscriptionInput) =>
+      run(`/api/webhooks/${input.subscriptionId}`, 'PUT', input),
+    loading,
+    error,
   };
 }
 
 export function useDeleteWebhookSubscription() {
-  const [del, result] = useMutation(DELETE_WEBHOOK_SUBSCRIPTION, {
-    refetchQueries: ['GetWebhookSubscriptions'],
-  });
+  const { run, loading, error } = useMutationHelper();
   return {
     deleteWebhook: (subscriptionId: string, serviceProviderId: string) =>
-      del({ variables: { subscriptionId, serviceProviderId } }),
-    loading: result.loading,
-    error: result.error,
+      run(`/api/webhooks/${subscriptionId}`, 'DELETE', { serviceProviderId }),
+    loading,
+    error,
   };
 }
 
 export function useTestWebhookSubscription() {
-  const [test, result] = useMutation<{ testWebhookSubscription: TestWebhookResult }>(TEST_WEBHOOK_SUBSCRIPTION);
+  const { run, loading, error } = useMutationHelper<TestWebhookResult>();
   return {
     test: (subscriptionId: string, serviceProviderId: string) =>
-      test({ variables: { subscriptionId, serviceProviderId } }),
-    result: result.data?.testWebhookSubscription ?? null,
-    loading: result.loading,
-    error: result.error,
+      run(`/api/webhooks/${subscriptionId}/test`, 'POST', { serviceProviderId }),
+    result: null as TestWebhookResult | null,
+    loading,
+    error,
   };
 }
 
 export function useRetryWebhookDelivery() {
-  const [retry, result] = useMutation(RETRY_WEBHOOK_DELIVERY, {
-    refetchQueries: ['GetWebhookDeliveries'],
-  });
+  const { run, loading, error } = useMutationHelper();
   return {
     retry: (deliveryId: string, serviceProviderId: string) =>
-      retry({ variables: { deliveryId, serviceProviderId } }),
-    loading: result.loading,
-    error: result.error,
+      run(`/api/gateway/v1/webhooks/deliveries/${deliveryId}/retry`, 'POST', { serviceProviderId }),
+    loading,
+    error,
   };
 }
 
-export function useWebhookDeliveryUpdates(serviceProviderId: string, onDelivery?: (d: WebhookDelivery) => void) {
-  return useSubscription<{ providerWebhookDeliveryCompleted: WebhookDelivery }>(WEBHOOK_DELIVERY_COMPLETED, {
-    variables: { serviceProviderId },
-    skip: !serviceProviderId,
-    onData: ({ data }) => {
-      const event = data.data?.providerWebhookDeliveryCompleted;
-      if (event && onDelivery) onDelivery(event);
-    },
-  });
+// Subscription stub — will be replaced with SSE in Phase 4
+export function useWebhookDeliveryUpdates(_serviceProviderId: string, _onDelivery?: (d: WebhookDelivery) => void) {
+  return { data: undefined as { providerWebhookDeliveryCompleted: WebhookDelivery } | undefined };
 }

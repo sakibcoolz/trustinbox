@@ -1,4 +1,8 @@
-import { gql, useQuery, useLazyQuery, useMutation, useSubscription } from '@apollo/client';
+'use client';
+
+import { useState, useCallback } from 'react';
+import { useData } from '@/lib/hooks/useData';
+import { useMutationHelper } from '@/lib/hooks/useMutationHelper';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -34,6 +38,8 @@ export interface CreateCampaignInput {
   name: string;
   description?: string;
   category: NotificationCategory;
+  subject: string;
+  body: string;
   scheduledAt?: string | null;
 }
 
@@ -123,235 +129,122 @@ export function getTargetStatusConfig(status: CampaignTargetStatus) {
   return map[status] ?? { label: status, className: 'bg-border-secondary text-text-muted' };
 }
 
-// ─── Fragments ───────────────────────────────────────────────────────────────
-
-export const CAMPAIGN_FIELDS = gql`
-  fragment CampaignFields on Campaign {
-    id
-    serviceProviderId
-    name
-    description
-    category
-    status
-    targetCount
-    sentCount
-    deliveredCount
-    readCount
-    failedCount
-    scheduledAt
-    startedAt
-    completedAt
-    createdAt
-    updatedAt
-  }
-`;
-
-// ─── Queries ─────────────────────────────────────────────────────────────────
-
-export const GET_CAMPAIGNS = gql`
-  ${CAMPAIGN_FIELDS}
-  query GetCampaigns($serviceProviderId: ID!, $status: CampaignStatus, $limit: Int, $offset: Int) {
-    campaigns(serviceProviderId: $serviceProviderId, status: $status, limit: $limit, offset: $offset) {
-      nodes {
-        ...CampaignFields
-      }
-      totalCount
-    }
-  }
-`;
-
-export const GET_CAMPAIGN = gql`
-  ${CAMPAIGN_FIELDS}
-  query GetCampaign($id: ID!, $serviceProviderId: ID!) {
-    campaign(id: $id, serviceProviderId: $serviceProviderId) {
-      ...CampaignFields
-    }
-  }
-`;
-
-export const GET_CAMPAIGN_ANALYTICS = gql`
-  query GetCampaignAnalytics($serviceProviderId: ID!, $campaignId: ID!, $from: DateTime!, $to: DateTime!) {
-    campaignAnalytics(serviceProviderId: $serviceProviderId, campaignId: $campaignId, from: $from, to: $to) {
-      totalTargets
-      totalSent
-      totalDelivered
-      totalRead
-      totalFailed
-      totalSkipped
-      deliveryRate
-      readRate
-    }
-  }
-`;
-
-export const GET_CAMPAIGN_TARGETS = gql`
-  query GetCampaignTargets($campaignId: ID!, $serviceProviderId: ID!, $status: CampaignTargetStatus, $limit: Int, $offset: Int) {
-    campaignTargets(campaignId: $campaignId, serviceProviderId: $serviceProviderId, status: $status, limit: $limit, offset: $offset) {
-      nodes {
-        id
-        userId
-        status
-        policyDecision
-        policyReason
-        sentAt
-        deliveredAt
-        readAt
-        failedReason
-      }
-      totalCount
-    }
-  }
-`;
-
-export const PREVIEW_CAMPAIGN_POLICY = gql`
-  query PreviewCampaignPolicy($input: PreviewCampaignPolicyInput!) {
-    previewCampaignPolicy(input: $input) {
-      totalTargets
-      allowedCount
-      blockedCount
-      blockedReasons {
-        decisionCode
-        reason
-        count
-      }
-    }
-  }
-`;
-
-// ─── Mutations ───────────────────────────────────────────────────────────────
-
-export const CREATE_CAMPAIGN = gql`
-  ${CAMPAIGN_FIELDS}
-  mutation CreateCampaign($input: CreateCampaignInput!) {
-    createCampaign(input: $input) {
-      ...CampaignFields
-    }
-  }
-`;
-
-export const UPDATE_CAMPAIGN = gql`
-  ${CAMPAIGN_FIELDS}
-  mutation UpdateCampaign($input: UpdateCampaignInput!) {
-    updateCampaign(input: $input) {
-      ...CampaignFields
-    }
-  }
-`;
-
-export const LAUNCH_CAMPAIGN = gql`
-  ${CAMPAIGN_FIELDS}
-  mutation LaunchCampaign($campaignId: ID!, $serviceProviderId: ID!) {
-    launchCampaign(campaignId: $campaignId, serviceProviderId: $serviceProviderId) {
-      ...CampaignFields
-    }
-  }
-`;
-
-export const CANCEL_CAMPAIGN = gql`
-  mutation CancelCampaign($campaignId: ID!, $serviceProviderId: ID!) {
-    cancelCampaign(campaignId: $campaignId, serviceProviderId: $serviceProviderId)
-  }
-`;
-
-// ─── Subscription ────────────────────────────────────────────────────────────
-
-export const CAMPAIGN_PROGRESS_SUBSCRIPTION = gql`
-  ${CAMPAIGN_FIELDS}
-  subscription CampaignProgressUpdated($serviceProviderId: ID!) {
-    providerCampaignProgressUpdated(serviceProviderId: $serviceProviderId) {
-      ...CampaignFields
-    }
-  }
-`;
-
 // ─── Hooks ───────────────────────────────────────────────────────────────────
 
 export function useCampaigns(variables: { serviceProviderId: string; status?: CampaignStatus | null; limit?: number; offset?: number }) {
-  return useQuery<{ campaigns: CampaignConnection }>(GET_CAMPAIGNS, {
-    variables: { limit: 25, offset: 0, ...variables },
-    skip: !variables.serviceProviderId,
-  });
+  const params = new URLSearchParams();
+  if (variables.status) params.set('status', variables.status);
+  params.set('limit', String(variables.limit ?? 25));
+  params.set('offset', String(variables.offset ?? 0));
+  const qs = params.toString();
+
+  const result = useData<CampaignConnection>(
+    variables.serviceProviderId ? `/api/campaigns?${qs}` : null,
+    { skip: !variables.serviceProviderId },
+  );
+  return { ...result, data: result.data ? { campaigns: result.data } : undefined };
 }
 
 export function useCampaign(id: string, serviceProviderId: string) {
-  return useQuery<{ campaign: Campaign }>(GET_CAMPAIGN, {
-    variables: { id, serviceProviderId },
-    skip: !id || !serviceProviderId,
-  });
+  const result = useData<Campaign>(
+    id && serviceProviderId ? `/api/campaigns/${id}` : null,
+    { skip: !id || !serviceProviderId },
+  );
+  return { ...result, data: result.data ? { campaign: result.data } : undefined };
 }
 
 export function useCampaignAnalytics(variables: { serviceProviderId: string; campaignId: string; from: string; to: string }, skip?: boolean) {
-  return useQuery<{ campaignAnalytics: CampaignAnalytics }>(GET_CAMPAIGN_ANALYTICS, {
-    variables,
-    skip: skip || !variables.campaignId,
-  });
+  const params = new URLSearchParams({ from: variables.from, to: variables.to });
+  const result = useData<CampaignAnalytics>(
+    !skip && variables.campaignId ? `/api/gateway/v1/campaigns/${variables.campaignId}/analytics?${params}` : null,
+    { skip: skip || !variables.campaignId },
+  );
+  return { ...result, data: result.data ? { campaignAnalytics: result.data } : undefined };
 }
 
 export function useCampaignTargets(variables: { campaignId: string; serviceProviderId: string; status?: CampaignTargetStatus | null; limit?: number; offset?: number }) {
-  return useQuery<{ campaignTargets: CampaignTargetConnection }>(GET_CAMPAIGN_TARGETS, {
-    variables: { limit: 25, offset: 0, ...variables },
-    skip: !variables.campaignId,
-  });
+  const params = new URLSearchParams();
+  if (variables.status) params.set('status', variables.status);
+  params.set('limit', String(variables.limit ?? 25));
+  params.set('offset', String(variables.offset ?? 0));
+  const qs = params.toString();
+
+  const result = useData<CampaignTargetConnection>(
+    variables.campaignId ? `/api/gateway/v1/campaigns/${variables.campaignId}/targets?${qs}` : null,
+    { skip: !variables.campaignId },
+  );
+  return { ...result, data: result.data ? { campaignTargets: result.data } : undefined };
 }
 
 export function usePreviewCampaignPolicy() {
-  const [preview, { data, loading, error }] = useLazyQuery<{ previewCampaignPolicy: CampaignPolicyPreview }>(PREVIEW_CAMPAIGN_POLICY);
+  const [result, setResult] = useState<CampaignPolicyPreview | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | undefined>();
+
+  const preview = useCallback(async (input: { serviceProviderId: string; category: NotificationCategory; targetUserIds: string[] }) => {
+    setLoading(true);
+    setError(undefined);
+    try {
+      const res = await fetch('/api/gateway/v1/campaigns/policy-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) throw new Error('Policy preview failed');
+      const data = await res.json();
+      setResult(data);
+      return data;
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      setError(err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { preview, result, loading, error };
+}
+
+export function useCreateCampaign() {
+  const { run, loading, error } = useMutationHelper<Campaign>();
   return {
-    preview: (input: { serviceProviderId: string; category: NotificationCategory; targetUserIds: string[] }) =>
-      preview({ variables: { input } }),
-    result: data?.previewCampaignPolicy ?? null,
+    create: (input: CreateCampaignInput) => run('/api/campaigns', 'POST', input),
     loading,
     error,
   };
 }
 
-export function useCreateCampaign() {
-  const [create, result] = useMutation(CREATE_CAMPAIGN, {
-    refetchQueries: ['GetCampaigns'],
-  });
-  return {
-    create: (input: CreateCampaignInput) => create({ variables: { input } }),
-    loading: result.loading,
-    error: result.error,
-  };
-}
-
 export function useUpdateCampaign() {
-  const [update, result] = useMutation(UPDATE_CAMPAIGN);
+  const { run, loading, error } = useMutationHelper<Campaign>();
   return {
-    update: (input: UpdateCampaignInput) => update({ variables: { input } }),
-    loading: result.loading,
-    error: result.error,
+    update: (input: UpdateCampaignInput) => run(`/api/campaigns/${input.campaignId}`, 'PUT', input),
+    loading,
+    error,
   };
 }
 
 export function useLaunchCampaign() {
-  const [launch, result] = useMutation(LAUNCH_CAMPAIGN, {
-    refetchQueries: ['GetCampaigns'],
-  });
+  const { run, loading, error } = useMutationHelper<Campaign>();
   return {
     launch: (campaignId: string, serviceProviderId: string) =>
-      launch({ variables: { campaignId, serviceProviderId } }),
-    loading: result.loading,
-    error: result.error,
+      run(`/api/campaigns/${campaignId}/launch`, 'POST', { serviceProviderId }),
+    loading,
+    error,
   };
 }
 
 export function useCancelCampaign() {
-  const [cancel, result] = useMutation(CANCEL_CAMPAIGN, {
-    refetchQueries: ['GetCampaign', 'GetCampaigns'],
-  });
+  const { run, loading, error } = useMutationHelper();
   return {
     cancel: (campaignId: string, serviceProviderId: string) =>
-      cancel({ variables: { campaignId, serviceProviderId } }),
-    loading: result.loading,
-    error: result.error,
+      run(`/api/campaigns/${campaignId}/cancel`, 'POST', { serviceProviderId }),
+    loading,
+    error,
   };
 }
 
-export function useCampaignProgressUpdated(serviceProviderId: string) {
-  return useSubscription<{ providerCampaignProgressUpdated: Campaign }>(CAMPAIGN_PROGRESS_SUBSCRIPTION, {
-    variables: { serviceProviderId },
-    skip: !serviceProviderId,
-  });
+// Subscription stub — will be replaced with SSE in Phase 4
+export function useCampaignProgressUpdated(_serviceProviderId: string) {
+  return { data: undefined as { providerCampaignProgressUpdated: Campaign } | undefined };
 }
