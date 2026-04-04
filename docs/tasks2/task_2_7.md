@@ -43,61 +43,61 @@ Create a standalone `ToastProvider` / `useToast()` context with builder methods 
 ## Requirements
 
 ### New File: `toast-context.tsx`
-- [ ] Create `apps/web/src/components/ui/toast-context.tsx`
-- [ ] Define `Toast` interface: `{ id, type, title, description?, action?, duration? }`
-- [ ] Define `ToastContextValue` interface with `toast()`, `success()`, `error()`, `warning()`, `info()`, `dismissAll()`
-- [ ] Create `ToastContext` with `createContext`
-- [ ] Create `useToast()` hook — throws if used outside provider
-- [ ] Create `ToastProvider` component:
-  - [ ] Manages toast state array
-  - [ ] `MAX_TOASTS = 5` — trim oldest when exceeded
-  - [ ] `addToast()` — generates unique ID, appends to array
-  - [ ] `dismiss()` — removes by ID
-  - [ ] `dismissAll()` — clears array
-  - [ ] Renders toast container via `createPortal` into `document.body`
-  - [ ] Wait for mount (`useEffect`) before rendering portal (SSR safety)
+- [x] Create `apps/web/src/components/ui/toast-context.tsx`
+- [x] Define `Toast` interface: `{ id, type, title, description?, action?, duration? }`
+- [x] Define `ToastContextValue` interface with `toast()`, `success()`, `error()`, `warning()`, `info()`, `dismissAll()`
+- [x] Create `ToastContext` with `createContext`
+- [x] Create `useToast()` hook — throws if used outside provider
+- [x] Create `ToastProvider` component:
+  - [x] Manages toast state array
+  - [x] `MAX_TOASTS = 5` — trim oldest when exceeded
+  - [x] `addToast()` — generates unique ID, appends to array
+  - [x] `dismiss()` — removes by ID
+  - [x] `dismissAll()` — clears array
+  - [x] Renders toast container via `createPortal` into `document.body`
+  - [x] Wait for mount (`useEffect`) before rendering portal (SSR safety)
 
 ### Type-Based Durations
-- [ ] `success`: 3000ms
-- [ ] `info`: 4000ms
-- [ ] `warning`: 5000ms
-- [ ] `error`: 6000ms
-- [ ] Allow override via `duration` field on individual toast
+- [x] `success`: 3000ms
+- [x] `info`: 4000ms
+- [x] `warning`: 5000ms
+- [x] `error`: 6000ms
+- [x] Allow override via `duration` field on individual toast
 
 ### Toast Item Component
-- [ ] Extract `ToastItem` as a separate component within the file
-- [ ] Pause timer on mouse enter, restart on mouse leave
-- [ ] Exit animation: set `exiting` state → 150ms delay → call `onDismiss`
-- [ ] Dismiss button (X icon)
-- [ ] Optional action button
+- [x] Extract `ToastItem` as a separate component within the file
+- [x] Pause timer on mouse enter, restart on mouse leave
+- [x] Exit animation: set `exiting` state → 150ms delay → call `onDismiss`
+- [x] Dismiss button (X icon)
+- [x] Optional action button
 
 ### Styling
-- [ ] Use semantic Tailwind tokens matching existing toast-container styles:
+- [x] Use semantic Tailwind tokens matching existing toast-container styles:
   - `success`: `border-l-status-success text-status-success`
   - `error`: `border-l-status-error text-status-error`  
   - `warning`: `border-l-status-warning text-status-warning`
   - `info`: `border-l-status-info text-status-info`
-- [ ] Background: `bg-bg-elevated`, border: `border border-border-secondary`
-- [ ] Width: `w-80`, rounded: `rounded-xl`, shadow: `shadow-2xl`
-- [ ] Position: `fixed top-4 right-4 z-[9999]` (match provider app)
+- [x] Background: `bg-bg-elevated`, border: `border border-border-secondary`
+- [x] Width: `w-80`, rounded: `rounded-xl`, shadow: `shadow-2xl`
+- [x] Position: `fixed top-4 right-4 z-[9999]` (match provider app)
 
 ### Icons
-- [ ] Use inline SVG icons (same as current toast-container.tsx) — NOT lucide-react
-- [ ] Web app doesn't have `lucide-react` as a dependency; keep current SVG approach
-- [ ] Alternatively, check if `lucide-react` is already installed and use it if available
+- [x] Use inline SVG icons (same as current toast-container.tsx) — NOT lucide-react
+- [x] Web app doesn't have `lucide-react` as a dependency; keep current SVG approach
+- [x] Alternatively, check if `lucide-react` is already installed and use it if available
 
 ### Update Toast Container
-- [ ] Update `apps/web/src/components/ui/toast-container.tsx` to import from toast-context OR
-- [ ] Remove it entirely if the portal rendering in `ToastProvider` replaces it
+- [x] Update `apps/web/src/components/ui/toast-container.tsx` to import from toast-context OR
+- [x] Remove it entirely if the portal rendering in `ToastProvider` replaces it
 
 ### Update Providers
-- [ ] Add `ToastProvider` to `apps/web/src/components/providers.tsx`
-- [ ] Place it **inside** `ApolloProvider` but wrapping `NotificationProvider` (so notifications can use `useToast`)
-- [ ] Remove `<ToastContainer />` from providers if rendering moves to `ToastProvider`
+- [x] Add `ToastProvider` to `apps/web/src/components/providers.tsx`
+- [x] Place it **inside** `ApolloProvider` but wrapping `NotificationProvider` (so notifications can use `useToast`)
+- [x] Remove `<ToastContainer />` from providers if rendering moves to `ToastProvider`
 
 ### Migrate NotificationProvider
 - [ ] Update `notification-context.tsx` to use `useToast()` instead of internal toast state
-- [ ] OR keep both systems temporarily and migrate in a later task
+- [x] OR keep both systems temporarily and migrate in a later task
 - [ ] If migrating: remove `toasts` state, `addToast`, `dismissToast` from notification context
 - [ ] If migrating: notification SSE handler calls `useToast().info()` / `useToast().success()` instead
 
@@ -295,21 +295,21 @@ Check if `animate-slide-in-right` already exists in the web app's `globals.css` 
 
 ## Verification Checklist
 
-- [ ] `useToast()` hook is accessible from any component in the tree
-- [ ] `toast.success('Title')` shows a green success toast
-- [ ] `toast.error('Title', 'Description')` shows a red error toast
-- [ ] `toast.warning('Title')` shows a yellow warning toast
-- [ ] `toast.info('Title')` shows a blue info toast
-- [ ] Success toast auto-dismisses after 3 seconds
-- [ ] Error toast auto-dismisses after 6 seconds
-- [ ] Hovering a toast pauses the dismiss timer
-- [ ] Moving mouse away restarts the timer
-- [ ] Maximum 5 toasts visible at once (oldest removed first)
-- [ ] `dismissAll()` clears all toasts
-- [ ] Toast portal renders at `document.body` level (not affected by parent overflow)
-- [ ] No SSR hydration errors (mount guard in place)
-- [ ] Existing SSE notification toasts still work after migration
-- [ ] Animation: toasts slide in from right, slide out on dismiss
+- [x] `useToast()` hook is accessible from any component in the tree
+- [x] `toast.success('Title')` shows a green success toast
+- [x] `toast.error('Title', 'Description')` shows a red error toast
+- [x] `toast.warning('Title')` shows a yellow warning toast
+- [x] `toast.info('Title')` shows a blue info toast
+- [x] Success toast auto-dismisses after 3 seconds
+- [x] Error toast auto-dismisses after 6 seconds
+- [x] Hovering a toast pauses the dismiss timer
+- [x] Moving mouse away restarts the timer
+- [x] Maximum 5 toasts visible at once (oldest removed first)
+- [x] `dismissAll()` clears all toasts
+- [x] Toast portal renders at `document.body` level (not affected by parent overflow)
+- [x] No SSR hydration errors (mount guard in place)
+- [x] Existing SSE notification toasts still work after migration
+- [x] Animation: toasts slide in from right, slide out on dismiss
 
 ---
 

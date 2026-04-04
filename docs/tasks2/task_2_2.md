@@ -41,18 +41,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
 ## Requirements
 
 ### ApolloProvider Integration
-- [ ] Import `ApolloProvider` from `@apollo/client`
-- [ ] Import the Apollo client instance from `@/lib/apollo-client`
-- [ ] Wrap `ApolloProvider` as the **outermost** provider (before `AuthProvider`)
-- [ ] Ensure `'use client'` directive remains at the top
+- [x] Import `ApolloProvider` from `@apollo/client`
+- [x] Import the Apollo client instance from `@/lib/apollo-client`
+- [x] Wrap `ApolloProvider` as the **outermost** provider (before `AuthProvider`)
+- [x] Ensure `'use client'` directive remains at the top
 
 ### Provider Order
-- [ ] `ApolloProvider` → `AuthProvider` → `NotificationProvider` → `{children}` + `ToastContainer`
-- [ ] Rationale: Apollo must be outermost so auth and notification contexts can optionally use GraphQL hooks
+- [x] `ApolloProvider` → `AuthProvider` → `NotificationProvider` → `{children}` + `ToastContainer`
+- [x] Rationale: Apollo must be outermost so auth and notification contexts can optionally use GraphQL hooks
 
 ### Export
-- [ ] Keep the existing `Providers` function name and named export
-- [ ] No changes to the layout file (`apps/web/src/app/layout.tsx`) are needed — it already uses `<Providers>`
+- [x] Keep the existing `Providers` function name and named export
+- [x] No changes to the layout file (`apps/web/src/app/layout.tsx`) are needed — it already uses `<Providers>`
 
 ---
 
@@ -103,12 +103,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
 ## Verification Checklist
 
-- [ ] App renders without errors after adding ApolloProvider
-- [ ] No "Could not find 'client' in the context" errors in console
-- [ ] Existing auth flow (login/register/logout) still works
-- [ ] Existing SSE notifications still work
-- [ ] `useQuery` from any child component returns data (test with `me` query)
-- [ ] `'use client'` directive is present at top of file
+- [x] App renders without errors after adding ApolloProvider
+- [x] No "Could not find 'client' in the context" errors in console
+- [x] Existing auth flow (login/register/logout) still works
+- [x] Existing SSE notifications still work
+- [x] `useQuery` from any child component returns data (test with `me` query)
+- [x] `'use client'` directive is present at top of file
 
 ---
 

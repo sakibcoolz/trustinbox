@@ -61,6 +61,10 @@ module.exports = {
           '0%': { transform: 'translateX(100%)', opacity: '0' },
           '100%': { transform: 'translateX(0)', opacity: '1' },
         },
+        'slide-out-right': {
+          '0%': { transform: 'translateX(0)', opacity: '1' },
+          '100%': { transform: 'translateX(100%)', opacity: '0' },
+        },
         'fade-in': {
           '0%': { opacity: '0', transform: 'translateY(4px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
@@ -77,6 +81,7 @@ module.exports = {
       animation: {
         'slide-in-left': 'slide-in-left 0.2s ease-out',
         'slide-in-right': 'slide-in-right 0.2s ease-out',
+        'slide-out-right': 'slide-out-right 0.15s ease-in forwards',
         'fade-in': 'fade-in 0.15s ease-out',
         'pulse-dot': 'pulse-dot 1.4s infinite',
         'typing-bounce': 'typing-bounce 1.4s infinite',

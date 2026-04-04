@@ -24,53 +24,53 @@ Create a complete set of GraphQL query and mutation definitions for all customer
 ## Requirements
 
 ### Directory Structure
-- [ ] Create `apps/web/src/lib/graphql/` directory
-- [ ] Create the following 8 files:
+- [x] Create `apps/web/src/lib/graphql/` directory
+- [x] Create the following 8 files:
 
 ### File: `notifications.ts`
-- [ ] `MY_NOTIFICATIONS` — query `notifications(category, status, limit, offset)` → `NotificationConnection`
-- [ ] `MY_NOTIFICATION` — query `notification(id)` → `Notification`
-- [ ] `MARK_NOTIFICATION_READ` — mutation `markNotificationAsRead(id)` → `Boolean`
-- [ ] `ARCHIVE_NOTIFICATION` — mutation `archiveNotification(id)` → `Boolean`
+- [x] `MY_NOTIFICATIONS` — query `notifications(category, status, limit, offset)` → `NotificationConnection`
+- [x] `MY_NOTIFICATION` — query `notification(id)` → `Notification`
+- [x] `MARK_NOTIFICATION_READ` — mutation `markNotificationAsRead(id)` → `Boolean`
+- [x] `ARCHIVE_NOTIFICATION` — mutation `archiveNotification(id)` → `Boolean`
 
 ### File: `callbacks.ts`
-- [ ] `MY_CALLBACKS` — query `callbackRequests(status, limit, offset)` → `CallbackRequestConnection`
-- [ ] `MY_CALLBACK` — query `callbackRequest(id)` → `CallbackRequest`
-- [ ] `APPROVE_CALLBACK` — mutation `approveCallbackRequest(input)` → `CallbackRequest`
-- [ ] `REJECT_CALLBACK` — mutation `rejectCallbackRequest(input)` → `CallbackRequest`
+- [x] `MY_CALLBACKS` — query `callbackRequests(status, limit, offset)` → `CallbackRequestConnection`
+- [x] `MY_CALLBACK` — query `callbackRequest(id)` → `CallbackRequest`
+- [x] `APPROVE_CALLBACK` — mutation `approveCallbackRequest(input)` → `CallbackRequest`
+- [x] `REJECT_CALLBACK` — mutation `rejectCallbackRequest(input)` → `CallbackRequest`
 
 ### File: `conversations.ts`
-- [ ] `MY_CONVERSATIONS` — query `conversations(limit, offset)` → `ConversationConnection`
-- [ ] `MY_CONVERSATION` — query `conversation(id)` → `Conversation` with nested `messages`
+- [x] `MY_CONVERSATIONS` — query `conversations(limit, offset)` → `ConversationConnection`
+- [x] `MY_CONVERSATION` — query `conversation(id)` → `Conversation` with nested `messages`
 
 ### File: `documents.ts`
-- [ ] `MY_DOCUMENTS` — query for user's shared documents (if schema supports it)
-- [ ] Note: Schema has `DocumentShare` type — check if a query exists; if not, defer to Phase 3
+- [x] `MY_DOCUMENTS` — query for user's shared documents (if schema supports it)
+- [x] Note: Schema has `DocumentShare` type — check if a query exists; if not, defer to Phase 3
 
 ### File: `service-providers.ts`
-- [ ] `MY_SERVICE_PROVIDERS` — query `myServiceProviders` → `[ServiceProvider!]!`
-- [ ] `SP_DIRECTORY` — query `serviceProviders(search, limit, offset)` → `[ServiceProvider!]!`
-- [ ] `SERVICE_PROVIDER` — query `serviceProvider(id)` → `ServiceProvider`
-- [ ] `BLOCK_SP` — mutation `blockServiceProvider(serviceProviderId)` → `Boolean`
-- [ ] `UNBLOCK_SP` — mutation `unblockServiceProvider(serviceProviderId)` → `Boolean`
-- [ ] `REPORT_SPAM` — mutation `reportSpam(input)` → `Boolean`
+- [x] `MY_SERVICE_PROVIDERS` — query `myServiceProviders` → `[ServiceProvider!]!`
+- [x] `SP_DIRECTORY` — query `serviceProviders(search, limit, offset)` → `[ServiceProvider!]!`
+- [x] `SERVICE_PROVIDER` — query `serviceProvider(id)` → `ServiceProvider`
+- [x] `BLOCK_SP` — mutation `blockServiceProvider(serviceProviderId)` → `Boolean`
+- [x] `UNBLOCK_SP` — mutation `unblockServiceProvider(serviceProviderId)` → `Boolean`
+- [x] `REPORT_SPAM` — mutation `reportSpam(input)` → `Boolean`
 
 ### File: `settings.ts`
-- [ ] `MY_PRIVACY_PREFERENCES` — part of `me` query → `User.privacyPreference`
-- [ ] `UPDATE_PRIVACY` — mutation `updatePrivacyPreference(input)` → `PrivacyPreference`
-- [ ] `MY_DND_RULES` — part of `me` query → `User.dndRules`
-- [ ] `CREATE_DND_RULE` — mutation `createDNDRule(input)` → `DNDRule`
-- [ ] `UPDATE_DND_RULE` — mutation `updateDNDRule(input)` → `DNDRule`
-- [ ] `DELETE_DND_RULE` — mutation `deleteDNDRule(id)` → `Boolean`
-- [ ] `MY_AVAILABILITY_SLOTS` — part of `me` query → `User.availabilitySlots`
-- [ ] `CREATE_AVAILABILITY_SLOT` — mutation `createAvailabilitySlot(input)` → `AvailabilitySlot`
-- [ ] `DELETE_AVAILABILITY_SLOT` — mutation `deleteAvailabilitySlot(id)` → `Boolean`
+- [x] `MY_PRIVACY_PREFERENCES` — part of `me` query → `User.privacyPreference`
+- [x] `UPDATE_PRIVACY` — mutation `updatePrivacyPreference(input)` → `PrivacyPreference`
+- [x] `MY_DND_RULES` — part of `me` query → `User.dndRules`
+- [x] `CREATE_DND_RULE` — mutation `createDNDRule(input)` → `DNDRule`
+- [x] `UPDATE_DND_RULE` — mutation `updateDNDRule(input)` → `DNDRule`
+- [x] `DELETE_DND_RULE` — mutation `deleteDNDRule(id)` → `Boolean`
+- [x] `MY_AVAILABILITY_SLOTS` — part of `me` query → `User.availabilitySlots`
+- [x] `CREATE_AVAILABILITY_SLOT` — mutation `createAvailabilitySlot(input)` → `AvailabilitySlot`
+- [x] `DELETE_AVAILABILITY_SLOT` — mutation `deleteAvailabilitySlot(id)` → `Boolean`
 
 ### File: `dashboard.ts`
-- [ ] `DASHBOARD_SUMMARY` — query `dashboardSummary` → `DashboardSummary`
+- [x] `DASHBOARD_SUMMARY` — query `dashboardSummary` → `DashboardSummary`
 
 ### File: `profile.ts`
-- [ ] `MY_PROFILE` — query `me` → `User` with all fields (profile, privacy, DND, availability)
+- [x] `MY_PROFILE` — query `me` → `User` with all fields (profile, privacy, DND, availability)
 
 ---
 
@@ -442,15 +442,15 @@ From `gateway/graphql-bff/graph/schema.graphqls`:
 
 ## Verification Checklist
 
-- [ ] All 8 files created in `apps/web/src/lib/graphql/`
-- [ ] Every query matches the schema field names and argument types exactly
-- [ ] Every mutation matches the schema mutation names and input types exactly
-- [ ] All connection types request both `nodes { ... }` and `totalCount`
-- [ ] Nested objects (e.g., `serviceProvider`) include relevant fields
-- [ ] No TypeScript compilation errors
-- [ ] Each file uses `import { gql } from '@apollo/client'`
-- [ ] Query names are UPPER_SNAKE_CASE constants
-- [ ] GraphQL operation names are PascalCase (e.g., `query MyNotifications`)
+- [x] All 8 files created in `apps/web/src/lib/graphql/`
+- [x] Every query matches the schema field names and argument types exactly
+- [x] Every mutation matches the schema mutation names and input types exactly
+- [x] All connection types request both `nodes { ... }` and `totalCount`
+- [x] Nested objects (e.g., `serviceProvider`) include relevant fields
+- [x] No TypeScript compilation errors
+- [x] Each file uses `import { gql } from '@apollo/client'`
+- [x] Query names are UPPER_SNAKE_CASE constants
+- [x] GraphQL operation names are PascalCase (e.g., `query MyNotifications`)
 
 ---
 

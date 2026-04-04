@@ -5,6 +5,35 @@ import { useRouter } from 'next/navigation';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
 
+// ─── Token Utilities ────────────────────────────────────
+
+/** Decode a JWT payload without verification. Returns null on malformed tokens. */
+function decodeJwtPayload(token: string): { exp?: number } | null {
+  try {
+    const base64 = token.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/');
+    if (!base64) return null;
+    return JSON.parse(atob(base64));
+  } catch {
+    return null;
+  }
+}
+
+/** Returns true if the token is expired or malformed. */
+export function isTokenExpired(token: string): boolean {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) return true;
+  return payload.exp * 1000 < Date.now();
+}
+
+/** Returns true if the token will expire within `bufferMs` milliseconds (default: 2 min). */
+export function isTokenExpiringSoon(token: string, bufferMs = 120_000): boolean {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) return true;
+  return payload.exp * 1000 - Date.now() < bufferMs;
+}
+
+// ─── Types ──────────────────────────────────────────────
+
 interface User {
   id: string;
   email: string;
@@ -20,6 +49,7 @@ interface AuthContextType {
   xmppToken: string | null;
   xmppJid: string | null;
   isLoading: boolean;
+  isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (input: { email: string; password: string; fullName: string; mobile: string; username: string }) => Promise<void>;
   logout: () => void;
@@ -50,15 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(JSON.parse(savedUser));
     }
     // Validate the stored xmppToken is a non-expired 3-part JWT.
-    // Older sessions stored a random hex string, and tokens expire after 24 h.
     const isValidJwt = (t: string | null): boolean => {
       if (!t || t.split('.').length !== 3) return false;
-      try {
-        const payload = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-        return typeof payload.exp === 'number' && payload.exp > Date.now() / 1000;
-      } catch {
-        return false;
-      }
+      return !isTokenExpired(t);
     };
     if (isValidJwt(savedXmppToken)) {
       setXmppToken(savedXmppToken);
@@ -144,12 +168,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Returns ms until the JWT expires, or 0 if expired/invalid.
   const msUntilExpiry = (t: string | null): number => {
     if (!t) return 0;
-    try {
-      const payload = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      return Math.max(0, payload.exp * 1000 - Date.now());
-    } catch {
-      return 0;
-    }
+    const payload = decodeJwtPayload(t);
+    if (!payload?.exp) return 0;
+    return Math.max(0, payload.exp * 1000 - Date.now());
   };
 
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -217,8 +238,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [token, refreshAccessToken, scheduleRefresh, logout]);
 
+  const isAuthenticated = token !== null && !isTokenExpired(token);
+
   return (
-    <AuthContext.Provider value={{ user, token, xmppToken, xmppJid, isLoading, login, register, logout, updateAvatar, refreshAccessToken }}>
+    <AuthContext.Provider value={{ user, token, xmppToken, xmppJid, isLoading, isAuthenticated, login, register, logout, updateAvatar, refreshAccessToken }}>
       {children}
     </AuthContext.Provider>
   );

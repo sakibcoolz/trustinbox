@@ -26,59 +26,59 @@ Existing hooks in `apps/web/src/hooks/`:
 ## Requirements
 
 ### Hook: `useNotificationsGql.ts`
-- [ ] Wraps `useQuery(MY_NOTIFICATIONS)` with variables: `category`, `status`, `limit`, `offset`
-- [ ] Wraps `useMutation(MARK_NOTIFICATION_READ)` with `refetchQueries`
-- [ ] Wraps `useMutation(ARCHIVE_NOTIFICATION)` with `refetchQueries`
-- [ ] Returns: `{ notifications, totalCount, loading, error, refetch, markRead, archive }`
-- [ ] Default: `limit: 20`, `offset: 0`
-- [ ] Note: Named `useNotificationsGql` to avoid collision with existing `useNotifications` from notification-context
+- [x] Wraps `useQuery(MY_NOTIFICATIONS)` with variables: `category`, `status`, `limit`, `offset`
+- [x] Wraps `useMutation(MARK_NOTIFICATION_READ)` with `refetchQueries`
+- [x] Wraps `useMutation(ARCHIVE_NOTIFICATION)` with `refetchQueries`
+- [x] Returns: `{ notifications, totalCount, loading, error, refetch, markRead, archive }`
+- [x] Default: `limit: 20`, `offset: 0`
+- [x] Note: Named `useNotificationsGql` to avoid collision with existing `useNotifications` from notification-context
 
 ### Hook: `useCallbacks.ts`
-- [ ] Wraps `useQuery(MY_CALLBACKS)` with variables: `status`, `limit`, `offset`
-- [ ] Wraps `useMutation(APPROVE_CALLBACK)` returning updated `CallbackRequest`
-- [ ] Wraps `useMutation(REJECT_CALLBACK)` returning updated `CallbackRequest`
-- [ ] Returns: `{ callbacks, totalCount, loading, error, refetch, approve, reject }`
+- [x] Wraps `useQuery(MY_CALLBACKS)` with variables: `status`, `limit`, `offset`
+- [x] Wraps `useMutation(APPROVE_CALLBACK)` returning updated `CallbackRequest`
+- [x] Wraps `useMutation(REJECT_CALLBACK)` returning updated `CallbackRequest`
+- [x] Returns: `{ callbacks, totalCount, loading, error, refetch, approve, reject }`
 
 ### Hook: `useServiceProviders.ts`
-- [ ] Wraps `useQuery(MY_SERVICE_PROVIDERS)` for user's connected providers
-- [ ] Wraps `useMutation(BLOCK_SP)` with `refetchQueries`
-- [ ] Wraps `useMutation(UNBLOCK_SP)` with `refetchQueries`
-- [ ] Returns: `{ providers, loading, error, refetch, block, unblock }`
+- [x] Wraps `useQuery(MY_SERVICE_PROVIDERS)` for user's connected providers
+- [x] Wraps `useMutation(BLOCK_SP)` with `refetchQueries`
+- [x] Wraps `useMutation(UNBLOCK_SP)` with `refetchQueries`
+- [x] Returns: `{ providers, loading, error, refetch, block, unblock }`
 
 ### Hook: `useDocuments.ts`
-- [ ] Query for user's shared documents (if schema supports a document list query)
-- [ ] If no query available in schema, create a placeholder hook with a TODO comment
-- [ ] Returns: `{ documents, loading, error, refetch }`
+- [x] Query for user's shared documents (if schema supports a document list query)
+- [x] If no query available in schema, create a placeholder hook with a TODO comment
+- [x] Returns: `{ documents, loading, error, refetch }`
 
 ### Hook: `usePrivacySettings.ts`
-- [ ] Wraps `useQuery(MY_PRIVACY_PREFERENCES)` to fetch current privacy preference
-- [ ] Wraps `useMutation(UPDATE_PRIVACY)` with **optimistic update**
-- [ ] Returns: `{ privacy, loading, error, updatePrivacy, saving }`
-- [ ] Optimistic update writes to cache immediately, rolls back on error
+- [x] Wraps `useQuery(MY_PRIVACY_PREFERENCES)` to fetch current privacy preference
+- [x] Wraps `useMutation(UPDATE_PRIVACY)` with **optimistic update**
+- [x] Returns: `{ privacy, loading, error, updatePrivacy, saving }`
+- [x] Optimistic update writes to cache immediately, rolls back on error
 
 ### Hook: `useDNDRules.ts`
-- [ ] Wraps `useQuery(MY_DND_RULES)` to fetch current DND rules
-- [ ] Wraps `useMutation(CREATE_DND_RULE)` with `refetchQueries`
-- [ ] Wraps `useMutation(UPDATE_DND_RULE)` with `refetchQueries`
-- [ ] Wraps `useMutation(DELETE_DND_RULE)` with `refetchQueries`
-- [ ] Returns: `{ rules, loading, error, refetch, createRule, updateRule, deleteRule }`
+- [x] Wraps `useQuery(MY_DND_RULES)` to fetch current DND rules
+- [x] Wraps `useMutation(CREATE_DND_RULE)` with `refetchQueries`
+- [x] Wraps `useMutation(UPDATE_DND_RULE)` with `refetchQueries`
+- [x] Wraps `useMutation(DELETE_DND_RULE)` with `refetchQueries`
+- [x] Returns: `{ rules, loading, error, refetch, createRule, updateRule, deleteRule }`
 
 ### Hook: `useAvailabilitySlots.ts`
-- [ ] Wraps `useQuery(MY_AVAILABILITY_SLOTS)` to fetch current slots
-- [ ] Wraps `useMutation(CREATE_AVAILABILITY_SLOT)` with `refetchQueries`
-- [ ] Wraps `useMutation(DELETE_AVAILABILITY_SLOT)` with `refetchQueries`
-- [ ] Returns: `{ slots, loading, error, refetch, createSlot, deleteSlot }`
+- [x] Wraps `useQuery(MY_AVAILABILITY_SLOTS)` to fetch current slots
+- [x] Wraps `useMutation(CREATE_AVAILABILITY_SLOT)` with `refetchQueries`
+- [x] Wraps `useMutation(DELETE_AVAILABILITY_SLOT)` with `refetchQueries`
+- [x] Returns: `{ slots, loading, error, refetch, createSlot, deleteSlot }`
 
 ### Hook: `useBlockedProviders.ts`
-- [ ] Reuses `MY_SERVICE_PROVIDERS` or a dedicated blocked providers query
-- [ ] Wraps `useMutation(UNBLOCK_SP)` with `refetchQueries`
-- [ ] Returns: `{ blockedProviders, loading, error, unblock }`
-- [ ] Note: May need a separate query or filter on service providers — check schema
+- [x] Reuses `MY_SERVICE_PROVIDERS` or a dedicated blocked providers query
+- [x] Wraps `useMutation(UNBLOCK_SP)` with `refetchQueries`
+- [x] Returns: `{ blockedProviders, loading, error, unblock }`
+- [x] Note: May need a separate query or filter on service providers — check schema
 
 ### Hook: `useDashboard.ts`
-- [ ] Wraps `useQuery(DASHBOARD_SUMMARY)`
-- [ ] Returns: `{ summary, loading, error, refetch }`
-- [ ] Summary shape: `{ unreadPersonal, unreadServiceProvider, unreadAdvertisements, pendingCallbackRequests, totalConversations }`
+- [x] Wraps `useQuery(DASHBOARD_SUMMARY)`
+- [x] Returns: `{ summary, loading, error, refetch }`
+- [x] Summary shape: `{ unreadPersonal, unreadServiceProvider, unreadAdvertisements, pendingCallbackRequests, totalConversations }`
 
 ---
 
@@ -215,16 +215,16 @@ export function usePrivacySettings() {
 
 ## Verification Checklist
 
-- [ ] All 9 hook files created in `apps/web/src/hooks/`
-- [ ] Each hook has `'use client'` directive
-- [ ] Each hook imports from `@/lib/graphql/*` (Task 2.3 queries)
-- [ ] Each hook returns `loading`, `error`, and domain-specific data
-- [ ] Mutations include `refetchQueries` to keep lists in sync
-- [ ] `usePrivacySettings` includes optimistic update
-- [ ] No TypeScript compilation errors
-- [ ] Each hook uses named export (not `export default`)
-- [ ] Each mutation helper accepts typed input parameters
-- [ ] Null-safe data access with `?? []` or `?? null` defaults
+- [x] All 9 hook files created in `apps/web/src/hooks/`
+- [x] Each hook has `'use client'` directive
+- [x] Each hook imports from `@/lib/graphql/*` (Task 2.3 queries)
+- [x] Each hook returns `loading`, `error`, and domain-specific data
+- [x] Mutations include `refetchQueries` to keep lists in sync
+- [x] `usePrivacySettings` includes optimistic update
+- [x] No TypeScript compilation errors
+- [x] Each hook uses named export (not `export default`)
+- [x] Each mutation helper accepts typed input parameters
+- [x] Null-safe data access with `?? []` or `?? null` defaults
 
 ---
 

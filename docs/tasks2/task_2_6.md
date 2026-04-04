@@ -33,20 +33,20 @@ The auth context (`apps/web/src/lib/auth-context.tsx`, ~280 lines) **already has
 ## Requirements
 
 ### Utility Functions (exported from module)
-- [ ] Create `isTokenExpired(token: string): boolean` — returns true if JWT `exp` is in the past
-- [ ] Create `isTokenExpiringSoon(token: string, bufferMs?: number): boolean` — default buffer 120000ms (2 min)
-- [ ] Export both functions so other modules can use them (e.g., Apollo error link, route guards)
-- [ ] Handle malformed / non-JWT tokens gracefully (return `true` to force refresh)
+- [x] Create `isTokenExpired(token: string): boolean` — returns true if JWT `exp` is in the past
+- [x] Create `isTokenExpiringSoon(token: string, bufferMs?: number): boolean` — default buffer 120000ms (2 min)
+- [x] Export both functions so other modules can use them (e.g., Apollo error link, route guards)
+- [x] Handle malformed / non-JWT tokens gracefully (return `true` to force refresh)
 
 ### Context Additions
-- [ ] Add `isAuthenticated: boolean` to `AuthContextType` interface
-- [ ] Compute `isAuthenticated` as: `token !== null && !isTokenExpired(token)`
-- [ ] Expose `isAuthenticated` on the context value
+- [x] Add `isAuthenticated: boolean` to `AuthContextType` interface
+- [x] Compute `isAuthenticated` as: `token !== null && !isTokenExpired(token)`
+- [x] Expose `isAuthenticated` on the context value
 
 ### Refactor Internal Helpers
-- [ ] Replace the internal `msUntilExpiry()` to use the new `isTokenExpiringSoon()` where appropriate
-- [ ] Keep `msUntilExpiry()` for the timer calculation (it returns ms, which the scheduler needs)
-- [ ] Replace the internal `isValidJwt()` to reuse `isTokenExpired()` for the expiry check
+- [x] Replace the internal `msUntilExpiry()` to use the new `isTokenExpiringSoon()` where appropriate
+- [x] Keep `msUntilExpiry()` for the timer calculation (it returns ms, which the scheduler needs)
+- [x] Replace the internal `isValidJwt()` to reuse `isTokenExpired()` for the expiry check
 
 ---
 
@@ -150,17 +150,17 @@ The following features from task2.md are **already implemented**:
 
 ## Verification Checklist
 
-- [ ] `isTokenExpired()` exported and works with valid JWT → returns `false` for non-expired
-- [ ] `isTokenExpired()` returns `true` for expired token
-- [ ] `isTokenExpired()` returns `true` for malformed/non-JWT string
-- [ ] `isTokenExpiringSoon()` returns `true` when token expires in < 2 minutes
-- [ ] `isTokenExpiringSoon(token, 0)` returns `false` for a non-expired token
-- [ ] `isAuthenticated` is `true` when logged in with valid token
-- [ ] `isAuthenticated` is `false` when no token or token expired
-- [ ] `isAuthenticated` updates reactively when token refreshes
-- [ ] Existing login/register/logout flow unchanged
-- [ ] Existing proactive refresh scheduling unchanged
-- [ ] No TypeScript compilation errors
+- [x] `isTokenExpired()` exported and works with valid JWT → returns `false` for non-expired
+- [x] `isTokenExpired()` returns `true` for expired token
+- [x] `isTokenExpired()` returns `true` for malformed/non-JWT string
+- [x] `isTokenExpiringSoon()` returns `true` when token expires in < 2 minutes
+- [x] `isTokenExpiringSoon(token, 0)` returns `false` for a non-expired token
+- [x] `isAuthenticated` is `true` when logged in with valid token
+- [x] `isAuthenticated` is `false` when no token or token expired
+- [x] `isAuthenticated` updates reactively when token refreshes
+- [x] Existing login/register/logout flow unchanged
+- [x] Existing proactive refresh scheduling unchanged
+- [x] No TypeScript compilation errors
 
 ---
 

@@ -45,44 +45,44 @@ export const apolloClient = new ApolloClient({
 ## Requirements
 
 ### Auth Link
-- [ ] Install `@apollo/client/link/context` (already bundled with `@apollo/client`)
-- [ ] Create `authLink` using `setContext` that reads `localStorage.getItem('accessToken')`
-- [ ] Attach `Authorization: Bearer <token>` header to every GraphQL request
-- [ ] Guard `localStorage` access with `typeof window !== 'undefined'` for SSR safety
+- [x] Install `@apollo/client/link/context` (already bundled with `@apollo/client`)
+- [x] Create `authLink` using `setContext` that reads `localStorage.getItem('accessToken')`
+- [x] Attach `Authorization: Bearer <token>` header to every GraphQL request
+- [x] Guard `localStorage` access with `typeof window !== 'undefined'` for SSR safety
 
 ### Error Link
-- [ ] Install `@apollo/client/link/error` (already bundled with `@apollo/client`)
-- [ ] Create `errorLink` using `onError` that handles:
-  - [ ] `UNAUTHENTICATED` GraphQL error → attempt token refresh → retry original operation
-  - [ ] Refresh uses `POST /api/auth/refresh` with `{ refreshToken }` from localStorage
-  - [ ] On successful refresh → update localStorage tokens → retry via `forward(operation)`
-  - [ ] On failed refresh → clear localStorage → redirect to `/auth/login`
-  - [ ] Use `Observable` pattern from provider app for async retry
-- [ ] Handle network errors:
-  - [ ] Status 401 → redirect to `/auth/login`
-  - [ ] Status 429 → log rate limit warning
-  - [ ] Other → log network error
-- [ ] Log non-auth GraphQL errors to console with operation name and path
+- [x] Install `@apollo/client/link/error` (already bundled with `@apollo/client`)
+- [x] Create `errorLink` using `onError` that handles:
+  - [x] `UNAUTHENTICATED` GraphQL error → attempt token refresh → retry original operation
+  - [x] Refresh uses `POST /api/auth/refresh` with `{ refreshToken }` from localStorage
+  - [x] On successful refresh → update localStorage tokens → retry via `forward(operation)`
+  - [x] On failed refresh → clear localStorage → redirect to `/auth/login`
+  - [x] Use `Observable` pattern from provider app for async retry
+- [x] Handle network errors:
+  - [x] Status 401 → redirect to `/auth/login`
+  - [x] Status 429 → log rate limit warning
+  - [x] Other → log network error
+- [x] Log non-auth GraphQL errors to console with operation name and path
 
 ### Cache Type Policies
-- [ ] Configure `InMemoryCache` with `typePolicies`:
-  - [ ] `Query.notifications` — `keyArgs: ['category', 'status']`, `merge: false`
-  - [ ] `Query.callbackRequests` — `keyArgs: ['status']`, `merge: false`
-  - [ ] `Query.conversations` — `keyArgs: false`, `merge: false`
-  - [ ] `Query.serviceProviders` — `keyArgs: ['search']`, `merge: false`
-  - [ ] Entity key fields: `Notification`, `CallbackRequest`, `Conversation`, `Message`, `ServiceProvider`, `User`, `DocumentShare` — all `keyFields: ['id']`
+- [x] Configure `InMemoryCache` with `typePolicies`:
+  - [x] `Query.notifications` — `keyArgs: ['category', 'status']`, `merge: false`
+  - [x] `Query.callbackRequests` — `keyArgs: ['status']`, `merge: false`
+  - [x] `Query.conversations` — `keyArgs: false`, `merge: false`
+  - [x] `Query.serviceProviders` — `keyArgs: ['search']`, `merge: false`
+  - [x] Entity key fields: `Notification`, `CallbackRequest`, `Conversation`, `Message`, `ServiceProvider`, `User`, `DocumentShare` — all `keyFields: ['id']`
 
 ### Link Chain
-- [ ] Compose links with `from([authLink, errorLink, httpLink])`
-- [ ] Remove unused `split` and `getMainDefinition` imports
-- [ ] Remove `credentials: 'include'` (not needed for localStorage auth)
-- [ ] Export both the client singleton and a `resetApolloClient()` function for logout cleanup
+- [x] Compose links with `from([authLink, errorLink, httpLink])`
+- [x] Remove unused `split` and `getMainDefinition` imports
+- [x] Remove `credentials: 'include'` (not needed for localStorage auth)
+- [x] Export both the client singleton and a `resetApolloClient()` function for logout cleanup
 
 ### Token Refresh Logic
-- [ ] Read `refreshToken` from `localStorage.getItem('refreshToken')`
-- [ ] POST to gateway refresh endpoint: `${API_BASE}/api/auth/refresh`
-- [ ] On success: update `localStorage` with new `accessToken` and `refreshToken`
-- [ ] On failure: clear all auth keys (`accessToken`, `refreshToken`, `user`, `xmppToken`, `xmppJid`)
+- [x] Read `refreshToken` from `localStorage.getItem('refreshToken')`
+- [x] POST to gateway refresh endpoint: `${API_BASE}/api/auth/refresh`
+- [x] On success: update `localStorage` with new `accessToken` and `refreshToken`
+- [x] On failure: clear all auth keys (`accessToken`, `refreshToken`, `user`, `xmppToken`, `xmppJid`)
 
 ---
 
@@ -179,15 +179,15 @@ const cache = new InMemoryCache({
 
 ## Verification Checklist
 
-- [ ] GraphQL requests include `Authorization: Bearer <token>` header when token exists
-- [ ] Requests without token send no Authorization header (public queries work)
-- [ ] 401/UNAUTHENTICATED triggers token refresh automatically
-- [ ] Successful refresh retries the failed operation transparently
-- [ ] Failed refresh clears localStorage and redirects to `/auth/login`
-- [ ] `resetApolloClient()` clears the Apollo cache store
-- [ ] No SSR errors (`localStorage` guarded with `typeof window` check)
-- [ ] Cache normalizes entities by `id` field
-- [ ] Notification/callback list queries use correct `keyArgs`
+- [x] GraphQL requests include `Authorization: Bearer <token>` header when token exists
+- [x] Requests without token send no Authorization header (public queries work)
+- [x] 401/UNAUTHENTICATED triggers token refresh automatically
+- [x] Successful refresh retries the failed operation transparently
+- [x] Failed refresh clears localStorage and redirects to `/auth/login`
+- [x] `resetApolloClient()` clears the Apollo cache store
+- [x] No SSR errors (`localStorage` guarded with `typeof window` check)
+- [x] Cache normalizes entities by `id` field
+- [x] Notification/callback list queries use correct `keyArgs`
 
 ---
 

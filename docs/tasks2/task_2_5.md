@@ -28,35 +28,35 @@ The provider app at `apps/provider/src/app/api/gateway/[...path]/route.ts` proxi
 ## Requirements
 
 ### Catch-All Route
-- [ ] Create `apps/web/src/app/api/gateway/[...path]/route.ts`
-- [ ] Map URL: `/api/gateway/<path>` → `${GATEWAY_URL}/api/<path>`
-- [ ] Preserve query string parameters from the original request
+- [x] Create `apps/web/src/app/api/gateway/[...path]/route.ts`
+- [x] Map URL: `/api/gateway/<path>` → `${GATEWAY_URL}/api/<path>`
+- [x] Preserve query string parameters from the original request
 
 ### HTTP Methods
-- [ ] Handle `GET` — forward query params
-- [ ] Handle `POST` — forward request body (JSON)
-- [ ] Handle `PUT` — forward request body
-- [ ] Handle `DELETE` — no body
-- [ ] Handle `PATCH` — forward request body
+- [x] Handle `GET` — forward query params
+- [x] Handle `POST` — forward request body (JSON)
+- [x] Handle `PUT` — forward request body
+- [x] Handle `DELETE` — no body
+- [x] Handle `PATCH` — forward request body
 
 ### Auth Header Forwarding
-- [ ] Read `Authorization` header from incoming request
-- [ ] Forward it to the gateway
-- [ ] If no Authorization header, send request without auth (public queries)
+- [x] Read `Authorization` header from incoming request
+- [x] Forward it to the gateway
+- [x] If no Authorization header, send request without auth (public queries)
 
 ### Response Handling
-- [ ] Forward the gateway's response status code
-- [ ] Forward response body as JSON
-- [ ] Forward relevant response headers (Content-Type)
+- [x] Forward the gateway's response status code
+- [x] Forward response body as JSON
+- [x] Forward relevant response headers (Content-Type)
 
 ### Error Handling
-- [ ] If gateway is unreachable, return `502 Bad Gateway` with error message
-- [ ] If gateway returns an error, forward the status code and body as-is
-- [ ] Never expose internal gateway URL to the client
+- [x] If gateway is unreachable, return `502 Bad Gateway` with error message
+- [x] If gateway returns an error, forward the status code and body as-is
+- [x] Never expose internal gateway URL to the client
 
 ### Environment Variable
-- [ ] Use `GATEWAY_URL` env var (server-side only, not `NEXT_PUBLIC_`)
-- [ ] Default: `http://localhost:4000`
+- [x] Use `GATEWAY_URL` env var (server-side only, not `NEXT_PUBLIC_`)
+- [x] Default: `http://localhost:4000`
 
 ---
 
@@ -150,14 +150,14 @@ export async function GET(
 
 ## Verification Checklist
 
-- [ ] Route file created at `apps/web/src/app/api/gateway/[...path]/route.ts`
-- [ ] `GET /api/gateway/v1/health` → proxies to `GATEWAY_URL/api/v1/health` and returns response
-- [ ] `POST /api/gateway/graphql` with body → proxies to `GATEWAY_URL/api/graphql`
-- [ ] Authorization header is forwarded when present
-- [ ] Query params are preserved
-- [ ] 502 returned when gateway is unreachable (not a stack trace)
-- [ ] No `GATEWAY_URL` value leaks to client (it's server-side only)
-- [ ] All 5 HTTP methods exported (GET, POST, PUT, DELETE, PATCH)
+- [x] Route file created at `apps/web/src/app/api/gateway/[...path]/route.ts`
+- [x] `GET /api/gateway/v1/health` → proxies to `GATEWAY_URL/api/v1/health` and returns response
+- [x] `POST /api/gateway/graphql` with body → proxies to `GATEWAY_URL/api/graphql`
+- [x] Authorization header is forwarded when present
+- [x] Query params are preserved
+- [x] 502 returned when gateway is unreachable (not a stack trace)
+- [x] No `GATEWAY_URL` value leaks to client (it's server-side only)
+- [x] All 5 HTTP methods exported (GET, POST, PUT, DELETE, PATCH)
 
 ---
 
