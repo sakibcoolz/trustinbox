@@ -52,6 +52,15 @@ func (uc *UserUseCase) GetProfile(ctx context.Context, userID string) (*entity.U
 	return profile, nil
 }
 
+func (uc *UserUseCase) GetPrivacyPreference(ctx context.Context, userID string) (*entity.PrivacyPreference, error) {
+	ctx, span := tracing.StartSpan(ctx, "user-service", "GetPrivacyPreference",
+		attribute.String("user_id", userID),
+	)
+	defer span.End()
+
+	return uc.privacyRepo.Get(ctx, userID)
+}
+
 func (uc *UserUseCase) UpdatePrivacyPreference(ctx context.Context, pref *entity.PrivacyPreference) error {
 	ctx, span := tracing.StartSpan(ctx, "user-service", "UpdatePrivacyPreference",
 		attribute.String("user_id", pref.UserID),
@@ -95,4 +104,8 @@ func (uc *UserUseCase) BlockServiceProvider(ctx context.Context, userID, spID st
 
 func (uc *UserUseCase) UnblockServiceProvider(ctx context.Context, userID, spID string) error {
 	return uc.blockRepo.Unblock(ctx, userID, spID)
+}
+
+func (uc *UserUseCase) ListBlockedServiceProviders(ctx context.Context, userID string) ([]entity.BlockedServiceProvider, error) {
+	return uc.blockRepo.ListByUser(ctx, userID)
 }

@@ -86,50 +86,50 @@ module.exports = {
 ## Requirements
 
 ### 4.8.1 — Update Tailwind Config for CSS Variable Approach
-- [ ] Add `darkMode: 'class'` to `tailwind.config.js`
-- [ ] Convert color definitions to use CSS custom properties:
-  - [ ] Keep token names the same (`bg-primary`, `text-primary`, etc.)
-  - [ ] Map each color to a CSS variable: `'bg-primary': 'var(--bg-primary)'`
-  - [ ] This allows theme switching by changing CSS variable values
-- [ ] Accent colors (blue, green, red, orange, purple) stay the same in both themes
+- [x] Add `darkMode: 'class'` to `tailwind.config.js`
+- [x] Convert color definitions to use CSS custom properties:
+  - [x] Keep token names the same (`bg-primary`, `text-primary`, etc.)
+  - [x] Map each color to a CSS variable: `'bg-primary': 'var(--bg-primary)'`
+  - [x] This allows theme switching by changing CSS variable values
+- [x] Accent colors (blue, green, red, orange, purple) stay the same in both themes
 
 ### 4.8.2 — Define Light Theme Colors
-- [ ] Add light theme CSS variable overrides in `globals.css`:
-  - [ ] `:root` (default/light) → light theme colors
-  - [ ] `.dark` → dark theme colors (current values)
-  - [ ] Or: default dark, `.light` override — depending on default preference
-- [ ] Light theme color palette:
-  - [ ] Backgrounds: white/gray tones (`#ffffff`, `#f8f9fa`, `#f0f1f3`, `#e8eaed`)
-  - [ ] Text: dark tones (`#1a1a2e`, `#4a4a5a`, `#7a7a8a`)
-  - [ ] Borders: light gray (`#e0e2e6`, `#d0d2d6`)
-  - [ ] Cards: white with subtle shadow
-  - [ ] Keep accent colors unchanged (blue, green, red, etc.)
+- [x] Add light theme CSS variable overrides in `globals.css`:
+  - [x] `:root` (default/light) → light theme colors
+  - [x] `.dark` → dark theme colors (current values)
+  - [x] Or: default dark, `.light` override — depending on default preference
+- [x] Light theme color palette:
+  - [x] Backgrounds: white/gray tones (`#ffffff`, `#f8f9fa`, `#f0f1f3`, `#e8eaed`)
+  - [x] Text: dark tones (`#1a1a2e`, `#4a4a5a`, `#7a7a8a`)
+  - [x] Borders: light gray (`#e0e2e6`, `#d0d2d6`)
+  - [x] Cards: white with subtle shadow
+  - [x] Keep accent colors unchanged (blue, green, red, etc.)
 
 ### 4.8.3 — Create Theme Context
-- [ ] Create `apps/web/src/lib/theme-context.tsx`:
-  - [ ] Type: `dark` | `light` | `system`
-  - [ ] `useTheme()` hook → returns `{ theme, setTheme, resolvedTheme }`
-  - [ ] `resolvedTheme`: actual applied theme (`dark` or `light`) — resolves `system` preference
-  - [ ] Persist theme choice to `localStorage` key: `trustinbox:theme`
-  - [ ] Default: `system` (respects `prefers-color-scheme`)
-  - [ ] Apply `dark` or `light` class to `<html>` element
-  - [ ] Listen for `prefers-color-scheme` changes when set to `system`
+- [x] Create `apps/web/src/lib/theme-context.tsx`:
+  - [x] Type: `dark` | `light` | `system`
+  - [x] `useTheme()` hook → returns `{ theme, setTheme, resolvedTheme }`
+  - [x] `resolvedTheme`: actual applied theme (`dark` or `light`) — resolves `system` preference
+  - [x] Persist theme choice to `localStorage` key: `trustinbox:theme`
+  - [x] Default: `system` (respects `prefers-color-scheme`)
+  - [x] Apply `dark` or `light` class to `<html>` element
+  - [x] Listen for `prefers-color-scheme` changes when set to `system`
 
 ### 4.8.4 — Wire Theme Provider
-- [ ] Update `apps/web/src/components/providers.tsx`:
-  - [ ] Add `ThemeProvider` wrapping `AuthProvider`
-- [ ] Update `apps/web/src/app/layout.tsx`:
-  - [ ] Remove hardcoded `className="dark"` from `<html>`
-  - [ ] Add `suppressHydrationWarning` to `<html>` (prevents SSR mismatch warning)
-  - [ ] Add inline script to apply theme class before first paint (avoid flash of wrong theme)
+- [x] Update `apps/web/src/components/providers.tsx`:
+  - [x] Add `ThemeProvider` wrapping `AuthProvider`
+- [x] Update `apps/web/src/app/layout.tsx`:
+  - [x] Remove hardcoded `className="dark"` from `<html>`
+  - [x] Add `suppressHydrationWarning` to `<html>` (prevents SSR mismatch warning)
+  - [x] Add inline script to apply theme class before first paint (avoid flash of wrong theme)
 
 ### 4.8.5 — Add Theme Toggle to Header
-- [ ] Update `apps/web/src/components/layout/header.tsx`:
-  - [ ] Add theme toggle in profile dropdown menu (between Settings and Sign Out)
-  - [ ] Three options: Light, Dark, System
-  - [ ] Show active option with check icon
-  - [ ] Or: use a single toggle icon in the header bar (sun/moon icon)
-  - [ ] Animate icon transition between sun ↔ moon
+- [x] Update `apps/web/src/components/layout/header.tsx`:
+  - [x] Add theme toggle in profile dropdown menu (between Settings and Sign Out)
+  - [x] Three options: Light, Dark, System
+  - [x] Show active option with check icon
+  - [x] Or: use a single toggle icon in the header bar (sun/moon icon)
+  - [x] Animate icon transition between sun ↔ moon
 
 ---
 
@@ -374,17 +374,17 @@ const { theme, setTheme } = useTheme();
 
 ## Verification
 
-- [ ] Default theme: `system` — respects OS preference
-- [ ] Switching to "Light" → all backgrounds, text, borders update to light palette
-- [ ] Switching to "Dark" → restores original dark theme exactly
-- [ ] Switching to "System" → follows `prefers-color-scheme` media query
-- [ ] Theme persists across page refreshes (localStorage)
-- [ ] No flash of wrong theme on page load (inline script applies class immediately)
-- [ ] All semantic color tokens work in both modes: `bg-bg-primary`, `text-text-primary`, etc.
-- [ ] Accent colors (blue, green, red, etc.) look good in both themes
-- [ ] Cards, badges, chips, buttons — all render correctly in light mode
-- [ ] Scrollbar styling adjusts to theme (or remains subtle in both)
-- [ ] Chat bubbles are legible in both themes
-- [ ] System theme changes (OS toggle) update the app immediately when set to "System"
-- [ ] Header dropdown shows currently active theme with check mark
-- [ ] `suppressHydrationWarning` prevents React SSR mismatch warnings
+- [x] Default theme: `system` — respects OS preference
+- [x] Switching to "Light" → all backgrounds, text, borders update to light palette
+- [x] Switching to "Dark" → restores original dark theme exactly
+- [x] Switching to "System" → follows `prefers-color-scheme` media query
+- [x] Theme persists across page refreshes (localStorage)
+- [x] No flash of wrong theme on page load (inline script applies class immediately)
+- [x] All semantic color tokens work in both modes: `bg-bg-primary`, `text-text-primary`, etc.
+- [x] Accent colors (blue, green, red, etc.) look good in both themes
+- [x] Cards, badges, chips, buttons — all render correctly in light mode
+- [x] Scrollbar styling adjusts to theme (or remains subtle in both)
+- [x] Chat bubbles are legible in both themes
+- [x] System theme changes (OS toggle) update the app immediately when set to "System"
+- [x] Header dropdown shows currently active theme with check mark
+- [x] `suppressHydrationWarning` prevents React SSR mismatch warnings

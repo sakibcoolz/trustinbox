@@ -53,48 +53,48 @@ Create a unified activity feed page that shows a reverse-chronological timeline 
 ## Requirements
 
 ### 4.5.1 — Create Activity Feed Page
-- [ ] Create `apps/web/src/app/(dashboard)/activity/page.tsx`:
-  - [ ] Full-page timeline view with reverse chronological ordering
-  - [ ] Activity items from multiple sources aggregated and sorted by timestamp
-  - [ ] Each activity item shows: icon, title, description, timestamp, source badge
-  - [ ] Color-coded by type (blue: notification, green: callback, purple: message, orange: document)
-  - [ ] Loading skeleton on initial load
-  - [ ] Error state with retry button
-  - [ ] Empty state: "No activity yet. Your interactions will appear here."
+- [x] Create `apps/web/src/app/(dashboard)/activity/page.tsx`:
+  - [x] Full-page timeline view with reverse chronological ordering
+  - [x] Activity items from multiple sources aggregated and sorted by timestamp
+  - [x] Each activity item shows: icon, title, description, timestamp, source badge
+  - [x] Color-coded by type (blue: notification, green: callback, purple: message, orange: document)
+  - [x] Loading skeleton on initial load
+  - [x] Error state with retry button
+  - [x] Empty state: "No activity yet. Your interactions will appear here."
 
 ### 4.5.2 — Create Activity Feed Hook
-- [ ] Create `apps/web/src/hooks/useActivityFeed.ts`:
-  - [ ] Aggregate data from multiple sources:
-    - [ ] Notifications: from SSE buffer + `notifications` query (recent 20)
-    - [ ] Callbacks: from `callbackRequests` query (recent 10)
-    - [ ] Conversations: from chat context (recent messages)
-    - [ ] Documents: from documents query if available (recent 10)
-  - [ ] Normalize each item into a common `ActivityItem` shape
-  - [ ] Sort all items by `timestamp` descending
-  - [ ] Return `{ activities: ActivityItem[], loading: boolean, error: Error | null, refetch: () => void }`
-  - [ ] Support pagination (load more)
+- [x] Create `apps/web/src/hooks/useActivityFeed.ts`:
+  - [x] Aggregate data from multiple sources:
+    - [x] Notifications: from SSE buffer + `notifications` query (recent 20)
+    - [x] Callbacks: from `callbackRequests` query (recent 10)
+    - [x] Conversations: from chat context (recent messages)
+    - [x] Documents: from documents query if available (recent 10)
+  - [x] Normalize each item into a common `ActivityItem` shape
+  - [x] Sort all items by `timestamp` descending
+  - [x] Return `{ activities: ActivityItem[], loading: boolean, error: Error | null, refetch: () => void }`
+  - [x] Support pagination (load more)
 
 ### 4.5.3 — Add Filter Controls
-- [ ] Add filter bar at top of activity page:
-  - [ ] Filter by type: All, Notifications, Callbacks, Messages, Documents
-  - [ ] Use tab-style UI matching the existing tab pattern (`.tab` / `.tab-active` CSS classes)
-  - [ ] Filter is instant (client-side) — no API refetch needed
-  - [ ] Show count per filter category
+- [x] Add filter bar at top of activity page:
+  - [x] Filter by type: All, Notifications, Callbacks, Messages, Documents
+  - [x] Use tab-style UI matching the existing tab pattern (`.tab` / `.tab-active` CSS classes)
+  - [x] Filter is instant (client-side) — no API refetch needed
+  - [x] Show count per filter category
 
 ### 4.5.4 — Add Activity Nav Item (Optional)
-- [ ] Consider adding "Activity" to sidebar navigation:
-  - [ ] Add nav item between existing items or in the bottom section
-  - [ ] Activity icon: clock/history icon from Lucide or inline SVG
-  - [ ] Or: keep Activity accessible only from dashboard "View all activity" link
-- [ ] If adding to sidebar, also add to mobile-nav for consistency
-- [ ] Update `header.tsx` PAGE_TITLES with `'/activity': 'Activity'`
+- [x] Consider adding "Activity" to sidebar navigation:
+  - [x] Add nav item between existing items or in the bottom section
+  - [x] Activity icon: clock/history icon from Lucide or inline SVG
+  - [x] Or: keep Activity accessible only from dashboard "View all activity" link
+- [x] If adding to sidebar, also add to mobile-nav for consistency
+- [x] Update `header.tsx` PAGE_TITLES with `'/activity': 'Activity'`
 
 ### 4.5.5 — Wire Real-Time Updates
-- [ ] New SSE events should prepend to the activity feed:
-  - [ ] `notification` event → new activity item at top
-  - [ ] `chat_message` event → new activity item at top
-  - [ ] Merge without duplicates (check by id + type)
-- [ ] Animate new items sliding in from top
+- [x] New SSE events should prepend to the activity feed:
+  - [x] `notification` event → new activity item at top
+  - [x] `chat_message` event → new activity item at top
+  - [x] Merge without duplicates (check by id + type)
+- [x] Animate new items sliding in from top
 
 ---
 
@@ -354,15 +354,15 @@ function formatTimeAgo(timestamp: string): string {
 
 ## Verification
 
-- [ ] `/activity` route loads the activity feed page
-- [ ] Activities aggregated from notifications, callbacks, and conversations
-- [ ] Items sorted by timestamp descending (most recent first)
-- [ ] Filter tabs work: All, Notifications, Callbacks, Messages, Documents
-- [ ] Each item is color-coded by type
-- [ ] Clicking an activity item navigates to the correct detail page with deep link
-- [ ] Loading skeleton shows while data fetches
-- [ ] Empty state shows when no activity exists
-- [ ] Real-time SSE events prepend new items to the feed
-- [ ] Page title shows "Activity" in header
-- [ ] Responsive layout works on mobile (< 640px)
-- [ ] No duplicate items in the feed (deduplication by id + type)
+- [x] `/activity` route loads the activity feed page
+- [x] Activities aggregated from notifications, callbacks, and conversations
+- [x] Items sorted by timestamp descending (most recent first)
+- [x] Filter tabs work: All, Notifications, Callbacks, Messages, Documents
+- [x] Each item is color-coded by type
+- [x] Clicking an activity item navigates to the correct detail page with deep link
+- [x] Loading skeleton shows while data fetches
+- [x] Empty state shows when no activity exists
+- [x] Real-time SSE events prepend new items to the feed
+- [x] Page title shows "Activity" in header
+- [x] Responsive layout works on mobile (< 640px)
+- [x] No duplicate items in the feed (deduplication by id + type)

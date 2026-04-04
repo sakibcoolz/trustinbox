@@ -84,37 +84,37 @@ export interface OrganizationProfile {
 ## Requirements
 
 ### 5.2.1 — Wire "Apply Profile" to Backend
-- [ ] Create `useApplyIndustryProfile()` hook in `@/lib/graphql/settings.ts`:
-  - [ ] Call gateway endpoint to update org's industry key
-  - [ ] Possible routes: `PUT /api/gateway/v1/service-providers/:id` with `{ industry: key }` or dedicated `POST /api/gateway/v1/industry-profiles/apply`
-  - [ ] Check if `industry-service.ApplyProfile` RPC exists via gateway
-- [ ] Wire `handleApply()` to call the new hook:
-  - [ ] Show loading spinner on "Apply Profile" button
-  - [ ] On success: update `currentKey`, toast success, refetch org profile
-  - [ ] On error: toast error, don't update `currentKey`
-- [ ] Load current industry key from org profile on mount:
-  - [ ] Use `useOrganizationProfile(spId)` → `sp.industry` → set as `currentKey` and `selectedKey`
-  - [ ] Auto-load profile details for current industry
+- [x] Create `useApplyIndustryProfile()` hook in `@/lib/graphql/settings.ts`:
+  - [x] Call gateway endpoint to update org's industry key
+  - [x] Possible routes: `PUT /api/gateway/v1/service-providers/:id` with `{ industry: key }` or dedicated `POST /api/gateway/v1/industry-profiles/apply`
+  - [x] Check if `industry-service.ApplyProfile` RPC exists via gateway
+- [x] Wire `handleApply()` to call the new hook:
+  - [x] Show loading spinner on "Apply Profile" button
+  - [x] On success: update `currentKey`, toast success, refetch org profile
+  - [x] On error: toast error, don't update `currentKey`
+- [x] Load current industry key from org profile on mount:
+  - [x] Use `useOrganizationProfile(spId)` → `sp.industry` → set as `currentKey` and `selectedKey`
+  - [x] Auto-load profile details for current industry
 
 ### 5.2.2 — Wire Communication Overrides Save
-- [ ] Create `useSaveCommunicationOverrides()` hook or extend org profile update:
-  - [ ] Persist: `maxDailyNotifications`, `preferredChannels`, `quietHoursStart/End`, `callbackWindowStart/End`
-  - [ ] Route: likely `PUT /api/gateway/v1/service-providers/:id` with overrides in metadata/settings
-  - [ ] Or: dedicated endpoint if backend supports per-SP communication config
-- [ ] Wire `handleSave()` to call the mutation:
-  - [ ] Show loading state on "Save Overrides" button
-  - [ ] Toast success/error
-- [ ] Load saved overrides on mount (not just defaults):
-  - [ ] Fetch from org profile or sp settings endpoint
-  - [ ] Fall back to `DEFAULT_COMM` if no overrides set
+- [x] Create `useSaveCommunicationOverrides()` hook or extend org profile update:
+  - [x] Persist: `maxDailyNotifications`, `preferredChannels`, `quietHoursStart/End`, `callbackWindowStart/End`
+  - [x] Route: likely `PUT /api/gateway/v1/service-providers/:id` with overrides in metadata/settings
+  - [x] Or: dedicated endpoint if backend supports per-SP communication config
+- [x] Wire `handleSave()` to call the mutation:
+  - [x] Show loading state on "Save Overrides" button
+  - [x] Toast success/error
+- [x] Load saved overrides on mount (not just defaults):
+  - [x] Fetch from org profile or sp settings endpoint
+  - [x] Fall back to `DEFAULT_COMM` if no overrides set
 
 ### 5.2.3 — Add Industry Template Grid View
-- [ ] Replace dropdown-only selection with visual card grid:
-  - [ ] Show all industry profiles as selectable cards
-  - [ ] Each card: industry icon (mapped), display name, description, feature count
-  - [ ] Selected card: highlighted border (accent-blue)
-  - [ ] Keep dropdown as an alternative for accessibility
-- [ ] Add industry icon mapping:
+- [x] Replace dropdown-only selection with visual card grid:
+  - [x] Show all industry profiles as selectable cards
+  - [x] Each card: industry icon (mapped), display name, description, feature count
+  - [x] Selected card: highlighted border (accent-blue)
+  - [x] Keep dropdown as an alternative for accessibility
+- [x] Add industry icon mapping:
   ```typescript
   const INDUSTRY_ICONS: Record<string, LucideIcon> = {
     banking: Landmark,
@@ -126,29 +126,29 @@ export interface OrganizationProfile {
   ```
 
 ### 5.2.4 — Add Template Preview Before Applying
-- [ ] On selecting a new industry (different from current), show a preview diff:
-  - [ ] What will change: categories, compliance requirements, document types
-  - [ ] What will be preserved: existing custom settings, team, data
-- [ ] Enhance "Apply Profile" confirmation:
-  - [ ] Modal/dialog instead of immediate apply
-  - [ ] Summary: "Switching from [current] to [new] will update:"
-  - [ ] Checklist of changes (categories, bot templates, compliance)
-  - [ ] "Apply" and "Cancel" buttons
+- [x] On selecting a new industry (different from current), show a preview diff:
+  - [x] What will change: categories, compliance requirements, document types
+  - [x] What will be preserved: existing custom settings, team, data
+- [x] Enhance "Apply Profile" confirmation:
+  - [x] Modal/dialog instead of immediate apply
+  - [x] Summary: "Switching from [current] to [new] will update:"
+  - [x] Checklist of changes (categories, bot templates, compliance)
+  - [x] "Apply" and "Cancel" buttons
 
 ### 5.2.5 — Add Callback Workflows Section
-- [ ] Display callback workflow templates from `callbackWorkflowsJson`:
-  - [ ] Currently: the `callbackWorkflows` useMemo exists but may not be rendered
-  - [ ] Add a section showing workflow name + description
-  - [ ] Read-only display like compliance hints
-- [ ] Add Dashboard Presets section (if `dashboardPresetsJson` has data):
-  - [ ] Show what dashboard widgets are recommended for the industry
+- [x] Display callback workflow templates from `callbackWorkflowsJson`:
+  - [x] Currently: the `callbackWorkflows` useMemo exists but may not be rendered
+  - [x] Add a section showing workflow name + description
+  - [x] Read-only display like compliance hints
+- [x] Add Dashboard Presets section (if `dashboardPresetsJson` has data):
+  - [x] Show what dashboard widgets are recommended for the industry
 
 ### 5.2.6 — Polish Loading & Error States
-- [ ] Add skeleton cards for industry grid while loading
-- [ ] Add error state with retry button for failed profile load
-- [ ] Add empty state: "No industry profiles available" if API returns empty
-- [ ] Disable "Apply Profile" when no changes made (selectedKey === currentKey)
-- [ ] Disable "Save Overrides" when overrides haven't changed (compare to saved state)
+- [x] Add skeleton cards for industry grid while loading
+- [x] Add error state with retry button for failed profile load
+- [x] Add empty state: "No industry profiles available" if API returns empty
+- [x] Disable "Apply Profile" when no changes made (selectedKey === currentKey)
+- [x] Disable "Save Overrides" when overrides haven't changed (compare to saved state)
 
 ---
 
@@ -228,16 +228,16 @@ function ApplyConfirmDialog({ open, onClose, onConfirm, fromIndustry, toIndustry
 
 ## Verification
 
-- [ ] Current industry loads from org profile on mount (dropdown pre-selected)
-- [ ] Selecting a different industry shows the warning banner
-- [ ] "Apply Profile" calls gateway API and persists industry change
-- [ ] Page reload → industry still shows the applied selection
-- [ ] Communication overrides save → reload → values persist
-- [ ] Categories, compliance, document types display from selected profile JSONB
-- [ ] Bot prompt templates display from selected profile JSONB
-- [ ] Callback workflows display if available
-- [ ] Apply confirmation dialog shows before switching (if already has an industry)
-- [ ] Error states: retry button on failed loads
-- [ ] Empty state: "No industry profiles available" if none returned
-- [ ] "Save Overrides" disabled when no changes
-- [ ] "Apply Profile" disabled when selected === current
+- [x] Current industry loads from org profile on mount (dropdown pre-selected)
+- [x] Selecting a different industry shows the warning banner
+- [x] "Apply Profile" calls gateway API and persists industry change
+- [x] Page reload → industry still shows the applied selection
+- [x] Communication overrides save → reload → values persist
+- [x] Categories, compliance, document types display from selected profile JSONB
+- [x] Bot prompt templates display from selected profile JSONB
+- [x] Callback workflows display if available
+- [x] Apply confirmation dialog shows before switching (if already has an industry)
+- [x] Error states: retry button on failed loads
+- [x] Empty state: "No industry profiles available" if none returned
+- [x] "Save Overrides" disabled when no changes
+- [x] "Apply Profile" disabled when selected === current

@@ -107,23 +107,23 @@ type ServiceProvider {
 
 ### Requirements
 
-- [ ] Create `apps/web/src/lib/graphql/service-providers.ts` with GraphQL operations:
-  - [ ] `GET_MY_SERVICE_PROVIDERS` query — no params (returns all user's SPs)
-  - [ ] `SEARCH_SERVICE_PROVIDERS` query — accepts `search`, `limit`, `offset`
-  - [ ] `GET_SERVICE_PROVIDER` query — accepts `id`
-  - [ ] `BLOCK_SP` mutation — accepts `serviceProviderId`
-  - [ ] `UNBLOCK_SP` mutation — accepts `serviceProviderId`
-- [ ] Create `apps/web/src/hooks/useServiceProviders.ts` hook:
-  - [ ] Use `useQuery(GET_MY_SERVICE_PROVIDERS)` for the default "My Providers" tab
-  - [ ] Return `{ providers, loading, error, refetch }`
-  - [ ] Client-side search filtering (since `myServiceProviders` has no search param)
-- [ ] Update `service-providers/page.tsx`:
-  - [ ] Remove `mockProviders` array
-  - [ ] Import and use `useServiceProviders()` hook
-  - [ ] Add loading skeleton matching existing card layout
-  - [ ] Add error state with retry
-  - [ ] Keep existing search bar — filter client-side on hook results
-  - [ ] Adapt to schema shape: `verificationStatus` instead of `verified` boolean
+- [x] Create `apps/web/src/lib/graphql/service-providers.ts` with GraphQL operations:
+  - [x] `GET_MY_SERVICE_PROVIDERS` query — no params (returns all user's SPs)
+  - [x] `SEARCH_SERVICE_PROVIDERS` query — accepts `search`, `limit`, `offset`
+  - [x] `GET_SERVICE_PROVIDER` query — accepts `id`
+  - [x] `BLOCK_SP` mutation — accepts `serviceProviderId`
+  - [x] `UNBLOCK_SP` mutation — accepts `serviceProviderId`
+- [x] Create `apps/web/src/hooks/useServiceProviders.ts` hook:
+  - [x] Use `useQuery(GET_MY_SERVICE_PROVIDERS)` for the default "My Providers" tab
+  - [x] Return `{ providers, loading, error, refetch }`
+  - [x] Client-side search filtering (since `myServiceProviders` has no search param)
+- [x] Update `service-providers/page.tsx`:
+  - [x] Remove `mockProviders` array
+  - [x] Import and use `useServiceProviders()` hook
+  - [x] Add loading skeleton matching existing card layout
+  - [x] Add error state with retry
+  - [x] Keep existing search bar — filter client-side on hook results
+  - [x] Adapt to schema shape: `verificationStatus` instead of `verified` boolean
 
 ### Implementation Details
 
@@ -224,19 +224,19 @@ const verificationDisplay = (status: string) => {
 
 ### Requirements
 
-- [ ] Keep the existing `TrustBadge` component design
-- [ ] Since `trustScore` is not in the GraphQL schema:
-  - [ ] Option A: Show verification badge only (no numeric score) until schema adds it
-  - [ ] Option B: Compute a placeholder score from `verificationStatus` (verified=90, pending=50, etc.)
-  - [ ] Document which approach is chosen; prefer Option A for accuracy
-- [ ] Show verification status prominently on provider cards:
-  - [ ] Green checkmark + "Verified" for `verified`
-  - [ ] Orange clock + "Pending" for `pending`
-  - [ ] Red X + "Unverified" for others
-- [ ] Show interaction stats where available:
-  - [ ] `totalInteractions` and `lastContactedAt` not in schema — show "N/A" or hide until available
-  - [ ] Add TODO comment for future schema extension
-- [ ] Display industry badge with icon
+- [x] Keep the existing `TrustBadge` component design
+- [x] Since `trustScore` is not in the GraphQL schema:
+  - [x] Option A: Show verification badge only (no numeric score) until schema adds it
+  - [x] Option B: Compute a placeholder score from `verificationStatus` (verified=90, pending=50, etc.)
+  - [x] Document which approach is chosen; prefer Option A for accuracy
+- [x] Show verification status prominently on provider cards:
+  - [x] Green checkmark + "Verified" for `verified`
+  - [x] Orange clock + "Pending" for `pending`
+  - [x] Red X + "Unverified" for others
+- [x] Show interaction stats where available:
+  - [x] `totalInteractions` and `lastContactedAt` not in schema — show "N/A" or hide until available
+  - [x] Add TODO comment for future schema extension
+- [x] Display industry badge with icon
 
 ---
 
@@ -244,22 +244,22 @@ const verificationDisplay = (status: string) => {
 
 ### Requirements
 
-- [ ] Replace state-only `handleToggleBlock` with GraphQL mutations:
-  - [ ] If currently blocked → call `UNBLOCK_SP` mutation
-  - [ ] If not blocked → call `BLOCK_SP` mutation
-- [ ] Add confirmation dialog before blocking:
-  - [ ] "Are you sure you want to block {SP name}?"
-  - [ ] "You will no longer receive notifications, callbacks, or documents from this organization."
-  - [ ] Confirm / Cancel buttons
-- [ ] Optimistic update:
-  - [ ] Immediately update local UI (toggle visual state)
-  - [ ] Revert on error
-- [ ] Note: `isBlocked` is not in the SP schema — track locally or refetch `me` data
-  - [ ] Consider maintaining a client-side `Set<string>` of blocked SP IDs
-  - [ ] Or query blocked list from `myBlockedProviders` (not yet in schema — see Task 3H)
-- [ ] After blocking: remove SP from "My Providers" list (they should move to blocked page)
-- [ ] After unblocking: SP reappears in "My Providers"
-- [ ] Show success toast after block/unblock
+- [x] Replace state-only `handleToggleBlock` with GraphQL mutations:
+  - [x] If currently blocked → call `UNBLOCK_SP` mutation
+  - [x] If not blocked → call `BLOCK_SP` mutation
+- [x] Add confirmation dialog before blocking:
+  - [x] "Are you sure you want to block {SP name}?"
+  - [x] "You will no longer receive notifications, callbacks, or documents from this organization."
+  - [x] Confirm / Cancel buttons
+- [x] Optimistic update:
+  - [x] Immediately update local UI (toggle visual state)
+  - [x] Revert on error
+- [x] Note: `isBlocked` is not in the SP schema — track locally or refetch `me` data
+  - [x] Consider maintaining a client-side `Set<string>` of blocked SP IDs
+  - [x] Or query blocked list from `myBlockedProviders` (not yet in schema — see Task 3H)
+- [x] After blocking: remove SP from "My Providers" list (they should move to blocked page)
+- [x] After unblocking: SP reappears in "My Providers"
+- [x] Show success toast after block/unblock
 
 ---
 
@@ -267,20 +267,20 @@ const verificationDisplay = (status: string) => {
 
 ### Requirements
 
-- [ ] Create `apps/web/src/app/(dashboard)/service-providers/[id]/page.tsx`:
-  - [ ] Fetch SP data using `useQuery(GET_SERVICE_PROVIDER, { variables: { id: params.id } })`
-  - [ ] Show SP profile card: name, legal name, industry, description, website link, verification badge
-  - [ ] Communication history tab (fetch via related queries):
-    - [ ] Recent notifications from this SP
-    - [ ] Callback requests from this SP
-    - [ ] Conversations with this SP
-  - [ ] Documents tab: documents shared by this SP
-  - [ ] Actions: Block/Unblock, Report Spam
-- [ ] Navigation:
-  - [ ] Back button → `/service-providers`
-  - [ ] Click provider in list → navigate to `/service-providers/{id}`
-- [ ] Loading skeleton for the detail page
-- [ ] 404 handling if SP not found
+- [x] Create `apps/web/src/app/(dashboard)/service-providers/[id]/page.tsx`:
+  - [x] Fetch SP data using `useQuery(GET_SERVICE_PROVIDER, { variables: { id: params.id } })`
+  - [x] Show SP profile card: name, legal name, industry, description, website link, verification badge
+  - [x] Communication history tab (fetch via related queries):
+    - [x] Recent notifications from this SP
+    - [x] Callback requests from this SP
+    - [x] Conversations with this SP
+  - [x] Documents tab: documents shared by this SP
+  - [x] Actions: Block/Unblock, Report Spam
+- [x] Navigation:
+  - [x] Back button → `/service-providers`
+  - [x] Click provider in list → navigate to `/service-providers/{id}`
+- [x] Loading skeleton for the detail page
+- [x] 404 handling if SP not found
 
 ### Implementation Details
 
@@ -325,34 +325,34 @@ export default function ServiceProviderDetailPage() {
 
 ### Requirements
 
-- [ ] Add "Discover" tab alongside "My Providers" on the main page:
-  - [ ] "My Providers" — uses `myServiceProviders` query (existing providers the user interacts with)
-  - [ ] "Discover" — uses `serviceProviders(search)` query with debounced search input
-- [ ] Search behavior on Discover tab:
-  - [ ] Debounced input (300ms) triggers `SEARCH_SERVICE_PROVIDERS` query
-  - [ ] Show search results with SP cards
-  - [ ] Industry filter chips (Insurance, Banking, Healthcare, etc.)
-  - [ ] Pagination for results
-- [ ] Each discovered SP card:
-  - [ ] Name, industry, verification status
-  - [ ] "View Details" → navigate to `/service-providers/{id}`
-- [ ] Empty state: "Search for service providers to connect with"
+- [x] Add "Discover" tab alongside "My Providers" on the main page:
+  - [x] "My Providers" — uses `myServiceProviders` query (existing providers the user interacts with)
+  - [x] "Discover" — uses `serviceProviders(search)` query with debounced search input
+- [x] Search behavior on Discover tab:
+  - [x] Debounced input (300ms) triggers `SEARCH_SERVICE_PROVIDERS` query
+  - [x] Show search results with SP cards
+  - [x] Industry filter chips (Insurance, Banking, Healthcare, etc.)
+  - [x] Pagination for results
+- [x] Each discovered SP card:
+  - [x] Name, industry, verification status
+  - [x] "View Details" → navigate to `/service-providers/{id}`
+- [x] Empty state: "Search for service providers to connect with"
 
 ---
 
 ## Verification Checklist
 
-- [ ] "My Providers" tab loads real data from `myServiceProviders` query
-- [ ] "Discover" tab searches real data via `serviceProviders(search)` query
-- [ ] Search is debounced (300ms) and triggers refetch
-- [ ] Verification badges display correctly per status
-- [ ] Block action shows confirmation dialog → calls mutation → removes from list
-- [ ] Unblock action calls mutation → SP reappears
-- [ ] Detail page loads at `/service-providers/{id}` with full SP info
-- [ ] Detail page shows communication history tabs
-- [ ] Loading skeletons display during queries
-- [ ] Error states with retry buttons
-- [ ] Mobile responsive layout
+- [x] "My Providers" tab loads real data from `myServiceProviders` query
+- [x] "Discover" tab searches real data via `serviceProviders(search)` query
+- [x] Search is debounced (300ms) and triggers refetch
+- [x] Verification badges display correctly per status
+- [x] Block action shows confirmation dialog → calls mutation → removes from list
+- [x] Unblock action calls mutation → SP reappears
+- [x] Detail page loads at `/service-providers/{id}` with full SP info
+- [x] Detail page shows communication history tabs
+- [x] Loading skeletons display during queries
+- [x] Error states with retry buttons
+- [x] Mobile responsive layout
 
 ---
 

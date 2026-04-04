@@ -73,6 +73,27 @@ test-coverage: ## Run tests with coverage
 	go test -coverprofile=coverage.out ./services/... ./gateway/... ./packages/...
 	go tool cover -html=coverage.out -o coverage.html
 
+test-web: ## Run Web App unit tests
+	cd apps/web && npm test
+
+test-provider-ui: ## Run Provider Portal unit tests
+	cd apps/provider && npm test
+
+test-web-e2e: ## Run Web App Playwright E2E tests
+	cd apps/web && npx playwright test
+
+test-provider-e2e: ## Run Provider Portal Playwright E2E tests
+	cd apps/provider && npx playwright test
+
+test-e2e: ## Run cross-app E2E tests
+	cd tests/e2e && npx playwright test
+
+test-integration: ## Run Go API integration tests
+	cd tests/integration && go test -tags=integration -v ./...
+
+test-load: ## Run k6 load tests
+	cd tests/load && k6 run all-scenarios.js
+
 # ─── Code Generation ──────────────────────────────────────
 
 proto: ## Generate Go code from proto files

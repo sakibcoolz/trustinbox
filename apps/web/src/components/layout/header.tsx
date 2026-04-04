@@ -5,6 +5,10 @@ import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useNotifications } from '@/lib/notification-context';
+import { useTheme } from '@/lib/theme-context';
+import { SearchModal } from '@/components/ui/search-modal';
+
+type Theme = 'dark' | 'light' | 'system';
 
 const PAGE_TITLES: Record<string, string> = {
   '/inbox': 'Inbox',
@@ -13,6 +17,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/friends': 'People',
   '/service-providers': 'Service Providers',
   '/documents': 'Files',
+  '/activity': 'Activity',
   '/settings': 'Settings',
 };
 
@@ -27,8 +32,9 @@ export function Header() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { unreadCount, notifications, markAllRead } = useNotifications();
+  const { theme, setTheme } = useTheme();
 
-  const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -43,11 +49,64 @@ export function Header() {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
-  const recentNotifs = notifications.slice(0, 5);
+  const recentNotifs = notifications.slice(0, 8);
+
+  // Relative time helper
+  function timeAgo(ts: string): string {
+    const diff = Date.now() - new Date(ts).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  }
+
+  // Event type icon SVGs
+  function notifIcon(type: string) {
+    if (type.startsWith('callback.')) {
+      return (
+        <svg className="w-4 h-4 text-accent-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+        </svg>
+      );
+    }
+    if (type.startsWith('message.') || type === 'chat_message') {
+      return (
+        <svg className="w-4 h-4 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+        </svg>
+      );
+    }
+    if (type.startsWith('document.')) {
+      return (
+        <svg className="w-4 h-4 text-accent-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+        </svg>
+      );
+    }
+    // Default: bell for notifications
+    return (
+      <svg className="w-4 h-4 text-accent-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+      </svg>
+    );
+  }
 
   return (
     <header className="h-14 bg-bg-secondary border-b border-border-primary flex items-center justify-between px-4 sm:px-6 shrink-0 z-30">
@@ -67,21 +126,22 @@ export function Header() {
         </h1>
       </div>
 
-      {/* Center: search */}
+      {/* Center: search trigger */}
       <div className="flex-1 max-w-sm mx-4 hidden md:block">
-        <div className="relative">
-          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="w-full flex items-center gap-2 bg-bg-tertiary border border-border-primary rounded-lg px-3 py-1.5 text-sm text-text-muted hover:border-accent-blue/50 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search messages, people, files..."
-            className="w-full bg-bg-tertiary border border-border-primary rounded-lg pl-8 pr-3 py-1.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-blue focus:ring-1 focus:ring-accent-blue transition-colors"
-          />
-        </div>
+          <span className="flex-1 text-left">Search...</span>
+          <kbd className="px-1.5 py-0.5 rounded bg-bg-hover border border-border-secondary text-[10px] font-mono">⌘K</kbd>
+        </button>
       </div>
+
+      {/* Search modal */}
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* Right: actions */}
       <div className="flex items-center gap-1">
@@ -97,7 +157,7 @@ export function Header() {
             </svg>
             {unreadCount > 0 && (
               <span className="absolute top-1 right-1 min-w-[16px] h-4 rounded-full bg-accent-red text-white text-[10px] font-bold flex items-center justify-center px-0.5">
-                {unreadCount > 9 ? '9+' : unreadCount}
+                {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
           </button>
@@ -112,17 +172,30 @@ export function Header() {
                   </button>
                 )}
               </div>
-              <div className="max-h-72 overflow-y-auto">
+              <div className="max-h-96 overflow-y-auto">
                 {recentNotifs.length === 0 ? (
                   <div className="py-8 text-center text-sm text-text-muted">No notifications</div>
                 ) : (
                   recentNotifs.map((n) => (
                     <div
                       key={n.id}
-                      className={`px-4 py-3 border-b border-border-primary last:border-0 hover:bg-bg-tertiary transition-colors ${!n.read ? 'bg-accent-blue/5' : ''}`}
+                      className={`px-4 py-3 border-b border-border-primary last:border-0 hover:bg-bg-tertiary transition-colors ${!n.read ? 'bg-accent-blue/5' : ''} ${'suppressed' in n && n.suppressed ? 'opacity-60' : ''}`}
                     >
-                      <p className="text-sm text-text-primary leading-snug">{n.title}</p>
-                      {n.body && <p className="text-xs text-text-muted mt-0.5 truncate">{n.body}</p>}
+                      <div className="flex items-start gap-2.5">
+                        <div className="mt-0.5 shrink-0">{notifIcon(n.type)}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm text-text-primary leading-snug truncate">{n.title}</p>
+                            <span className="text-[10px] text-text-muted whitespace-nowrap shrink-0">
+                              {n.createdAt ? timeAgo(n.createdAt) : ''}
+                            </span>
+                          </div>
+                          {n.body && <p className="text-xs text-text-muted mt-0.5 truncate">{n.body}</p>}
+                          {'suppressed' in n && n.suppressed && (
+                            <p className="text-[10px] text-text-muted mt-0.5 italic">Delivered during DND</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))
                 )}
@@ -150,7 +223,7 @@ export function Header() {
               <p className="text-xs font-semibold text-text-primary leading-none truncate max-w-[100px]">
                 {user?.fullName ?? user?.username ?? 'User'}
               </p>
-              <p className="text-[10px] text-text-muted leading-none mt-0.5 capitalize">{user?.role?.toLowerCase() ?? 'member'}</p>
+              <p className="text-[10px] text-text-muted leading-none mt-0.5">member</p>
             </div>
             <svg className="hidden sm:block w-3 h-3 text-text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -185,6 +258,26 @@ export function Header() {
                   </svg>
                   Settings
                 </Link>
+                <div className="border-t border-border-primary my-1" />
+                <div className="px-4 py-1.5">
+                  <p className="text-[10px] uppercase tracking-wider text-text-muted font-semibold mb-1">Theme</p>
+                  <div className="flex gap-1">
+                    {([['dark', '🌙'], ['light', '☀️'], ['system', '💻']] as [Theme, string][]).map(([t, icon]) => (
+                      <button
+                        key={t}
+                        onClick={() => setTheme(t)}
+                        className={`flex-1 text-xs py-1 rounded-md transition-colors capitalize ${
+                          theme === t
+                            ? 'bg-accent-blue/20 text-accent-blue font-medium'
+                            : 'text-text-secondary hover:bg-bg-tertiary'
+                        }`}
+                      >
+                        {icon} {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="border-t border-border-primary my-1" />
                 <button
                   onClick={() => { setProfileOpen(false); logout(); }}
                   className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-accent-red hover:bg-bg-tertiary transition-colors"

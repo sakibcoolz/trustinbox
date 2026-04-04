@@ -2,56 +2,104 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
-
-interface AvailabilitySlot {
-  id: string;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  slotType: string;
-  isActive: boolean;
-}
+import { useAvailabilitySlots } from '@/hooks/useAvailabilitySlots';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const SLOT_TYPES = ['Callback', 'Meeting', 'Any'];
 
-const mockSlots: AvailabilitySlot[] = [
-  { id: '1', dayOfWeek: 1, startTime: '09:00', endTime: '12:00', slotType: 'Callback', isActive: true },
-  { id: '2', dayOfWeek: 1, startTime: '14:00', endTime: '17:00', slotType: 'Callback', isActive: true },
-  { id: '3', dayOfWeek: 3, startTime: '10:00', endTime: '15:00', slotType: 'Any', isActive: true },
-  { id: '4', dayOfWeek: 5, startTime: '09:00', endTime: '11:00', slotType: 'Meeting', isActive: false },
-];
-
 export default function AvailabilitySettingsPage() {
-  const [slots, setSlots] = useState<AvailabilitySlot[]>(mockSlots);
+  const { slots, loading, error, createSlot, deleteSlot } = useAvailabilitySlots();
   const [showForm, setShowForm] = useState(false);
   const [day, setDay] = useState(1);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
   const [slotType, setSlotType] = useState('Callback');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleAdd = useCallback(() => {
-    setSlots((prev) => [...prev, { id: Date.now().toString(), dayOfWeek: day, startTime, endTime, slotType, isActive: true }]);
-    setShowForm(false);
-    setDay(1);
-    setStartTime('09:00');
-    setEndTime('17:00');
-    setSlotType('Callback');
-  }, [day, startTime, endTime, slotType]);
+  const handleAdd = useCallback(async () => {
+    setSubmitting(true);
+    try {
+      await createSlot({ dayOfWeek: day, startTime, endTime, slotType });
+      setShowForm(false);
+      setDay(1);
+      setStartTime('09:00');
+      setEndTime('17:00');
+      setSlotType('Callback');
+    } catch {
+      // Error handled by Apollo
+    } finally {
+      setSubmitting(false);
+    }
+  }, [day, startTime, endTime, slotType, createSlot]);
 
-  const handleDelete = useCallback((id: string) => {
-    setSlots((prev) => prev.filter((s) => s.id !== id));
-  }, []);
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await deleteSlot(id);
+    } catch {
+      // Error handled by Apollo
+    }
+  }, [deleteSlot]);
 
-  const handleToggle = useCallback((id: string) => {
-    setSlots((prev) => prev.map((s) => s.id === id ? { ...s, isActive: !s.isActive } : s));
-  }, []);
+  const handleToggle = useCallback(async (id: string) => {
+    const slot = slots.find((s: { id: string }) => s.id === id);
+    if (!slot) return;
+    try {
+      await deleteSlot(id);
+      await createSlot({
+        dayOfWeek: slot.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        slotType: slot.slotType,
+      });
+    } catch {
+      // Error handled by Apollo
+    }
+  }, [slots, deleteSlot, createSlot]);
 
   const slotTypeColor = (type: string) => {
     if (type === 'Callback') return 'bg-accent-blue/10 text-accent-blue';
     if (type === 'Meeting') return 'bg-accent-purple/10 text-accent-purple';
     return 'bg-accent-green/10 text-accent-green';
   };
+
+  if (loading) {
+    return (
+      <div className="flex-1 h-full overflow-y-auto bg-bg-primary">
+        <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
+          <div className="flex items-center gap-3">
+            <Link href="/settings" className="w-8 h-8 rounded-lg bg-bg-secondary flex items-center justify-center hover:bg-bg-hover transition-colors">
+              <svg className="w-4 h-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+            </Link>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-text-primary">Availability</h1>
+              <p className="text-2xs text-text-muted">Define when service providers can reach you.</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="card p-3 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-24 h-4 bg-bg-tertiary rounded shrink-0" />
+                  <div className="flex-1 h-9 bg-bg-tertiary rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 h-full flex items-center justify-center bg-bg-primary">
+        <div className="text-center space-y-3">
+          <p className="text-sm text-accent-red">Failed to load availability slots</p>
+          <button onClick={() => window.location.reload()} className="btn-primary text-sm">Retry</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 h-full overflow-y-auto bg-bg-primary">
@@ -94,7 +142,7 @@ export default function AvailabilitySettingsPage() {
             </div>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setShowForm(false)} className="btn-ghost text-sm">Cancel</button>
-              <button onClick={handleAdd} className="btn-primary text-sm">Add Slot</button>
+              <button onClick={handleAdd} disabled={submitting} className="btn-primary text-sm">{submitting ? 'Adding…' : 'Add Slot'}</button>
             </div>
           </div>
         )}
@@ -102,7 +150,7 @@ export default function AvailabilitySettingsPage() {
         {/* Weekly calendar view */}
         <div className="space-y-2">
           {DAYS.map((dayName, dayIdx) => {
-            const daySlots = slots.filter((s) => s.dayOfWeek === dayIdx);
+            const daySlots = slots.filter((s: any) => s.dayOfWeek === dayIdx);
             return (
               <div key={dayIdx} className="card p-3">
                 <div className="flex items-center gap-3">
@@ -111,7 +159,7 @@ export default function AvailabilitySettingsPage() {
                     {daySlots.length === 0 ? (
                       <span className="text-2xs text-text-muted">No availability</span>
                     ) : (
-                      daySlots.map((slot) => (
+                      daySlots.map((slot: any) => (
                         <div key={slot.id}
                           className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-2xs border transition-opacity ${slot.isActive ? 'border-border-secondary' : 'border-border-primary opacity-40'}`}>
                           <span className={`chip text-2xs ${slotTypeColor(slot.slotType)}`}>{slot.slotType}</span>

@@ -1,30 +1,32 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {
       colors: {
-        // Modern dark chat theme
-        'bg-primary': '#0b0d0f',
-        'bg-secondary': '#111418',
-        'bg-tertiary': '#1a1d23',
-        'bg-hover': '#1e2228',
-        'bg-active': '#252a31',
-        'bg-card': '#151820',
-        'bg-elevated': '#1c2028',
-        'bg-input': '#0d1017',
-        'bg-bubble-own': '#1a3a5c',
-        'bg-bubble-other': '#1a1d23',
-        'border-primary': '#1e2228',
-        'border-secondary': '#2a2f38',
+        // Theme-aware colors via CSS variables
+        'bg-primary': 'var(--bg-primary)',
+        'bg-secondary': 'var(--bg-secondary)',
+        'bg-tertiary': 'var(--bg-tertiary)',
+        'bg-hover': 'var(--bg-hover)',
+        'bg-active': 'var(--bg-active)',
+        'bg-card': 'var(--bg-card)',
+        'bg-elevated': 'var(--bg-elevated)',
+        'bg-input': 'var(--bg-input)',
+        'bg-bubble-own': 'var(--bg-bubble-own)',
+        'bg-bubble-other': 'var(--bg-bubble-other)',
+        'border-primary': 'var(--border-primary)',
+        'border-secondary': 'var(--border-secondary)',
         'border-active': '#3b82f6',
-        'border-hover': '#3a3f48',
-        'text-primary': '#e4e7eb',
-        'text-secondary': '#8b929a',
-        'text-muted': '#545b65',
+        'border-hover': 'var(--border-hover)',
+        'text-primary': 'var(--text-primary)',
+        'text-secondary': 'var(--text-secondary)',
+        'text-muted': 'var(--text-muted)',
         'text-inverse': '#ffffff',
+        // Accents stay constant across themes
         'accent-blue': '#3b82f6',
         'accent-green': '#22c55e',
         'accent-orange': '#f59e0b',
@@ -77,6 +79,10 @@ module.exports = {
           '0%, 60%, 100%': { transform: 'translateY(0)' },
           '30%': { transform: 'translateY(-4px)' },
         },
+        'slide-up': {
+          '0%': { transform: 'translateY(100%)' },
+          '100%': { transform: 'translateY(0)' },
+        },
       },
       animation: {
         'slide-in-left': 'slide-in-left 0.2s ease-out',
@@ -85,6 +91,7 @@ module.exports = {
         'fade-in': 'fade-in 0.15s ease-out',
         'pulse-dot': 'pulse-dot 1.4s infinite',
         'typing-bounce': 'typing-bounce 1.4s infinite',
+        'slide-up': 'slide-up 0.3s ease-out',
       },
       boxShadow: {
         'glow': '0 0 20px rgba(59, 130, 246, 0.15)',

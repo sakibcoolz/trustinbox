@@ -63,7 +63,7 @@ mobile-viewport.spec.ts — responsive design across mobile/tablet viewports
 
 ### Sub-task 7.3.1 — Auth E2E Tests
 
-- [ ] Create `apps/provider/e2e/auth.spec.ts`:
+- [x] Create `apps/provider/e2e/auth.spec.ts`:
   - **Login success**:
     - Navigate to `/auth/login`
     - Fill email and password fields
@@ -90,7 +90,7 @@ mobile-viewport.spec.ts — responsive design across mobile/tablet viewports
 
 ### Sub-task 7.3.2 — Notification Flow E2E Tests
 
-- [ ] Create `apps/provider/e2e/notifications.spec.ts`:
+- [x] Create `apps/provider/e2e/notifications.spec.ts`:
   - **Compose and send notification**:
     - Navigate to `/notifications/compose`
     - Select customer from recipient picker (search + select)
@@ -121,7 +121,7 @@ mobile-viewport.spec.ts — responsive design across mobile/tablet viewports
 
 ### Sub-task 7.3.3 — Callback Flow E2E Tests
 
-- [ ] Create `apps/provider/e2e/callbacks.spec.ts`:
+- [x] Create `apps/provider/e2e/callbacks.spec.ts`:
   - **View callback list**:
     - Navigate to `/callbacks`
     - Verify data table renders with columns: customer, reason, priority, status, created
@@ -143,7 +143,7 @@ mobile-viewport.spec.ts — responsive design across mobile/tablet viewports
 
 ### Sub-task 7.3.4 — Team Management E2E Tests
 
-- [ ] Create `apps/provider/e2e/team.spec.ts`:
+- [x] Create `apps/provider/e2e/team.spec.ts`:
   - **View team members**:
     - Navigate to `/settings/team`
     - Verify team member list: name, email, role badge, joined date, status
@@ -168,7 +168,7 @@ mobile-viewport.spec.ts — responsive design across mobile/tablet viewports
 
 ### Sub-task 7.3.5 — Settings E2E Tests
 
-- [ ] Create `apps/provider/e2e/settings.spec.ts`:
+- [x] Create `apps/provider/e2e/settings.spec.ts`:
   - **Profile settings**:
     - Navigate to `/settings/profile`
     - Verify current org name, description, contact info rendered
@@ -190,7 +190,7 @@ mobile-viewport.spec.ts — responsive design across mobile/tablet viewports
 
 ### Sub-task 7.3.6 — Campaign Flow E2E Tests
 
-- [ ] Create `apps/provider/e2e/campaigns.spec.ts`:
+- [x] Create `apps/provider/e2e/campaigns.spec.ts`:
   - **Create campaign via wizard**:
     - Navigate to `/campaigns/new`
     - Step 1 (Basics): enter name, description → Next
@@ -209,14 +209,14 @@ mobile-viewport.spec.ts — responsive design across mobile/tablet viewports
 
 ### Sub-task 7.3.7 — Conversation and Bot E2E Tests
 
-- [ ] Create `apps/provider/e2e/conversations.spec.ts`:
+- [x] Create `apps/provider/e2e/conversations.spec.ts`:
   - Navigate to `/conversations`
   - Verify conversation list renders
   - Click a conversation → verify message thread loads
   - Type message in input → click send
   - Verify message appears in thread with timestamp
 
-- [ ] Create `apps/provider/e2e/bots.spec.ts`:
+- [x] Create `apps/provider/e2e/bots.spec.ts`:
   - Navigate to `/bots`
   - Verify bot list renders (if bots exist)
   - Click "New Bot" → verify wizard loads
@@ -225,13 +225,13 @@ mobile-viewport.spec.ts — responsive design across mobile/tablet viewports
 
 ### Sub-task 7.3.8 — Analytics and Navigation E2E
 
-- [ ] Create `apps/provider/e2e/analytics.spec.ts`:
+- [x] Create `apps/provider/e2e/analytics.spec.ts`:
   - Navigate to `/analytics`
   - Verify stats cards render with numeric values
   - Change date range → verify data refreshes
   - Verify charts render (SVG elements or canvas present)
 
-- [ ] Create `apps/provider/e2e/navigation.spec.ts`:
+- [x] Create `apps/provider/e2e/navigation.spec.ts`:
   - Verify all sidebar links navigate to correct pages
   - Verify breadcrumbs update correctly
   - Verify back button navigation works
@@ -240,31 +240,31 @@ mobile-viewport.spec.ts — responsive design across mobile/tablet viewports
 
 ### Sub-task 7.3.9 — Run and Validate E2E Suite
 
-- [ ] Run: `cd apps/provider && npm run test:e2e`
+- [x] Run: `cd apps/provider && npm run test:e2e`
   - Prerequisite: full stack running (`./scripts/dev.sh`)
   - All tests pass on Chrome
-- [ ] Run cross-browser:
+- [x] Run cross-browser:
   - `npx playwright test --project=firefox` — all pass
   - `npx playwright test --project=webkit` — all pass
-- [ ] Run mobile viewports:
+- [x] Run mobile viewports:
   - `npx playwright test --project=mobile-chrome` — all pass
-- [ ] Verify trace artifacts generated on failure
-- [ ] Verify screenshots captured for failed tests
+- [x] Verify trace artifacts generated on failure
+- [x] Verify screenshots captured for failed tests
 
 ---
 
 ## Verification Checklist
 
-- [ ] `auth.spec.ts`: login, validation, SP switching, logout, session persistence
-- [ ] `notifications.spec.ts`: compose, send, list, filter, detail, draft auto-save, policy denial
-- [ ] `callbacks.spec.ts`: list, filter, detail, pagination
-- [ ] `team.spec.ts`: view, invite, role change, revoke, remove
-- [ ] `settings.spec.ts`: profile save, industry template, webhook config
-- [ ] `campaigns.spec.ts`: wizard, launch, detail with progress, list
-- [ ] `conversations.spec.ts`: list, thread, send message
-- [ ] `bots.spec.ts`: list, wizard navigation
-- [ ] `analytics.spec.ts`: cards, date range, charts
-- [ ] `navigation.spec.ts`: sidebar links, breadcrumbs, deep linking, 404
-- [ ] All tests pass on Chrome, Firefox, WebKit
-- [ ] Mobile viewport tests pass
-- [ ] Trace/screenshot artifacts generated on failure
+- [x] `auth.spec.ts`: login, validation, SP switching, logout, session persistence
+- [x] `notifications.spec.ts`: compose, send, list, filter, detail, draft auto-save, policy denial
+- [x] `callbacks.spec.ts`: list, filter, detail, pagination
+- [x] `team.spec.ts`: view, invite, role change, revoke, remove
+- [x] `settings.spec.ts`: profile save, industry template, webhook config
+- [x] `campaigns.spec.ts`: wizard, launch, detail with progress, list
+- [x] `conversations.spec.ts`: list, thread, send message
+- [x] `bots.spec.ts`: list, wizard navigation
+- [x] `analytics.spec.ts`: cards, date range, charts
+- [x] `navigation.spec.ts`: sidebar links, breadcrumbs, deep linking, 404
+- [x] All tests pass on Chrome, Firefox, WebKit
+- [x] Mobile viewport tests pass
+- [x] Trace/screenshot artifacts generated on failure

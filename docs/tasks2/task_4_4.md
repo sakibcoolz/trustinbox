@@ -63,47 +63,47 @@ const id = searchParams.get('id');
 ## Requirements
 
 ### 4.4.1 — Inbox Deep Linking
-- [ ] Update `apps/web/src/app/(dashboard)/inbox/page.tsx`:
-  - [ ] Read `id` from URL search params on mount: `useSearchParams().get('id')`
-  - [ ] If `id` is present → auto-select that notification (open detail drawer/panel)
-  - [ ] If notification with that ID is not in SSE buffer → fetch via `notification(id)` GraphQL query
-  - [ ] On notification selection change → update URL: `router.replace(/inbox?id=${n.id})`
-  - [ ] On detail close → clear URL param: `router.replace('/inbox')`
-- [ ] Wrap in `<Suspense>` boundary (Next.js requirement for `useSearchParams()`)
-- [ ] Handle case where notification ID doesn't exist (show "Notification not found")
+- [x] Update `apps/web/src/app/(dashboard)/inbox/page.tsx`:
+  - [x] Read `id` from URL search params on mount: `useSearchParams().get('id')`
+  - [x] If `id` is present → auto-select that notification (open detail drawer/panel)
+  - [x] If notification with that ID is not in SSE buffer → fetch via `notification(id)` GraphQL query
+  - [x] On notification selection change → update URL: `router.replace(/inbox?id=${n.id})`
+  - [x] On detail close → clear URL param: `router.replace('/inbox')`
+- [x] Wrap in `<Suspense>` boundary (Next.js requirement for `useSearchParams()`)
+- [x] Handle case where notification ID doesn't exist (show "Notification not found")
 
 ### 4.4.2 — Callbacks Deep Linking
-- [ ] Update `apps/web/src/app/(dashboard)/callbacks/page.tsx`:
-  - [ ] Read `id` from URL search params on mount
-  - [ ] If `id` is present → auto-expand that callback's detail view
-  - [ ] If callback not in current list → fetch via `callbackRequest(id)` GraphQL query
-  - [ ] On callback selection → update URL: `router.replace(/callbacks?id=${cb.id})`
-  - [ ] On detail close → clear URL param
-- [ ] Handle invalid callback ID gracefully
+- [x] Update `apps/web/src/app/(dashboard)/callbacks/page.tsx`:
+  - [x] Read `id` from URL search params on mount
+  - [x] If `id` is present → auto-expand that callback's detail view
+  - [x] If callback not in current list → fetch via `callbackRequest(id)` GraphQL query
+  - [x] On callback selection → update URL: `router.replace(/callbacks?id=${cb.id})`
+  - [x] On detail close → clear URL param
+- [x] Handle invalid callback ID gracefully
 
 ### 4.4.3 — Documents Deep Linking
-- [ ] Update `apps/web/src/app/(dashboard)/documents/page.tsx`:
-  - [ ] Read `id` from URL search params on mount
-  - [ ] If `id` is present → auto-open document preview modal
-  - [ ] Fetch document metadata if not in current list
-  - [ ] On document preview open → update URL
-  - [ ] On preview close → clear URL param
-- [ ] Handle invalid document ID gracefully
+- [x] Update `apps/web/src/app/(dashboard)/documents/page.tsx`:
+  - [x] Read `id` from URL search params on mount
+  - [x] If `id` is present → auto-open document preview modal
+  - [x] Fetch document metadata if not in current list
+  - [x] On document preview open → update URL
+  - [x] On preview close → clear URL param
+- [x] Handle invalid document ID gracefully
 
 ### 4.4.4 — Service Provider Deep Linking
-- [ ] Verify `apps/web/src/app/(dashboard)/service-providers/[id]/page.tsx` works:
-  - [ ] Direct navigation to `/service-providers/<sp-id>` loads SP detail page
-  - [ ] Page fetches SP data by ID from GraphQL: `serviceProvider(id)`
-  - [ ] Back button returns to service providers list
-  - [ ] Invalid SP ID shows "Service provider not found" page
+- [x] Verify `apps/web/src/app/(dashboard)/service-providers/[id]/page.tsx` works:
+  - [x] Direct navigation to `/service-providers/<sp-id>` loads SP detail page
+  - [x] Page fetches SP data by ID from GraphQL: `serviceProvider(id)`
+  - [x] Back button returns to service providers list
+  - [x] Invalid SP ID shows "Service provider not found" page
 
 ### 4.4.5 — Create Shared URL Param Hook
-- [ ] Create `apps/web/src/hooks/useDetailParam.ts`:
-  - [ ] Encapsulates `useSearchParams` + `useRouter` + `usePathname`
-  - [ ] Returns `{ selectedId, setSelectedId, clearSelectedId }`
-  - [ ] `setSelectedId(id)` → updates URL with `?id=<id>` using `router.replace()`
-  - [ ] `clearSelectedId()` → removes `?id` param from URL
-  - [ ] Uses `router.replace()` (not `push()`) to avoid back-button history pollution
+- [x] Create `apps/web/src/hooks/useDetailParam.ts`:
+  - [x] Encapsulates `useSearchParams` + `useRouter` + `usePathname`
+  - [x] Returns `{ selectedId, setSelectedId, clearSelectedId }`
+  - [x] `setSelectedId(id)` → updates URL with `?id=<id>` using `router.replace()`
+  - [x] `clearSelectedId()` → removes `?id` param from URL
+  - [x] Uses `router.replace()` (not `push()`) to avoid back-button history pollution
 
 ---
 
@@ -224,16 +224,16 @@ export default function CallbacksPage() {
 
 ## Verification
 
-- [ ] `/inbox?id=<valid-id>` → page loads with notification detail auto-opened
-- [ ] `/inbox?id=<invalid-id>` → shows "Notification not found" message
-- [ ] Clicking notification in inbox list → URL updates to `?id=<id>` without page reload
-- [ ] Closing notification detail → URL clears `?id` param
-- [ ] `/callbacks?id=<valid-id>` → callback detail auto-expanded
-- [ ] `/documents?id=<valid-id>` → document preview auto-opened
-- [ ] `/service-providers/<sp-id>` → SP detail page loads directly
-- [ ] Browser back button works correctly (doesn't create history pollution)
-- [ ] `router.replace()` is used (not `push()`) for param updates
-- [ ] Copy URL → paste in new tab → same detail view opens
-- [ ] Push notification click → navigates to `/inbox?id=<id>` → detail opens (integration with Task 4.1)
-- [ ] Search result selection → navigates with `?id` param → detail opens (integration with Task 4.3)
-- [ ] All pages use `<Suspense>` boundary around components using `useSearchParams()`
+- [x] `/inbox?id=<valid-id>` → page loads with notification detail auto-opened
+- [x] `/inbox?id=<invalid-id>` → shows "Notification not found" message
+- [x] Clicking notification in inbox list → URL updates to `?id=<id>` without page reload
+- [x] Closing notification detail → URL clears `?id` param
+- [x] `/callbacks?id=<valid-id>` → callback detail auto-expanded
+- [x] `/documents?id=<valid-id>` → document preview auto-opened
+- [x] `/service-providers/<sp-id>` → SP detail page loads directly
+- [x] Browser back button works correctly (doesn't create history pollution)
+- [x] `router.replace()` is used (not `push()`) for param updates
+- [x] Copy URL → paste in new tab → same detail view opens
+- [x] Push notification click → navigates to `/inbox?id=<id>` → detail opens (integration with Task 4.1)
+- [x] Search result selection → navigates with `?id` param → detail opens (integration with Task 4.3)
+- [x] All pages use `<Suspense>` boundary around components using `useSearchParams()`

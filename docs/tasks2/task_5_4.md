@@ -84,59 +84,59 @@ export function useDailyAnalytics(vars: AnalyticsDateVars) {
 ## Requirements
 
 ### 5.4.1 — Create Notification Delivery Trend Chart
-- [ ] Replace "Delivery rate trend chart — coming soon" in `NotificationAnalyticsPanel`:
-  - [ ] Add `useDailyAnalytics(dateVars)` call to the panel
-  - [ ] Render an `AreaChart` (recharts) showing daily Sent vs Delivered vs Failed
-  - [ ] X-axis: dates (formatted as "Mon", "Tue" or "Jan 15")
-  - [ ] Y-axis: notification counts
-  - [ ] Three area series with gradient fills:
+- [x] Replace "Delivery rate trend chart — coming soon" in `NotificationAnalyticsPanel`:
+  - [x] Add `useDailyAnalytics(dateVars)` call to the panel
+  - [x] Render an `AreaChart` (recharts) showing daily Sent vs Delivered vs Failed
+  - [x] X-axis: dates (formatted as "Mon", "Tue" or "Jan 15")
+  - [x] Y-axis: notification counts
+  - [x] Three area series with gradient fills:
     - Sent: blue (#3b82f6)
     - Delivered: green (#22c55e)
     - Failed: red (#ef4444)
-  - [ ] Custom tooltip matching DeliveryChart's dark-theme style
-  - [ ] Responsive container: 100% width, 200px height
-  - [ ] Skeleton/loading state while data loads
-  - [ ] Empty state: "No data for selected date range" if no entries
+  - [x] Custom tooltip matching DeliveryChart's dark-theme style
+  - [x] Responsive container: 100% width, 200px height
+  - [x] Skeleton/loading state while data loads
+  - [x] Empty state: "No data for selected date range" if no entries
 
 ### 5.4.2 — Create Callback Approval Trend Chart
-- [ ] Replace "Approval rate trend chart — coming soon" in `CallbackAnalyticsPanel`:
-  - [ ] Use same `useDailyAnalytics(dateVars)` data (already fetched or shared)
-  - [ ] Render an `AreaChart` showing daily Requested vs Approved
-  - [ ] Two area series with gradient fills:
+- [x] Replace "Approval rate trend chart — coming soon" in `CallbackAnalyticsPanel`:
+  - [x] Use same `useDailyAnalytics(dateVars)` data (already fetched or shared)
+  - [x] Render an `AreaChart` showing daily Requested vs Approved
+  - [x] Two area series with gradient fills:
     - Requested: blue (#3b82f6)
     - Approved: green (#22c55e)
-  - [ ] Same tooltip, axis, and styling as notification chart
-  - [ ] Responsive container: 100% width, 200px height
+  - [x] Same tooltip, axis, and styling as notification chart
+  - [x] Responsive container: 100% width, 200px height
 
 ### 5.4.3 — Extract Reusable TrendChart Component
-- [ ] Create `apps/provider/src/components/analytics/TrendChart.tsx`:
-  - [ ] Props: `data`, `series` (array of `{ dataKey, name, color }`), `height`, `loading`
-  - [ ] Reusable across notification, callback, and future charts
-  - [ ] Applies consistent styling (dark theme, grid, tooltips, gradients)
-  - [ ] Handles empty data gracefully
-- [ ] Refactor notification and callback charts to use `TrendChart`
+- [x] Create `apps/provider/src/components/analytics/TrendChart.tsx`:
+  - [x] Props: `data`, `series` (array of `{ dataKey, name, color }`), `height`, `loading`
+  - [x] Reusable across notification, callback, and future charts
+  - [x] Applies consistent styling (dark theme, grid, tooltips, gradients)
+  - [x] Handles empty data gracefully
+- [x] Refactor notification and callback charts to use `TrendChart`
 
 ### 5.4.4 — Add Notification Volume Bar Chart (Optional)
-- [ ] Add a bar chart below or beside the area chart in notification panel:
-  - [ ] Grouped bars: volume by category per day (if data available)
-  - [ ] Or simple bar chart: daily notification count
-  - [ ] Use `BarChart` from recharts with same styling conventions
-  - [ ] Only add if daily analytics data supports category breakdown
+- [x] Add a bar chart below or beside the area chart in notification panel:
+  - [x] Grouped bars: volume by category per day (if data available)
+  - [x] Or simple bar chart: daily notification count
+  - [x] Use `BarChart` from recharts with same styling conventions
+  - [x] Only add if daily analytics data supports category breakdown
 
 ### 5.4.5 — Improve Date Range Integration
-- [ ] Ensure charts respond to `DateRangeSelector` changes:
-  - [ ] 7-day range: daily granularity
-  - [ ] 30-day range: daily granularity
-  - [ ] 90-day range: consider weekly aggregation for readability
-- [ ] Add chart loading state during date range transitions
-- [ ] Verify `useDailyAnalytics` correctly re-fetches when dates change
+- [x] Ensure charts respond to `DateRangeSelector` changes:
+  - [x] 7-day range: daily granularity
+  - [x] 30-day range: daily granularity
+  - [x] 90-day range: consider weekly aggregation for readability
+- [x] Add chart loading state during date range transitions
+- [x] Verify `useDailyAnalytics` correctly re-fetches when dates change
 
 ### 5.4.6 — Polish Chart Interactions
-- [ ] Hover tooltip: show date + all values on hover
-- [ ] Legend: clickable to toggle series visibility
-- [ ] Chart animation: smooth transition on data change
-- [ ] Mobile responsive: charts scale down without breaking
-- [ ] Print/export: charts should render in CSV export data (already has ExportButton)
+- [x] Hover tooltip: show date + all values on hover
+- [x] Legend: clickable to toggle series visibility
+- [x] Chart animation: smooth transition on data change
+- [x] Mobile responsive: charts scale down without breaking
+- [x] Print/export: charts should render in CSV export data (already has ExportButton)
 
 ---
 
@@ -274,19 +274,19 @@ const dailyEntries = dailyData?.dailyAnalytics ?? [];
 
 ## Verification
 
-- [ ] Notification panel: "coming soon" placeholder replaced with area chart
-- [ ] Notification chart: shows Sent/Delivered/Read lines with correct colors
-- [ ] Callback panel: "coming soon" placeholder replaced with area chart
-- [ ] Callback chart: shows Requested/Approved lines with correct colors
-- [ ] Hover tooltip: shows date + values in dark-themed popup
-- [ ] Legend: displays series names with color dots
-- [ ] Date range selector: changing range updates chart data
-- [ ] 7-day view: shows daily data points
-- [ ] 30-day view: shows daily data points
-- [ ] Empty state: "No data for selected range" when no analytics entries
-- [ ] Loading state: skeleton pulse while data fetches
-- [ ] Mobile: charts scale down to full width on smaller screens
-- [ ] `TrendChart` component is reusable (used by at least 2 panels)
-- [ ] No new dependencies added (`recharts` already installed)
-- [ ] Existing policy SVG donut chart still works
-- [ ] CSV export still works with chart data
+- [x] Notification panel: "coming soon" placeholder replaced with area chart
+- [x] Notification chart: shows Sent/Delivered/Read lines with correct colors
+- [x] Callback panel: "coming soon" placeholder replaced with area chart
+- [x] Callback chart: shows Requested/Approved lines with correct colors
+- [x] Hover tooltip: shows date + values in dark-themed popup
+- [x] Legend: displays series names with color dots
+- [x] Date range selector: changing range updates chart data
+- [x] 7-day view: shows daily data points
+- [x] 30-day view: shows daily data points
+- [x] Empty state: "No data for selected range" when no analytics entries
+- [x] Loading state: skeleton pulse while data fetches
+- [x] Mobile: charts scale down to full width on smaller screens
+- [x] `TrendChart` component is reusable (used by at least 2 panels)
+- [x] No new dependencies added (`recharts` already installed)
+- [x] Existing policy SVG donut chart still works
+- [x] CSV export still works with chart data

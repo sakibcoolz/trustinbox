@@ -104,19 +104,19 @@ input CreateAvailabilitySlotInput {
 
 ### Requirements
 
-- [ ] Create `apps/web/src/lib/graphql/availability.ts` with GraphQL operations:
-  - [ ] `GET_AVAILABILITY_SLOTS` query — `me { availabilitySlots { id dayOfWeek startTime endTime slotType isActive } }`
-  - [ ] `CREATE_AVAILABILITY_SLOT` mutation — accepts `CreateAvailabilitySlotInput`
-  - [ ] `DELETE_AVAILABILITY_SLOT` mutation — accepts `id`
-- [ ] Create `apps/web/src/hooks/useAvailabilitySlots.ts` hook:
-  - [ ] Use `useQuery(GET_AVAILABILITY_SLOTS)` to load slots
-  - [ ] Return `{ slots, loading, error, refetch, createSlot, deleteSlot }`
-- [ ] Update `availability/page.tsx`:
-  - [ ] Remove `mockSlots` array
-  - [ ] Use `useAvailabilitySlots()` hook
-  - [ ] Initialize slots from query result
-  - [ ] Add loading skeleton (7 day rows with placeholder blocks)
-  - [ ] Add error state with retry
+- [x] Create `apps/web/src/lib/graphql/availability.ts` with GraphQL operations:
+  - [x] `GET_AVAILABILITY_SLOTS` query — `me { availabilitySlots { id dayOfWeek startTime endTime slotType isActive } }`
+  - [x] `CREATE_AVAILABILITY_SLOT` mutation — accepts `CreateAvailabilitySlotInput`
+  - [x] `DELETE_AVAILABILITY_SLOT` mutation — accepts `id`
+- [x] Create `apps/web/src/hooks/useAvailabilitySlots.ts` hook:
+  - [x] Use `useQuery(GET_AVAILABILITY_SLOTS)` to load slots
+  - [x] Return `{ slots, loading, error, refetch, createSlot, deleteSlot }`
+- [x] Update `availability/page.tsx`:
+  - [x] Remove `mockSlots` array
+  - [x] Use `useAvailabilitySlots()` hook
+  - [x] Initialize slots from query result
+  - [x] Add loading skeleton (7 day rows with placeholder blocks)
+  - [x] Add error state with retry
 
 ### Implementation Details
 
@@ -201,18 +201,18 @@ export function useAvailabilitySlots() {
 
 ### Requirements
 
-- [ ] Replace state-only `handleAdd` with `createSlot` mutation:
-  - [ ] Collect form: `dayOfWeek`, `startTime`, `endTime`, `slotType`
-  - [ ] Call `createAvailabilitySlot` mutation
-  - [ ] On success: close form, refetch slots, show success toast
-  - [ ] On error: show error toast
-- [ ] Form validation:
-  - [ ] End time must be after start time
-  - [ ] No overlapping slots on the same day
-  - [ ] At least 30-minute minimum duration
-  - [ ] Show validation errors inline
-- [ ] Add loading state on "Add Slot" button during mutation
-- [ ] Alternative: click on a day row in the calendar → pre-fill the day dropdown → open form
+- [x] Replace state-only `handleAdd` with `createSlot` mutation:
+  - [x] Collect form: `dayOfWeek`, `startTime`, `endTime`, `slotType`
+  - [x] Call `createAvailabilitySlot` mutation
+  - [x] On success: close form, refetch slots, show success toast
+  - [x] On error: show error toast
+- [x] Form validation:
+  - [x] End time must be after start time
+  - [x] No overlapping slots on the same day
+  - [x] At least 30-minute minimum duration
+  - [x] Show validation errors inline
+- [x] Add loading state on "Add Slot" button during mutation
+- [x] Alternative: click on a day row in the calendar → pre-fill the day dropdown → open form
 
 ---
 
@@ -220,18 +220,18 @@ export function useAvailabilitySlots() {
 
 ### Requirements
 
-- [ ] Replace state-only `handleDelete` with `deleteSlot` mutation:
-  - [ ] Click delete (✗) button on slot → popover confirmation
-  - [ ] "Remove this availability slot?" + slot summary
-  - [ ] On confirm: call `deleteAvailabilitySlot` mutation
-  - [ ] Optimistic removal from cache
-  - [ ] On success: show "Slot removed" toast
-  - [ ] On error: revert, show error toast
-- [ ] Replace state-only `handleToggle`:
-  - [ ] Since no update mutation, toggle = delete + create with flipped `isActive`
-  - [ ] Note: `CreateAvailabilitySlotInput` has no `isActive` field — new slots always active
-  - [ ] Option: hide toggle, only support delete. Or track `isActive` client-side until schema extends
-  - [ ] Document chosen approach with TODO for future `updateAvailabilitySlot`
+- [x] Replace state-only `handleDelete` with `deleteSlot` mutation:
+  - [x] Click delete (✗) button on slot → popover confirmation
+  - [x] "Remove this availability slot?" + slot summary
+  - [x] On confirm: call `deleteAvailabilitySlot` mutation
+  - [x] Optimistic removal from cache
+  - [x] On success: show "Slot removed" toast
+  - [x] On error: revert, show error toast
+- [x] Replace state-only `handleToggle`:
+  - [x] Since no update mutation, toggle = delete + create with flipped `isActive`
+  - [x] Note: `CreateAvailabilitySlotInput` has no `isActive` field — new slots always active
+  - [x] Option: hide toggle, only support delete. Or track `isActive` client-side until schema extends
+  - [x] Document chosen approach with TODO for future `updateAvailabilitySlot`
 
 ---
 
@@ -239,37 +239,37 @@ export function useAvailabilitySlots() {
 
 ### Requirements
 
-- [ ] Enhance existing 7-day list into a visual calendar grid:
-  - [ ] Desktop: 7-column grid, each column = one day of week
-  - [ ] Rows represent time blocks (e.g., 8:00 AM to 8:00 PM)
-  - [ ] Colored blocks represent availability slots, height proportional to duration
-  - [ ] Color coding: Callback=`bg-accent-blue/20`, Meeting=`bg-accent-purple/20`, Any=`bg-accent-green/20`
-  - [ ] Current time indicator: red horizontal line showing "now"
-- [ ] Interactive calendar:
-  - [ ] Click on empty time slot → open create form pre-filled with day + time
-  - [ ] Click on existing slot → show popover with details + delete button
-- [ ] Mobile layout:
-  - [ ] Vertical scrollable list (one day per section, current design)
-  - [ ] Swipe between days or accordion-style expand/collapse
-- [ ] Keep the existing list view as a fallback tab ("List" | "Calendar" toggle)
+- [x] Enhance existing 7-day list into a visual calendar grid:
+  - [x] Desktop: 7-column grid, each column = one day of week
+  - [x] Rows represent time blocks (e.g., 8:00 AM to 8:00 PM)
+  - [x] Colored blocks represent availability slots, height proportional to duration
+  - [x] Color coding: Callback=`bg-accent-blue/20`, Meeting=`bg-accent-purple/20`, Any=`bg-accent-green/20`
+  - [x] Current time indicator: red horizontal line showing "now"
+- [x] Interactive calendar:
+  - [x] Click on empty time slot → open create form pre-filled with day + time
+  - [x] Click on existing slot → show popover with details + delete button
+- [x] Mobile layout:
+  - [x] Vertical scrollable list (one day per section, current design)
+  - [x] Swipe between days or accordion-style expand/collapse
+- [x] Keep the existing list view as a fallback tab ("List" | "Calendar" toggle)
 
 ---
 
 ## Verification Checklist
 
-- [ ] Availability page loads real slots from `me.availabilitySlots`
-- [ ] Loading skeleton shows during query
-- [ ] Create form submits via `createAvailabilitySlot` mutation
-- [ ] New slot appears in calendar/list after creation
-- [ ] Delete shows confirmation → calls mutation → optimistic removal
-- [ ] Slot type colors display correctly (blue/purple/green)
-- [ ] Weekly calendar grid shows slots as colored blocks
-- [ ] Current time indicator visible on calendar
-- [ ] Clicking empty slot opens pre-filled form
-- [ ] Clicking existing slot shows popover with delete
-- [ ] Form validates: end > start, no overlap, min 30min
-- [ ] Mobile fallback to list view
-- [ ] Error states with retry/toast
+- [x] Availability page loads real slots from `me.availabilitySlots`
+- [x] Loading skeleton shows during query
+- [x] Create form submits via `createAvailabilitySlot` mutation
+- [x] New slot appears in calendar/list after creation
+- [x] Delete shows confirmation → calls mutation → optimistic removal
+- [x] Slot type colors display correctly (blue/purple/green)
+- [x] Weekly calendar grid shows slots as colored blocks
+- [x] Current time indicator visible on calendar
+- [x] Clicking empty slot opens pre-filled form
+- [x] Clicking existing slot shows popover with delete
+- [x] Form validates: end > start, no overlap, min 30min
+- [x] Mobile fallback to list view
+- [x] Error states with retry/toast
 
 ---
 

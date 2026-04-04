@@ -226,6 +226,26 @@ export function useUpdateOrganizationProfile(spId: string) {
   };
 }
 
+export function useApplyIndustryProfile(spId: string) {
+  const { run, loading, error } = useMutationHelper();
+  return {
+    applyProfile: (industryKey: string) =>
+      run(`/api/gateway/v1/service-providers/${spId}`, 'PUT', { serviceProviderId: spId, industry: industryKey }),
+    loading,
+    error,
+  };
+}
+
+export function useSaveCommunicationOverrides(spId: string) {
+  const { run, loading, error } = useMutationHelper();
+  return {
+    saveOverrides: (overrides: Record<string, unknown>) =>
+      run(`/api/gateway/v1/service-providers/${spId}/communication-config`, 'PUT', { serviceProviderId: spId, ...overrides }),
+    loading,
+    error,
+  };
+}
+
 // ============================================================
 // HOOKS — Team Activity
 // ============================================================

@@ -67,6 +67,7 @@ type privacyPreferencesResponse struct {
 	AllowChat                  bool `json:"allowChat"`
 	AllowDocumentShares        bool `json:"allowDocumentShares"`
 	RequireCallApproval        bool `json:"requireCallApproval"`
+	NotificationSoundEnabled   bool `json:"notificationSoundEnabled"`
 }
 
 type sessionsResponse struct {
@@ -94,6 +95,7 @@ type updatePrivacyRequest struct {
 	AllowChat                  *bool `json:"allowChat"`
 	AllowDocumentShares        *bool `json:"allowDocumentShares"`
 	RequireCallApproval        *bool `json:"requireCallApproval"`
+	NotificationSoundEnabled   *bool `json:"notificationSoundEnabled"`
 }
 
 // ============================================================
@@ -509,6 +511,7 @@ func handleGetPrivacyPreferences(svc *clients.ServiceClients, tokenSvc *jwt.Toke
 				AllowChat:                  true,
 				AllowDocumentShares:        true,
 				RequireCallApproval:        true,
+				NotificationSoundEnabled:   true,
 			})
 			return
 		}
@@ -521,6 +524,7 @@ func handleGetPrivacyPreferences(svc *clients.ServiceClients, tokenSvc *jwt.Toke
 			AllowChat:                  prefs.AllowChat,
 			AllowDocumentShares:        prefs.AllowDocumentShares,
 			RequireCallApproval:        prefs.RequireCallApproval,
+			NotificationSoundEnabled:   prefs.NotificationSoundEnabled,
 		})
 	}
 }
@@ -558,6 +562,7 @@ func handleUpdatePrivacyPreferences(svc *clients.ServiceClients, tokenSvc *jwt.T
 			AllowChat:                  req.AllowChat,
 			AllowDocumentShares:        req.AllowDocumentShares,
 			RequireCallApproval:        req.RequireCallApproval,
+			NotificationSoundEnabled:   req.NotificationSoundEnabled,
 		}
 
 		_, err = svc.User.UpdatePrivacyPreference(r.Context(), updateReq)

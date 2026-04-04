@@ -46,7 +46,7 @@ func main() {
 	rdb := redis.NewClient(redisOpts)
 	defer rdb.Close()
 
-	publisher := events.NewRedisStreamPublisher(rdb, log, "trustinbox:events")
+	publisher := events.NewDualPublisher(rdb, log, "trustinbox:events")
 	defer publisher.Close()
 
 	// Database

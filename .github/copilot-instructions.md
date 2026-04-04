@@ -455,6 +455,38 @@ consumer := events.NewRedisStreamConsumer(rdb, log, "trustinbox:events", "worker
 consumer.Start(ctx, handler.Handle)
 ```
 
+### 4.5 Real-Time Notification Architecture
+
+The gateway hosts two SSE event subscribers that bridge Redis Pub/Sub domain events to connected frontend clients:
+
+| Subscriber | Target | SSE Event Name | Scope |
+|-----------|--------|---------------|-------|
+| `startProviderEventSubscriber` | Provider portal (`apps/provider/`) | Domain-specific (e.g., `callback_created`, `notification_delivered`) | Service Provider (SP-scoped via `sendToSP()`) |
+| `startConsumerEventSubscriber` | Web app (`apps/web/`) | `notification` (single event name) | User (user-scoped via `send()`) |
+
+**Provider Subscriber Flow:**
+```
+Redis Pub/Sub → sseEventMap (17 domain→SSE mappings) → hub.sendToSP(spID) + hub.send(userID)
+```
+
+**Consumer Subscriber Flow:**
+```
+Redis Pub/Sub → consumerEventLabels (7 event types) → DND check → sound pref check → hub.send(userID, "notification", enrichedPayload)
+```
+
+**DND-Aware Delivery:**
+- Gateway checks GLOBAL DND rules (`dnd_rules` table) and sound preference (`privacy_preferences.notification_sound_enabled`)
+- Enriches SSE payload with `suppressed: bool` and `soundEnabled: bool` flags
+- Web app respects these flags: suppressed → no toast/sound (still in dropdown); soundEnabled=false → no sound only
+- Per-category/per-SP DND is enforced at notification creation time by the policy service
+
+**Key Events (Consumer-Facing):**
+`notification.created`, `notification.delivered`, `callback.approved`, `callback.rejected`, `callback.expired`, `message.sent`, `document.shared`
+
+**Frontend Hooks:**
+- Provider: `NotificationProvider` + `NotificationBell` (single SSE connection, `useSSE()` hook)
+- Web app: `NotificationProvider` (SSE via EventSource, `notification` / `chat_message` / `presence_update` listeners)
+
 ---
 
 ## 5 · AI Behavior Rules

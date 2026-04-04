@@ -156,36 +156,36 @@ type Orchestrator struct {
 
 ### Sub-task 6.8.1 — Provider Portal: Create and Configure Bot
 
-- [ ] Navigate to Provider Portal → `/bots/new`
-- [ ] **Step 1 — Details**:
+- [x] Navigate to Provider Portal → `/bots/new`
+- [x] **Step 1 — Details**:
   - Name: "Support Assistant"
   - Purpose: "Handle customer inquiries about account features and billing"
   - Department: "Customer Support"
   - Select industry profile (if applicable)
   - Upload avatar (optional)
   - Click Next
-- [ ] **Step 2 — Configuration**:
+- [x] **Step 2 — Configuration**:
   - Greeting: "Hello! I'm your support assistant. How can I help you today?"
   - Tone: "Professional and friendly"
   - Max conversation turns: 10
   - Response length: "Medium"
   - Language: "English"
   - Click Next
-- [ ] **Step 3 — Permissions**:
+- [x] **Step 3 — Permissions**:
   - Enable tools:
     - `search_orders` → ON
     - `view_account` → ON
     - `update_account` → OFF (restricted)
     - `escalate_to_human` → ON
   - Click Next
-- [ ] **Step 4 — Knowledge**:
+- [x] **Step 4 — Knowledge**:
   - Add knowledge source: upload FAQ document
   - Add URL: company help center URL
   - Click Next
-- [ ] **Step 5 — Review**:
+- [x] **Step 5 — Review**:
   - Verify all settings displayed correctly
   - Click "Create Bot"
-- [ ] Verify bot persisted:
+- [x] Verify bot persisted:
   ```sql
   SELECT id, name, status, service_provider_id, department
   FROM bots WHERE name = 'Support Assistant'
@@ -195,40 +195,40 @@ type Orchestrator struct {
 
 ### Sub-task 6.8.2 — Provider Portal: Deploy Bot
 
-- [ ] Navigate to `/bots/<bot-id>`
-- [ ] Click "Deploy" / "Activate" button
-- [ ] Verify bot status changes:
+- [x] Navigate to `/bots/<bot-id>`
+- [x] Click "Deploy" / "Activate" button
+- [x] Verify bot status changes:
   ```sql
   SELECT status FROM bots WHERE id = '<bot-id>';
   ```
   - Status: `ACTIVE`
-- [ ] Verify `bot.deployed` event published
-- [ ] Verify bot appears in active bots list on Provider Portal
-- [ ] Verify bot configuration and permissions are locked after deployment (or require redeploy)
+- [x] Verify `bot.deployed` event published
+- [x] Verify bot appears in active bots list on Provider Portal
+- [x] Verify bot configuration and permissions are locked after deployment (or require redeploy)
 
 ### Sub-task 6.8.3 — Customer: Trigger Bot Interaction
 
-- [ ] As a customer (Web App or API), initiate conversation with the bot:
+- [x] As a customer (Web App or API), initiate conversation with the bot:
   - Navigate to conversations or use bot trigger endpoint
   - Send message: "What are the features of my current plan?"
-- [ ] Verify request reaches bot-service:
+- [x] Verify request reaches bot-service:
   - `ExecuteBotAction(botID, userID, "chat", inputJson)`
   - inputJson contains the customer message
-- [ ] Verify policy check passes:
+- [x] Verify policy check passes:
   - `PolicyChecker.EvaluateBotAction` → allowed = true
   - Bot is ACTIVE, user has relationship with SP, action type is permitted
-- [ ] Verify AI service called:
+- [x] Verify AI service called:
   - gRPC to ai-service: `Execute` RPC
   - orchestrator.ChatCompletion with conversation context
   - QueryKnowledge for relevant FAQ content (RAG)
-- [ ] Verify bot response returned:
+- [x] Verify bot response returned:
   - outputJson contains coherent response about account features
   - policyDecision: empty (allowed)
   - escalated: false
 
 ### Sub-task 6.8.4 — Conversation: Bot Response Appears
 
-- [ ] Verify bot response in conversation thread:
+- [x] Verify bot response in conversation thread:
   - **Web App**: customer sees bot response inline
     - Bot message has bot avatar and "Bot" label
     - Message content matches AI response
@@ -236,7 +236,7 @@ type Orchestrator struct {
   - **Provider Portal**: SP agent sees bot conversation
     - Bot messages labeled with bot name
     - Customer messages and bot responses interspersed
-- [ ] Verify conversation record:
+- [x] Verify conversation record:
   ```sql
   SELECT sender_type, sender_id, body, created_at
   FROM messages
@@ -245,7 +245,7 @@ type Orchestrator struct {
   ```
   - Customer message: sender_type = `USER`
   - Bot response: sender_type = `BOT`, sender_id = bot ID
-- [ ] Verify bot action logged:
+- [x] Verify bot action logged:
   ```sql
   SELECT bot_id, user_id, action_type, input, output, policy_decision, escalated
   FROM bot_action_logs
@@ -255,77 +255,77 @@ type Orchestrator struct {
 
 ### Sub-task 6.8.5 — Multi-Turn Conversation
 
-- [ ] Customer sends follow-up message: "Can you look up my recent orders?"
-- [ ] Verify bot-service receives with conversation context (previous messages)
-- [ ] Verify tool execution (if `search_orders` is permitted):
+- [x] Customer sends follow-up message: "Can you look up my recent orders?"
+- [x] Verify bot-service receives with conversation context (previous messages)
+- [x] Verify tool execution (if `search_orders` is permitted):
   - AI decides to use `search_orders` tool
   - orchestrator.ExecuteTool("search_orders", params)
   - Tool returns order data
   - Bot formats response with order details
-- [ ] Verify max turns enforcement:
+- [x] Verify max turns enforcement:
   - After 10 turns, bot should indicate it has reached the conversation limit
   - Or escalate to human agent
-- [ ] Verify each turn is logged in bot_action_logs
+- [x] Verify each turn is logged in bot_action_logs
 
 ### Sub-task 6.8.6 — Policy-Denied Bot Action
 
-- [ ] Customer sends: "Please update my email address to new@example.com"
-- [ ] Bot attempts to use `update_account` tool
-- [ ] Verify policy check DENIES the action:
+- [x] Customer sends: "Please update my email address to new@example.com"
+- [x] Bot attempts to use `update_account` tool
+- [x] Verify policy check DENIES the action:
   - `PolicyChecker.EvaluateBotAction(botID, userID, "update_account")` → allowed = false
   - Reason: "Tool 'update_account' is not permitted for this bot"
-- [ ] Verify bot response handles denial gracefully:
+- [x] Verify bot response handles denial gracefully:
   - Bot tells customer: "I'm not able to update account details directly. Let me connect you with a human agent."
   - policyDecision field populated with denial reason
-- [ ] Verify denial logged:
+- [x] Verify denial logged:
   ```sql
   SELECT action_type, policy_decision FROM bot_action_logs
   WHERE bot_id = '<bot-id>' AND action_type = 'update_account';
   ```
   - policy_decision: "Tool not permitted"
-- [ ] Verify Provider Portal: bot action log shows denied action with reason
-- [ ] Check Jaeger trace: `bot-service / ExecuteBotAction` span with policy denial attribute
+- [x] Verify Provider Portal: bot action log shows denied action with reason
+- [x] Check Jaeger trace: `bot-service / ExecuteBotAction` span with policy denial attribute
 
 ### Sub-task 6.8.7 — Escalation to Human Agent
 
-- [ ] Customer says: "I want to speak with a real person"
-- [ ] Verify bot triggers escalation:
+- [x] Customer says: "I want to speak with a real person"
+- [x] Verify bot triggers escalation:
   - AI detects escalation intent
   - Bot uses `escalate_to_human` tool (permitted)
   - `ExecuteResult.Escalated = true`
-- [ ] Verify escalation handling:
+- [x] Verify escalation handling:
   - Conversation flagged for human assignment
   - Bot sends final message: "I'm connecting you with a human agent now."
   - `bot.escalated` event published
-- [ ] Verify Provider Portal:
+- [x] Verify Provider Portal:
   - Agent receives notification of escalation
   - Conversation appears in agent's queue or inbox
   - Agent can see full bot conversation history
   - Agent takes over — subsequent messages from agent (senderType = `AGENT`)
-- [ ] Verify Web App:
+- [x] Verify Web App:
   - Customer sees transition message from bot
   - Next response comes from human agent
   - Conversation continues seamlessly
 
 ### Sub-task 6.8.8 — Bot Analytics & Audit Trail
 
-- [ ] Navigate to Provider Portal → `/bots/<bot-id>` → Analytics tab
-- [ ] Verify bot statistics:
+- [x] Navigate to Provider Portal → `/bots/<bot-id>` → Analytics tab
+- [x] Verify bot statistics:
   - Total interactions count
   - Average response time
   - Escalation rate
   - Policy denial count
   - Customer satisfaction (if tracked)
-- [ ] Verify action audit trail:
+- [x] Verify action audit trail:
   - All actions logged with timestamp, user, action type, input/output
   - Policy decisions captured
   - Escalation events recorded
-- [ ] Verify analytics-service has bot metrics:
+- [x] Verify analytics-service has bot metrics:
   ```sql
   SELECT * FROM bot_stats
   WHERE bot_id = '<bot-id>';
   ```
-- [ ] Verify events published:
+- [x] Verify events published:
   - `bot.action.executed` — for each successful action
   - `bot.action.denied` — for policy-denied actions
   - `bot.escalated` — for escalation events
@@ -334,15 +334,15 @@ type Orchestrator struct {
 
 ## Verification Checklist
 
-- [ ] Provider Portal: 5-step wizard → create bot → DRAFT status → deploy → ACTIVE
-- [ ] Customer triggers bot → policy check passes → AI service processes → response returned
-- [ ] Bot response appears in conversation with senderType=BOT for both Web App and Provider Portal
-- [ ] Multi-turn conversation maintains context across turns
-- [ ] Tool execution: permitted tools work, denied tools return graceful policy rejection
-- [ ] Policy-denied actions: logged with reason, bot responds gracefully to customer
-- [ ] Escalation: bot hands off to human agent, full conversation history preserved
-- [ ] Provider Portal: agent receives escalation, takes over conversation seamlessly
-- [ ] Bot action logs: complete audit trail of all interactions in bot_action_logs table
-- [ ] Bot analytics: interaction counts, escalation rates, denial counts tracked
-- [ ] Jaeger: traces span bot-service → ai-service → LLM call with timing data
-- [ ] Events: bot.action.executed, bot.action.denied, bot.escalated published correctly
+- [x] Provider Portal: 5-step wizard → create bot → DRAFT status → deploy → ACTIVE
+- [x] Customer triggers bot → policy check passes → AI service processes → response returned
+- [x] Bot response appears in conversation with senderType=BOT for both Web App and Provider Portal
+- [x] Multi-turn conversation maintains context across turns
+- [x] Tool execution: permitted tools work, denied tools return graceful policy rejection
+- [x] Policy-denied actions: logged with reason, bot responds gracefully to customer
+- [x] Escalation: bot hands off to human agent, full conversation history preserved
+- [x] Provider Portal: agent receives escalation, takes over conversation seamlessly
+- [x] Bot action logs: complete audit trail of all interactions in bot_action_logs table
+- [x] Bot analytics: interaction counts, escalation rates, denial counts tracked
+- [x] Jaeger: traces span bot-service → ai-service → LLM call with timing data
+- [x] Events: bot.action.executed, bot.action.denied, bot.escalated published correctly

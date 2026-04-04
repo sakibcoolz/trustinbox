@@ -2,11 +2,12 @@
 
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { Header } from '@/components/layout/header';
 import { ChatProvider } from '@/lib/chat-context';
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
 
 export default function DashboardLayout({
   children,
@@ -15,12 +16,19 @@ export default function DashboardLayout({
 }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/auth/login');
     }
   }, [user, isLoading, router]);
+
+  useEffect(() => {
+    if (user && !localStorage.getItem('trustinbox:onboarding-complete')) {
+      setShowOnboarding(true);
+    }
+  }, [user]);
 
   if (isLoading) {
     return (
@@ -49,6 +57,7 @@ export default function DashboardLayout({
         </div>
       </div>
       <MobileNav />
+      {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
     </ChatProvider>
   );
 }

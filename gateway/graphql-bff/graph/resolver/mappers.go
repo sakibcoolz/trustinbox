@@ -84,6 +84,7 @@ func mapPrivacyPreferenceFromProto(pp *userpb.PrivacyPreference) *model.PrivacyP
 		AllowChat:                  pp.AllowChat,
 		AllowDocumentShares:        pp.AllowDocumentShares,
 		RequireCallApproval:        pp.RequireCallApproval,
+		NotificationSoundEnabled:   pp.NotificationSoundEnabled,
 	}
 }
 

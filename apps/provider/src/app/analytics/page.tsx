@@ -19,6 +19,7 @@ import {
 import { useBots, type Bot } from '@/lib/graphql/bots';
 import { useCampaigns, type Campaign } from '@/lib/graphql/campaigns';
 import { buildCsvString, downloadCsv, sanitizeCsvField } from '@/lib/utils/csv-export';
+import { TrendChart } from '@/components/analytics/TrendChart';
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 
@@ -90,6 +91,8 @@ function SummaryCards({ data, loading }: { data?: AnalyticsOverviewData; loading
 
 function NotificationAnalyticsPanel({ dateVars }: { dateVars: AnalyticsDateVars }) {
   const { data, loading, error, refetch } = useNotificationAnalytics(dateVars);
+  const { data: dailyData, loading: dailyLoading } = useDailyAnalytics(dateVars);
+  const dailyEntries = dailyData?.dailyAnalytics ?? [];
 
   if (loading) return <PanelSkeleton />;
   if (error) {
@@ -122,9 +125,21 @@ function NotificationAnalyticsPanel({ dateVars }: { dateVars: AnalyticsDateVars 
           </div>
         ))}
       </div>
-      <div className="h-40 border border-border-secondary rounded-lg flex items-center justify-center text-xs text-text-muted">
-        Delivery rate trend chart — coming soon
-      </div>
+      <TrendChart
+        data={dailyEntries.map((d) => ({
+          date: d.date,
+          sent: d.notificationsSent,
+          delivered: d.notificationsDelivered,
+          read: d.notificationsRead,
+        }))}
+        series={[
+          { dataKey: 'sent', name: 'Sent', color: '#3b82f6' },
+          { dataKey: 'delivered', name: 'Delivered', color: '#22c55e' },
+          { dataKey: 'read', name: 'Read', color: '#a855f7' },
+        ]}
+        loading={dailyLoading}
+        height={180}
+      />
     </div>
   );
 }
@@ -133,6 +148,8 @@ function NotificationAnalyticsPanel({ dateVars }: { dateVars: AnalyticsDateVars 
 
 function CallbackAnalyticsPanel({ dateVars }: { dateVars: AnalyticsDateVars }) {
   const { data, loading, error, refetch } = useCallbackAnalytics(dateVars);
+  const { data: dailyData, loading: dailyLoading } = useDailyAnalytics(dateVars);
+  const dailyEntries = dailyData?.dailyAnalytics ?? [];
 
   if (loading) return <PanelSkeleton />;
   if (error) {
@@ -165,9 +182,19 @@ function CallbackAnalyticsPanel({ dateVars }: { dateVars: AnalyticsDateVars }) {
           </div>
         ))}
       </div>
-      <div className="h-40 border border-border-secondary rounded-lg flex items-center justify-center text-xs text-text-muted">
-        Approval rate trend chart — coming soon
-      </div>
+      <TrendChart
+        data={dailyEntries.map((d) => ({
+          date: d.date,
+          requested: d.callbacksRequested,
+          approved: d.callbacksApproved,
+        }))}
+        series={[
+          { dataKey: 'requested', name: 'Requested', color: '#3b82f6' },
+          { dataKey: 'approved', name: 'Approved', color: '#22c55e' },
+        ]}
+        loading={dailyLoading}
+        height={180}
+      />
     </div>
   );
 }

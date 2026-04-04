@@ -71,14 +71,14 @@ func TestXxx_Success(t *testing.T) {
 
 ### Sub-task 7.6.1 — Integration Test Setup
 
-- [ ] Create directory: `tests/integration/`
-- [ ] Create `tests/integration/go.mod`:
+- [x] Create directory: `tests/integration/`
+- [x] Create `tests/integration/go.mod`:
   ```go
   module github.com/trustinbox/tests/integration
   go 1.24
   ```
-- [ ] Add to `go.work`: `tests/integration`
-- [ ] Create `tests/integration/helpers_test.go`:
+- [x] Add to `go.work`: `tests/integration`
+- [x] Create `tests/integration/helpers_test.go`:
   - `gatewayURL` constant: `http://localhost:4000`
   - `graphqlPost(t, token string, query string, variables map[string]interface{}) *http.Response` — sends POST to `/graphql`
   - `restPost(t, token, path string, body interface{}) *http.Response` — sends POST to REST endpoint
@@ -88,8 +88,8 @@ func TestXxx_Success(t *testing.T) {
   - `generateProviderJWT(userID, spID, role string) string` — creates JWT with provider role
   - `requireNoErrors(t, resp)` — asserts no GraphQL errors in response
   - `requireError(t, resp, expectedCode string)` — asserts specific error
-- [ ] Create build tag: `//go:build integration`
-- [ ] Add Makefile target:
+- [x] Create build tag: `//go:build integration`
+- [x] Add Makefile target:
   ```makefile
   test-integration:
   	cd tests/integration && go test -tags=integration -v ./...
@@ -97,7 +97,7 @@ func TestXxx_Success(t *testing.T) {
 
 ### Sub-task 7.6.2 — Customer Query Tests
 
-- [ ] Create `tests/integration/customer_queries_test.go`:
+- [x] Create `tests/integration/customer_queries_test.go`:
   - **`myNotifications` query**:
     - Send with customer JWT → verify returns only that user's notifications
     - Verify response shape: `nodes []Notification`, `totalCount`
@@ -127,7 +127,7 @@ func TestXxx_Success(t *testing.T) {
 
 ### Sub-task 7.6.3 — Customer Mutation Tests
 
-- [ ] Create `tests/integration/customer_mutations_test.go`:
+- [x] Create `tests/integration/customer_mutations_test.go`:
   - **`markNotificationRead` mutation**:
     - Get an unread notification ID
     - Call mutation with `{id}` → verify success
@@ -155,7 +155,7 @@ func TestXxx_Success(t *testing.T) {
 
 ### Sub-task 7.6.4 — Provider Query and Mutation Tests
 
-- [ ] Create `tests/integration/provider_queries_test.go`:
+- [x] Create `tests/integration/provider_queries_test.go`:
   - **`notifications` query (provider)**:
     - Send with provider JWT → verify returns SP's sent notifications
     - Verify scoped to `x-service-provider-id` (only this SP's notifications)
@@ -177,7 +177,7 @@ func TestXxx_Success(t *testing.T) {
 
 ### Sub-task 7.6.5 — Cross-Role Authorization Tests
 
-- [ ] Create `tests/integration/authorization_test.go`:
+- [x] Create `tests/integration/authorization_test.go`:
   - **Customer cannot access provider queries**:
     - Customer JWT → query `notifications` (provider query) → verify 403 or FORBIDDEN error
     - Customer JWT → query `campaigns` → verify denied
@@ -200,7 +200,7 @@ func TestXxx_Success(t *testing.T) {
 
 ### Sub-task 7.6.6 — Data Isolation Tests
 
-- [ ] Create `tests/integration/isolation_test.go`:
+- [x] Create `tests/integration/isolation_test.go`:
   - **Customer data isolation**:
     - Customer-A JWT → `myNotifications` → get notification IDs
     - Customer-B JWT → `myNotifications` → get notification IDs
@@ -219,32 +219,32 @@ func TestXxx_Success(t *testing.T) {
 
 ### Sub-task 7.6.7 — Run and Validate Integration Tests
 
-- [ ] Prerequisite: `make up-infra` + `./scripts/dev.sh` running
-- [ ] Seed test data if needed:
+- [x] Prerequisite: `make up-infra` + `./scripts/dev.sh` running
+- [x] Seed test data if needed:
   ```bash
   make seed  # ensure test users, SPs, and sample data exist
   ```
-- [ ] Run: `cd tests/integration && go test -tags=integration -v ./...`
+- [x] Run: `cd tests/integration && go test -tags=integration -v ./...`
   - All tests pass
   - No test pollution (tests clean up after themselves)
-- [ ] Verify test output:
+- [x] Verify test output:
   - Each test case produces clear pass/fail output
   - Failed assertions show expected vs. actual values
-- [ ] Run with race detector: `go test -tags=integration -race ./...`
+- [x] Run with race detector: `go test -tags=integration -race ./...`
   - No race conditions detected
 
 ---
 
 ## Verification Checklist
 
-- [ ] `tests/integration/` created with `go.mod` and added to `go.work`
-- [ ] Helper utilities: JWT generation, GraphQL/REST request helpers, response parsing
-- [ ] Customer queries: all 8 queries tested with correct scoping
-- [ ] Customer mutations: markRead, privacy update, DND CRUD, block/unblock, callback approve
-- [ ] Provider queries: notifications, callbacks scoped to SP
-- [ ] Provider REST: POST notifications, callbacks, campaigns return correct responses
-- [ ] Authorization: customer ✗ provider queries, provider ✗ customer queries, no-auth ✗ all
-- [ ] Data isolation: customer-A cannot access customer-B's data, SP-A isolated from SP-B
-- [ ] Privacy → policy impact: disabling category preference blocks subsequent notifications
-- [ ] All tests pass with `go test -tags=integration -v ./...`
-- [ ] Race detector clean: `go test -tags=integration -race ./...`
+- [x] `tests/integration/` created with `go.mod` and added to `go.work`
+- [x] Helper utilities: JWT generation, GraphQL/REST request helpers, response parsing
+- [x] Customer queries: all 8 queries tested with correct scoping
+- [x] Customer mutations: markRead, privacy update, DND CRUD, block/unblock, callback approve
+- [x] Provider queries: notifications, callbacks scoped to SP
+- [x] Provider REST: POST notifications, callbacks, campaigns return correct responses
+- [x] Authorization: customer ✗ provider queries, provider ✗ customer queries, no-auth ✗ all
+- [x] Data isolation: customer-A cannot access customer-B's data, SP-A isolated from SP-B
+- [x] Privacy → policy impact: disabling category preference blocks subsequent notifications
+- [x] All tests pass with `go test -tags=integration -v ./...`
+- [x] Race detector clean: `go test -tags=integration -race ./...`

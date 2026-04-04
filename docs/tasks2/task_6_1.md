@@ -101,45 +101,45 @@ func (uc *NotificationUseCase) CreateNotification(ctx context.Context, input Cre
 
 ### Sub-task 6.1.1 — Provider Portal: Send Notification
 
-- [ ] Open Provider Portal → navigate to `/notifications/compose`
-- [ ] Fill compose form:
+- [x] Open Provider Portal → navigate to `/notifications/compose`
+- [x] Fill compose form:
   - Select a valid recipient (customer virtual ID)
   - Set category: `PERSONAL` (to pass policy most easily)
   - Enter subject: "Test notification from E2E"
   - Enter body: "This is an end-to-end test notification"
   - Set priority: `NORMAL`
-- [ ] Verify policy check runs inline and shows `ALLOW` decision
-- [ ] Click "Send" → confirm in modal
-- [ ] Verify `useSendNotification()` fires POST `/api/notifications`
-- [ ] Verify success toast appears: "Notification sent"
-- [ ] Verify redirect to notification list or compose resets
+- [x] Verify policy check runs inline and shows `ALLOW` decision
+- [x] Click "Send" → confirm in modal
+- [x] Verify `useSendNotification()` fires POST `/api/notifications`
+- [x] Verify success toast appears: "Notification sent"
+- [x] Verify redirect to notification list or compose resets
 
 ### Sub-task 6.1.2 — Gateway: Request Processing
 
-- [ ] Verify gateway receives POST `/api/v1/notifications`
-- [ ] Verify virtual ID → UUID resolution happens correctly
-- [ ] Verify gRPC call to `notification-service.CreateNotification` includes:
+- [x] Verify gateway receives POST `/api/v1/notifications`
+- [x] Verify virtual ID → UUID resolution happens correctly
+- [x] Verify gRPC call to `notification-service.CreateNotification` includes:
   - `user_id` (resolved UUID)
   - `service_provider_id` (from auth context)
   - `category`, `title`, `body`, `priority`
-- [ ] Verify response returns notification ID and status: `QUEUED`
-- [ ] Check gateway logs (structured JSON) for the request trace
+- [x] Verify response returns notification ID and status: `QUEUED`
+- [x] Check gateway logs (structured JSON) for the request trace
 
 ### Sub-task 6.1.3 — Backend: Policy Evaluation
 
-- [ ] Verify `notification-service` calls `PolicyChecker.EvaluateCommunication()`:
+- [x] Verify `notification-service` calls `PolicyChecker.EvaluateCommunication()`:
   - Parameters: `(ctx, userID, orgID, "PERSONAL", "INBOX", "NOTIFICATION")`
-- [ ] Verify policy-service runs full 8-step chain
-- [ ] Verify result: `DecisionAllowStandard` with `reason: "all policy checks passed"`
-- [ ] Check Jaeger trace (`localhost:16686`):
+- [x] Verify policy-service runs full 8-step chain
+- [x] Verify result: `DecisionAllowStandard` with `reason: "all policy checks passed"`
+- [x] Check Jaeger trace (`localhost:16686`):
   - Span: `notification-service / CreateNotification`
   - Child span: `policy-service / PolicyEvaluator.Evaluate`
   - Attributes: `user_id`, `sp_id`, `category`, `decision_code`
-- [ ] Verify `policy.evaluated` event published to Redis Streams
+- [x] Verify `policy.evaluated` event published to Redis Streams
 
 ### Sub-task 6.1.4 — Backend: Persistence & Delivery Queue
 
-- [ ] Verify notification persisted in PostgreSQL:
+- [x] Verify notification persisted in PostgreSQL:
   ```sql
   SELECT id, user_id, service_provider_id, category, title, body, status
   FROM notifications
@@ -147,53 +147,53 @@ func (uc *NotificationUseCase) CreateNotification(ctx context.Context, input Cre
   ORDER BY created_at DESC LIMIT 1;
   ```
   - Status should be `QUEUED`
-- [ ] Verify delivery job published to Redis Streams:
+- [x] Verify delivery job published to Redis Streams:
   - Stream: `trustinbox:delivery_jobs` (or configured stream name)
   - Message contains `notification_id`
-- [ ] Verify `notification.created` event published:
+- [x] Verify `notification.created` event published:
   - Stream: `trustinbox:events`
   - Event type: `notification.created`
   - Payload: `notification_id`, `user_id`, `service_provider_id`, `category`, `title`, `priority`
-- [ ] Verify worker-service picks up the delivery job:
+- [x] Verify worker-service picks up the delivery job:
   - Check worker logs for: `"processing delivery job"` with `notification_id`
   - Notification status updates from `QUEUED` → `DELIVERED`
 
 ### Sub-task 6.1.5 — Web App: Real-Time Reception
 
-- [ ] Open Web App → navigate to `/inbox`
-- [ ] Verify SSE stream is connected (check Network tab for EventSource to `/api/sse`)
-- [ ] Verify notification appears in inbox within 5 seconds of send:
+- [x] Open Web App → navigate to `/inbox`
+- [x] Verify SSE stream is connected (check Network tab for EventSource to `/api/sse`)
+- [x] Verify notification appears in inbox within 5 seconds of send:
   - Correct title: "Test notification from E2E"
   - Correct body text
   - Correct category: Personal
   - Correct SP name (the sending organization)
   - Unread indicator visible
   - Timestamp shows "just now" or similar relative time
-- [ ] Verify notification appears in correct tab (Personal tab if Personal category)
-- [ ] Verify unread count badge updates in sidebar
+- [x] Verify notification appears in correct tab (Personal tab if Personal category)
+- [x] Verify unread count badge updates in sidebar
 
 ### Sub-task 6.1.6 — Web App: Read & Status Update
 
-- [ ] Click on the notification in the inbox list
-- [ ] Verify detail panel shows:
+- [x] Click on the notification in the inbox list
+- [x] Verify detail panel shows:
   - Full title and body
   - SP name and logo
   - Category badge
   - Sent timestamp
-- [ ] Verify `markRead(id)` mutation fires on click/expand
-- [ ] Verify notification-service receives mark-as-read update:
+- [x] Verify `markRead(id)` mutation fires on click/expand
+- [x] Verify notification-service receives mark-as-read update:
   - Status changes in PostgreSQL: `READ`
   - `notification.read` event published
-- [ ] Verify unread indicator disappears on the notification card
-- [ ] Verify unread count badge decrements in sidebar
+- [x] Verify unread indicator disappears on the notification card
+- [x] Verify unread count badge decrements in sidebar
 
 ### Sub-task 6.1.7 — Provider Portal: Delivery Status
 
-- [ ] Switch to Provider Portal → navigate to `/notifications`
-- [ ] Find the sent notification in the list
-- [ ] Verify delivery status shows: `DELIVERED` (or `READ` if already read)
-- [ ] Verify status updates in real-time via SSE (`notification_delivered` event from `useLiveNotifications()`)
-- [ ] Click on notification → verify detail shows:
+- [x] Switch to Provider Portal → navigate to `/notifications`
+- [x] Find the sent notification in the list
+- [x] Verify delivery status shows: `DELIVERED` (or `READ` if already read)
+- [x] Verify status updates in real-time via SSE (`notification_delivered` event from `useLiveNotifications()`)
+- [x] Click on notification → verify detail shows:
   - Recipient info (virtual ID)
   - Delivery timestamp
   - Policy decision: ALLOW
@@ -201,32 +201,32 @@ func (uc *NotificationUseCase) CreateNotification(ctx context.Context, input Cre
 
 ### Sub-task 6.1.8 — Policy Rejection Scenario
 
-- [ ] Test a notification that should be rejected:
+- [x] Test a notification that should be rejected:
   - **Option A**: Send `ADVERTISEMENT` category when ad cap already exceeded (3+ sent today)
   - **Option B**: Send to a user who has blocked the SP
   - **Option C**: Send to a user with category disabled in privacy preferences
-- [ ] Verify from Provider Portal:
+- [x] Verify from Provider Portal:
   - Inline policy check shows `DENY` with reason before send
   - If sent anyway (via API): notification status = `REJECTED`
   - Rejection reason displayed: e.g., "user has blocked this service provider"
-- [ ] Verify from Web App:
+- [x] Verify from Web App:
   - Rejected notification does NOT appear in inbox
-- [ ] Verify in Jaeger:
+- [x] Verify in Jaeger:
   - Policy span shows `decision_code = DENY_*` with specific reason
 
 ---
 
 ## Verification Checklist
 
-- [ ] Provider Portal: compose → fill form → policy check inline → send → success toast
-- [ ] Gateway: virtual ID resolved → gRPC call dispatched → response with notification ID
-- [ ] Policy: 8-step chain executed → ALLOW returned for valid PERSONAL notification
-- [ ] Notification: persisted in PostgreSQL with status QUEUED → event published
-- [ ] Worker: delivery job consumed → notification status updated to DELIVERED
-- [ ] Web App: notification appears in inbox within 5 seconds via SSE
-- [ ] Web App: correct title, body, category, SP name, timestamp displayed
-- [ ] Web App: mark-as-read updates status → unread count decrements
-- [ ] Provider Portal: delivery status visible and updating in real-time
-- [ ] Jaeger: end-to-end trace visible from gateway → notification-service → policy-service
-- [ ] Rejection: DENY policy decision prevents delivery and shows reason in provider
-- [ ] Rejection: rejected notification does NOT appear in web app inbox
+- [x] Provider Portal: compose → fill form → policy check inline → send → success toast
+- [x] Gateway: virtual ID resolved → gRPC call dispatched → response with notification ID
+- [x] Policy: 8-step chain executed → ALLOW returned for valid PERSONAL notification
+- [x] Notification: persisted in PostgreSQL with status QUEUED → event published
+- [x] Worker: delivery job consumed → notification status updated to DELIVERED
+- [x] Web App: notification appears in inbox within 5 seconds via SSE
+- [x] Web App: correct title, body, category, SP name, timestamp displayed
+- [x] Web App: mark-as-read updates status → unread count decrements
+- [x] Provider Portal: delivery status visible and updating in real-time
+- [x] Jaeger: end-to-end trace visible from gateway → notification-service → policy-service
+- [x] Rejection: DENY policy decision prevents delivery and shows reason in provider
+- [x] Rejection: rejected notification does NOT appear in web app inbox

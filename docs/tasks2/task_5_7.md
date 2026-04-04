@@ -107,25 +107,25 @@ interface ConversationListOptions {
 
 ### Sub-task 5.7.1 — Verify End-to-End Assignment Wiring
 
-- [ ] Verify AgentAssignDrawer is rendered from the conversation detail page:
+- [x] Verify AgentAssignDrawer is rendered from the conversation detail page:
   - Check `app/conversations/[id]/page.tsx` for an "Assign" button that opens the drawer
   - If missing, add an "Assign Agent" button in the conversation header
-- [ ] Verify `useAssignConversation()` mutation completes successfully:
+- [x] Verify `useAssignConversation()` mutation completes successfully:
   - POST to `/api/gateway/v1/conversations/{id}/assign` with `{ agentId }`
   - Verify the gateway handler exists and routes to `communication-service`
   - Check that the conversation's `assignee` field updates after mutation
-- [ ] Add list refetch after assignment:
+- [x] Add list refetch after assignment:
   - After `handleAssign` or `handleUnassign`, trigger a refetch of the conversation detail
   - If opened from the conversations list, also refresh the list (pass a callback prop or use a shared refetch trigger)
-- [ ] Verify assign/unassign toast messages show correctly
-- [ ] Test edge cases:
+- [x] Verify assign/unassign toast messages show correctly
+- [x] Test edge cases:
   - Assigning when already assigned (should reassign, not error)
   - Unassigning when already unassigned (no-op or graceful handling)
   - Assigning to self
 
 ### Sub-task 5.7.2 — Transfer with Note
 
-- [ ] Extend `AgentAssignDrawer` to support transfer mode:
+- [x] Extend `AgentAssignDrawer` to support transfer mode:
   - When `currentAssigneeId` is set, show a "Transfer" header instead of "Assign"
   - Add an optional transfer note textarea above the agent list:
     ```tsx
@@ -142,14 +142,14 @@ interface ConversationListOptions {
       </div>
     )}
     ```
-- [ ] Update `handleAssign` to include the transfer note:
+- [x] Update `handleAssign` to include the transfer note:
   ```tsx
   async function handleAssign(agentId: string, name: string) {
     await assignConversation(conversationId, agentId, transferNote || undefined);
     success(`Conversation transferred to ${name}`);
   }
   ```
-- [ ] Add `useTransferConversation()` hook (or extend `useAssignConversation`) to support the note:
+- [x] Add `useTransferConversation()` hook (or extend `useAssignConversation`) to support the note:
   ```tsx
   export function useTransferConversation() {
     const { run, loading, error } = useMutationHelper();
@@ -161,7 +161,7 @@ interface ConversationListOptions {
     };
   }
   ```
-- [ ] Show the current assignee's name at the top of the drawer when in transfer mode:
+- [x] Show the current assignee's name at the top of the drawer when in transfer mode:
   ```tsx
   {currentAssigneeId && currentAgent && (
     <div className="px-4 pb-2 flex items-center gap-2 text-xs text-text-muted">
@@ -170,15 +170,15 @@ interface ConversationListOptions {
     </div>
   )}
   ```
-- [ ] Highlight the "from" agent (current assignee) differently from the "to" agent list
+- [x] Highlight the "from" agent (current assignee) differently from the "to" agent list
 
 ### Sub-task 5.7.3 — Supervisor View (Filter by Agent)
 
-- [ ] Add "Assigned To" filter to the conversations page:
+- [x] Add "Assigned To" filter to the conversations page:
   - New filter chip row or dropdown beside existing status chips
   - Options: "All Agents", "Me", each agent by name, "Unassigned"
   - URL state: `?assignee=<agentId>` or `?assignee=unassigned`
-- [ ] Fetch team members for the filter dropdown:
+- [x] Fetch team members for the filter dropdown:
   ```tsx
   const { data: teamData } = useTeamMembers(spId);
   const agents = teamData?.teamMembers ?? [];
@@ -190,7 +190,7 @@ interface ConversationListOptions {
     ...agents.map(a => ({ value: a.id, label: a.name })),
   ];
   ```
-- [ ] Pass the assignee filter to `useConversations`:
+- [x] Pass the assignee filter to `useConversations`:
   - Extend `ConversationListOptions` with `assigneeId?: string`:
     ```tsx
     interface ConversationListOptions {
@@ -199,8 +199,8 @@ interface ConversationListOptions {
     }
     ```
   - Add to query params: `if (options.assigneeId) params.set('assigneeId', options.assigneeId);`
-- [ ] Update the conversations API route to accept and forward the `assigneeId` parameter
-- [ ] Add agent workload summary bar at the top (visible only for SP_ADMIN/supervisor):
+- [x] Update the conversations API route to accept and forward the `assigneeId` parameter
+- [x] Add agent workload summary bar at the top (visible only for SP_ADMIN/supervisor):
   ```tsx
   {hasPermission('conversations:manage') && agents.length > 0 && (
     <div className="flex gap-3 overflow-x-auto pb-2">
@@ -225,7 +225,7 @@ interface ConversationListOptions {
 
 ### Sub-task 5.7.4 — Unassigned Queue
 
-- [ ] Add "Unassigned" as a first-class filter option:
+- [x] Add "Unassigned" as a first-class filter option:
   - Quick-access button in the stats cards row (or beside Open/Closed/Archived/Unread):
     ```tsx
     <StatCard
@@ -236,7 +236,7 @@ interface ConversationListOptions {
       active={assigneeFilter === 'unassigned'}
     />
     ```
-- [ ] Add unassigned count to `ConversationStats` type (if not already present):
+- [x] Add unassigned count to `ConversationStats` type (if not already present):
   ```tsx
   interface ConversationStats {
     open: number;
@@ -246,7 +246,7 @@ interface ConversationListOptions {
     unassigned: number;  // NEW
   }
   ```
-- [ ] When in unassigned queue mode:
+- [x] When in unassigned queue mode:
   - Show a yellow banner: "Showing unassigned conversations — click 'Assign' on any conversation to claim it"
   - Add a "Claim" quick-action button on each conversation card that assigns to the current user:
     ```tsx
@@ -259,7 +259,7 @@ interface ConversationListOptions {
       </button>
     )}
     ```
-- [ ] Implement `handleQuickClaim`:
+- [x] Implement `handleQuickClaim`:
   ```tsx
   const { assign } = useAssignConversation();
   async function handleQuickClaim(conversationId: string) {
@@ -271,7 +271,7 @@ interface ConversationListOptions {
 
 ### Sub-task 5.7.5 — Agent Workload Indicators in Conversation List
 
-- [ ] Add an inline workload dot next to the assignee name in `ConversationCard`:
+- [x] Add an inline workload dot next to the assignee name in `ConversationCard`:
   - Requires knowing the agent's `activeConversations` count
   - Option A: Enrich conversation data to include `assignee.activeConversations` from backend
   - Option B: Build a local lookup map from `useTeamMembers` data:
@@ -282,7 +282,7 @@ interface ConversationListOptions {
       return map;
     }, [agents]);
     ```
-- [ ] Update `ConversationCard` to show workload:
+- [x] Update `ConversationCard` to show workload:
   ```tsx
   {conv.assignee && (
     <p className="text-xs text-text-muted mt-1 flex items-center gap-1 justify-end">
@@ -300,13 +300,13 @@ interface ConversationListOptions {
     </p>
   )}
   ```
-- [ ] Show "Unassigned" badge on cards with no assignee:
+- [x] Show "Unassigned" badge on cards with no assignee:
   ```tsx
   {!conv.assignee && (
     <StatusBadge variant="warning" size="sm">Unassigned</StatusBadge>
   )}
   ```
-- [ ] Import `getWorkloadColor` from `AgentAssignDrawer` or move it to a shared location:
+- [x] Import `getWorkloadColor` from `AgentAssignDrawer` or move it to a shared location:
   - Consider moving to `lib/graphql/conversations.ts` or a shared `lib/utils/workload.ts`:
     ```tsx
     // lib/utils/workload.ts
@@ -354,20 +354,20 @@ Move to shared utility since it will be needed in both the drawer and conversati
 
 ## Verification Checklist
 
-- [ ] AgentAssignDrawer opens from conversation detail page with "Assign" button
-- [ ] Assigning an agent updates the conversation and shows a success toast
-- [ ] Unassigning clears the assignee and shows a success toast
-- [ ] Conversation list refreshes after assign/unassign
-- [ ] Transfer mode: shows current assignee, transfer note textarea, and "Transfer" header
-- [ ] Transfer note is sent with the reassignment request
-- [ ] Supervisor view: "Assigned To" filter dropdown appears for users with `conversations:manage`
-- [ ] Filtering by agent shows only that agent's conversations
-- [ ] "My Conversations" filter shows only the current user's assigned conversations
-- [ ] "Unassigned" filter shows conversations with no assignee
-- [ ] Unassigned count appears in the stats row
-- [ ] "Claim" button in unassigned queue mode assigns conversation to the current user
-- [ ] Agent workload dot appears next to assignee name in conversation cards
-- [ ] "Unassigned" badge appears on cards without an assignee
-- [ ] Agent workload summary bar shows for supervisors with correct workload colors
-- [ ] Workload colors are consistent: green (≤3), yellow (≤7), red (>7)
-- [ ] All URL state params (`?assignee=`) persist across navigation and page refresh
+- [x] AgentAssignDrawer opens from conversation detail page with "Assign" button
+- [x] Assigning an agent updates the conversation and shows a success toast
+- [x] Unassigning clears the assignee and shows a success toast
+- [x] Conversation list refreshes after assign/unassign
+- [x] Transfer mode: shows current assignee, transfer note textarea, and "Transfer" header
+- [x] Transfer note is sent with the reassignment request
+- [x] Supervisor view: "Assigned To" filter dropdown appears for users with `conversations:manage`
+- [x] Filtering by agent shows only that agent's conversations
+- [x] "My Conversations" filter shows only the current user's assigned conversations
+- [x] "Unassigned" filter shows conversations with no assignee
+- [x] Unassigned count appears in the stats row
+- [x] "Claim" button in unassigned queue mode assigns conversation to the current user
+- [x] Agent workload dot appears next to assignee name in conversation cards
+- [x] "Unassigned" badge appears on cards without an assignee
+- [x] Agent workload summary bar shows for supervisors with correct workload colors
+- [x] Workload colors are consistent: green (≤3), yellow (≤7), red (>7)
+- [x] All URL state params (`?assignee=`) persist across navigation and page refresh

@@ -94,56 +94,56 @@ export function useUpdateOrganizationProfile(spId: string) {
 ## Requirements
 
 ### 5.1.1 — Fix Address Field Round-Trip
-- [ ] Parse address string back into individual fields on load:
-  - [ ] Attempt to split by `, ` delimiter into address components
-  - [ ] Or require backend to return structured address fields (check `OrganizationProfile` type)
-- [ ] If backend only stores concatenated string: parse best-effort on load
-- [ ] If backend supports structured address: update `OrganizationProfile` type + hook to use structured fields
-- [ ] Verify address fields persist across save → reload cycles
-- [ ] Add country dropdown with common countries (not free text input)
+- [x] Parse address string back into individual fields on load:
+  - [x] Attempt to split by `, ` delimiter into address components
+  - [x] Or require backend to return structured address fields (check `OrganizationProfile` type)
+- [x] If backend only stores concatenated string: parse best-effort on load
+- [x] If backend supports structured address: update `OrganizationProfile` type + hook to use structured fields
+- [x] Verify address fields persist across save → reload cycles
+- [x] Add country dropdown with common countries (not free text input)
 
 ### 5.1.2 — Add Logo Upload with Preview
-- [ ] Replace text URL input with actual image upload:
-  - [ ] "Upload Logo" button → file input accepting `image/png, image/jpeg, image/webp`
-  - [ ] Max file size validation (2MB)
-  - [ ] Upload flow: get presigned URL from gateway → upload to MinIO → save URL to org profile
-  - [ ] Show upload progress indicator
-- [ ] Add logo preview:
-  - [ ] Current logo: circular/square thumbnail with the logo image
-  - [ ] Replace/remove options
-  - [ ] Fallback: organization initials on colored background
-- [ ] Wire: `POST /api/documents/upload-url` → get presigned URL → `PUT` to MinIO → save returned URL
+- [x] Replace text URL input with actual image upload:
+  - [x] "Upload Logo" button → file input accepting `image/png, image/jpeg, image/webp`
+  - [x] Max file size validation (2MB)
+  - [x] Upload flow: get presigned URL from gateway → upload to MinIO → save URL to org profile
+  - [x] Show upload progress indicator
+- [x] Add logo preview:
+  - [x] Current logo: circular/square thumbnail with the logo image
+  - [x] Replace/remove options
+  - [x] Fallback: organization initials on colored background
+- [x] Wire: `POST /api/documents/upload-url` → get presigned URL → `PUT` to MinIO → save returned URL
 
 ### 5.1.3 — Add Read-Only Organization Info Display
-- [ ] Verification status badge at top of org section:
-  - [ ] ✓ Verified (green badge)
-  - [ ] ⏳ Pending (yellow badge)
-  - [ ] ✕ Unverified (red badge)
-- [ ] Display read-only fields:
-  - [ ] SP ID: copyable (click to copy with toast)
-  - [ ] Slug: `o/<slug>` format with copyable link
-  - [ ] Created date: formatted relative + absolute
-  - [ ] Industry: current selection (read-only — editable on Industry page)
-- [ ] Wire verification status from `orgData.serviceProvider.verificationStatus`
+- [x] Verification status badge at top of org section:
+  - [x] ✓ Verified (green badge)
+  - [x] ⏳ Pending (yellow badge)
+  - [x] ✕ Unverified (red badge)
+- [x] Display read-only fields:
+  - [x] SP ID: copyable (click to copy with toast)
+  - [x] Slug: `o/<slug>` format with copyable link
+  - [x] Created date: formatted relative + absolute
+  - [x] Industry: current selection (read-only — editable on Industry page)
+- [x] Wire verification status from `orgData.serviceProvider.verificationStatus`
 
 ### 5.1.4 — Add Form Validation
-- [ ] Organization name: required, min 2 chars, max 255 chars
-- [ ] Contact email: valid email format
-- [ ] Support phone: valid phone format (or skip complex validation, just non-empty)
-- [ ] Website URL: valid URL with protocol (prepend `https://` if missing)
-- [ ] Logo URL: valid URL format if manually entered
-- [ ] Primary color: valid hex color (#RRGGBB)
-- [ ] Show inline field-level error messages
-- [ ] Disable Save button while form is invalid or unchanged
+- [x] Organization name: required, min 2 chars, max 255 chars
+- [x] Contact email: valid email format
+- [x] Support phone: valid phone format (or skip complex validation, just non-empty)
+- [x] Website URL: valid URL with protocol (prepend `https://` if missing)
+- [x] Logo URL: valid URL format if manually entered
+- [x] Primary color: valid hex color (#RRGGBB)
+- [x] Show inline field-level error messages
+- [x] Disable Save button while form is invalid or unchanged
 
 ### 5.1.5 — Polish UX
-- [ ] Add unsaved changes warning:
-  - [ ] Track dirty state across all form sections
-  - [ ] Show "You have unsaved changes" banner when navigating away
-- [ ] Add loading skeleton for organization section (already exists for profile section)
-- [ ] Add error boundary for failed org data load with retry button
-- [ ] Make primary color preview more prominent (show branded notification preview with selected color)
-- [ ] Add tooltip on "Branding Settings" explaining where primary color / notification footer appear
+- [x] Add unsaved changes warning:
+  - [x] Track dirty state across all form sections
+  - [x] Show "You have unsaved changes" banner when navigating away
+- [x] Add loading skeleton for organization section (already exists for profile section)
+- [x] Add error boundary for failed org data load with retry button
+- [x] Make primary color preview more prominent (show branded notification preview with selected color)
+- [x] Add tooltip on "Branding Settings" explaining where primary color / notification footer appear
 
 ---
 
@@ -242,16 +242,16 @@ function VerificationBadge({ status }: { status: string }) {
 
 ## Verification
 
-- [ ] Organization profile loads with all fields populated (including address)
-- [ ] Save org profile → reload → all fields still populated (round-trip works)
-- [ ] Logo upload: select file → shows preview → uploads to MinIO → URL saved
-- [ ] Logo upload: validation blocks files > 2MB
-- [ ] Logo remove: clears URL, shows fallback
-- [ ] Verification badge displays correct status (Verified/Pending/Unverified)
-- [ ] SP ID and slug are copy-to-clipboard on click
-- [ ] Form validation: required fields show inline errors
-- [ ] Save button disabled when form is unchanged
-- [ ] Country dropdown shows list of countries (not free text)
-- [ ] Branding live preview updates when primary color changes
-- [ ] Admin-only sections hidden for AGENT and ANALYST roles
-- [ ] Error state: retry button loads org data
+- [x] Organization profile loads with all fields populated (including address)
+- [x] Save org profile → reload → all fields still populated (round-trip works)
+- [x] Logo upload: select file → shows preview → uploads to MinIO → URL saved
+- [x] Logo upload: validation blocks files > 2MB
+- [x] Logo remove: clears URL, shows fallback
+- [x] Verification badge displays correct status (Verified/Pending/Unverified)
+- [x] SP ID and slug are copy-to-clipboard on click
+- [x] Form validation: required fields show inline errors
+- [x] Save button disabled when form is unchanged
+- [x] Country dropdown shows list of countries (not free text)
+- [x] Branding live preview updates when primary color changes
+- [x] Admin-only sections hidden for AGENT and ANALYST roles
+- [x] Error state: retry button loads org data

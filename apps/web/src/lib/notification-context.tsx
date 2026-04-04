@@ -2,6 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { useToast } from '@/components/ui/toast-context';
+import { playNotificationSoundDebounced } from '@/lib/sounds';
+import { showBrowserNotification, registerServiceWorker } from '@/lib/push-notifications';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
 
@@ -13,6 +16,9 @@ export interface Notification {
   data?: Record<string, string>;
   read: boolean;
   createdAt: string;
+  suppressed?: boolean;
+  soundEnabled?: boolean;
+  entityId?: string;
 }
 
 /** Payload pushed via SSE when a chat message is persisted server-side.
@@ -31,13 +37,6 @@ export interface ChatMessagePayload {
   attachments?:   unknown[];
 }
 
-export interface Toast {
-  id: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  title: string;
-  body?: string;
-}
-
 export interface PresencePayload {
   type:   string;
   userId: string;
@@ -47,12 +46,9 @@ export interface PresencePayload {
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  toasts: Toast[];
   fetchNotifications: () => Promise<void>;
   markAllRead: () => Promise<void>;
   markRead: (ids: string[]) => Promise<void>;
-  dismissToast: (id: string) => void;
-  addToast: (toast: Omit<Toast, 'id'>) => void;
   onFriendEvent: (cb: () => void) => () => void;
   /** Register a listener for SSE-pushed chat messages (new_message events). */
   onChatMessage: (cb: (msg: ChatMessagePayload) => void) => () => void;
@@ -64,8 +60,8 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const { token, user, isLoading: isAuthLoading } = useAuth();
+  const { info: toastInfo, success: toastSuccess } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [toasts, setToasts] = useState<Toast[]>([]);
   const eventSourceRef = useRef<EventSource | null>(null);
   const friendListenersRef   = useRef<Set<() => void>>(new Set());
   const chatMsgListenersRef  = useRef<Set<(msg: ChatMessagePayload) => void>>(new Set());
@@ -84,19 +80,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const onPresenceUpdate = useCallback((cb: (p: PresencePayload) => void) => {
     presenceListenersRef.current.add(cb);
     return () => { presenceListenersRef.current.delete(cb); };
-  }, []);
-
-  const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    setToasts((prev) => [...prev, { ...toast, id }]);
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 5000);
-  }, []);
-
-  const dismissToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   const fetchNotifications = useCallback(async () => {
@@ -150,6 +133,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (token) fetchNotifications();
   }, [token, fetchNotifications, isAuthLoading]);
 
+  // Register service worker for push notifications
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
   // SSE real-time connection
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -169,8 +157,29 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           const notif: Notification = JSON.parse(event.data);
           setNotifications((prev) => [notif, ...prev]);
 
-          const toastType = notif.type === 'FRIEND_ACCEPTED' ? 'success' : 'info';
-          addToast({ type: toastType, title: notif.title, body: notif.body });
+          // If DND-suppressed, skip toast and sound
+          if (notif.suppressed) {
+            // Still add to list (above), just don't alert
+            if (notif.type === 'FRIEND_ACCEPTED' || notif.type === 'FRIEND_REQUEST') {
+              friendListenersRef.current.forEach((cb) => cb());
+            }
+            return;
+          }
+
+          if (notif.type === 'FRIEND_ACCEPTED') {
+            toastSuccess(notif.title, notif.body);
+          } else {
+            toastInfo(notif.title, notif.body);
+          }
+
+          // Play sound only if not suppressed and sound is enabled
+          const shouldPlaySound = notif.soundEnabled !== false;
+          if (!document.hidden && shouldPlaySound) {
+            playNotificationSoundDebounced();
+          } else if (document.hidden) {
+            // Show browser notification when tab is hidden
+            showBrowserNotification(notif.title, notif.body || '', notif.id);
+          }
 
           if (notif.type === 'FRIEND_ACCEPTED' || notif.type === 'FRIEND_REQUEST') {
             friendListenersRef.current.forEach((cb) => cb());
@@ -223,13 +232,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       eventSourceRef.current?.close();
       eventSourceRef.current = null;
     };
-  }, [token, user, addToast, isAuthLoading]);
+  }, [token, user, toastInfo, toastSuccess, isAuthLoading]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <NotificationContext.Provider
-      value={{ notifications, unreadCount, toasts, fetchNotifications, markAllRead, markRead, dismissToast, addToast, onFriendEvent, onChatMessage, onPresenceUpdate }}
+      value={{ notifications, unreadCount, fetchNotifications, markAllRead, markRead, onFriendEvent, onChatMessage, onPresenceUpdate }}
     >
       {children}
     </NotificationContext.Provider>

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useNotifications } from '@/lib/notification-context';
 import { useChat } from '@/lib/chat-context';
-import { useMemo } from 'react';
+import { useBadgeCounts } from '@/hooks/useBadgeCounts';
 
 const mobileNavItems = [
   {
@@ -68,6 +68,16 @@ const mobileNavItems = [
     ),
   },
   {
+    href: '/activity',
+    label: 'Activity',
+    badgeKey: undefined,
+    icon: (
+      <svg className="w-[22px] h-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
+  {
     href: '/settings',
     label: 'Settings',
     badgeKey: undefined,
@@ -84,13 +94,7 @@ export function MobileNav() {
   const pathname = usePathname();
   const { unreadCount } = useNotifications();
   const { conversations } = useChat();
-
-  const badgeCounts = useMemo(() => ({
-    inbox: unreadCount,
-    chats: conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0),
-    calls: 0,
-    people: 0,
-  }), [conversations, unreadCount]);
+  const badgeCounts = useBadgeCounts();
 
   return (
     <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-bg-secondary border-t border-border-primary flex items-stretch mobile-safe-bottom">

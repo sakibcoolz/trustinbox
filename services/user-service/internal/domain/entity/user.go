@@ -30,6 +30,7 @@ type PrivacyPreference struct {
 	AllowChat                  bool
 	AllowDocumentShares        bool
 	RequireCallApproval        bool
+	NotificationSoundEnabled   bool
 	CreatedAt                  time.Time
 	UpdatedAt                  time.Time
 }

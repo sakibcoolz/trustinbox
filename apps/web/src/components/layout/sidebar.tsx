@@ -5,7 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useNotifications } from '@/lib/notification-context';
 import { useChat } from '@/lib/chat-context';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useBadgeCounts } from '@/hooks/useBadgeCounts';
+import { useState, useRef, useEffect } from 'react';
 
 const navItems = [
   {
@@ -68,6 +69,16 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    href: '/activity',
+    label: 'Activity',
+    badgeKey: undefined,
+    icon: (
+      <svg className="w-[22px] h-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
 ];
 
 const bottomItems = [
@@ -90,16 +101,7 @@ export function Sidebar() {
   const { conversations } = useChat();
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
-
-  const badgeCounts = useMemo(() => {
-    const chatUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
-    return {
-      inbox: unreadCount,
-      chats: chatUnread,
-      calls: 0,
-      people: 0,
-    } as Record<string, number>;
-  }, [conversations, unreadCount]);
+  const badgeCounts = useBadgeCounts();
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

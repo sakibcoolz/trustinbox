@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import { usePrivacySettings } from '@/hooks/usePrivacySettings';
 
 function Toggle({ on, onToggle, disabled }: { on: boolean; onToggle: () => void; disabled?: boolean }) {
   return (
@@ -22,6 +23,16 @@ interface PrivacyState {
   requireCallApproval: boolean;
 }
 
+const DEFAULTS: PrivacyState = {
+  allowPersonalNotifications: true,
+  allowSPNotifications: true,
+  allowAdvertisements: false,
+  allowCallbackRequests: true,
+  allowChat: true,
+  allowDocumentShares: true,
+  requireCallApproval: true,
+};
+
 const toggles: { key: keyof PrivacyState; label: string; desc: string }[] = [
   { key: 'allowPersonalNotifications', label: 'Allow Personal Notifications', desc: 'Receive direct messages and personal alerts from contacts.' },
   { key: 'allowSPNotifications', label: 'Allow Service Provider Notifications', desc: 'Receive transactional and business notifications from verified providers.' },
@@ -33,17 +44,25 @@ const toggles: { key: keyof PrivacyState; label: string; desc: string }[] = [
 ];
 
 export default function PrivacySettingsPage() {
-  const [prefs, setPrefs] = useState<PrivacyState>({
-    allowPersonalNotifications: true,
-    allowSPNotifications: true,
-    allowAdvertisements: false,
-    allowCallbackRequests: true,
-    allowChat: true,
-    allowDocumentShares: true,
-    requireCallApproval: true,
-  });
-  const [saving, setSaving] = useState(false);
+  const { privacy, loading, error, updatePrivacy, saving } = usePrivacySettings();
+  const [prefs, setPrefs] = useState<PrivacyState>(DEFAULTS);
   const [saved, setSaved] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (privacy && !initialized) {
+      setPrefs({
+        allowPersonalNotifications: privacy.allowPersonalNotifications ?? DEFAULTS.allowPersonalNotifications,
+        allowSPNotifications: privacy.allowSPNotifications ?? DEFAULTS.allowSPNotifications,
+        allowAdvertisements: privacy.allowAdvertisements ?? DEFAULTS.allowAdvertisements,
+        allowCallbackRequests: privacy.allowCallbackRequests ?? DEFAULTS.allowCallbackRequests,
+        allowChat: privacy.allowChat ?? DEFAULTS.allowChat,
+        allowDocumentShares: privacy.allowDocumentShares ?? DEFAULTS.allowDocumentShares,
+        requireCallApproval: privacy.requireCallApproval ?? DEFAULTS.requireCallApproval,
+      });
+      setInitialized(true);
+    }
+  }, [privacy, initialized]);
 
   const handleToggle = useCallback((key: keyof PrivacyState) => {
     setPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -51,19 +70,54 @@ export default function PrivacySettingsPage() {
   }, []);
 
   const handleSave = useCallback(async () => {
-    setSaving(true);
     try {
-      await fetch('/api/privacy/preferences', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(prefs),
-      });
+      await updatePrivacy(prefs);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } finally {
-      setSaving(false);
+    } catch {
+      // Error handled by Apollo
     }
-  }, [prefs]);
+  }, [prefs, updatePrivacy]);
+
+  if (loading && !initialized) {
+    return (
+      <div className="flex-1 h-full overflow-y-auto bg-bg-primary">
+        <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
+          <div className="flex items-center gap-3">
+            <Link href="/settings" className="w-8 h-8 rounded-lg bg-bg-secondary flex items-center justify-center hover:bg-bg-hover transition-colors">
+              <svg className="w-4 h-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+            </Link>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-text-primary">Privacy</h1>
+              <p className="text-2xs text-text-muted">Control what service providers can see and do.</p>
+            </div>
+          </div>
+          <div className="card p-0 divide-y divide-border-primary">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between px-4 py-4">
+                <div className="flex-1 mr-4 space-y-2">
+                  <div className="h-4 w-48 bg-bg-tertiary rounded animate-pulse" />
+                  <div className="h-3 w-64 bg-bg-tertiary rounded animate-pulse" />
+                </div>
+                <div className="w-11 h-6 bg-bg-tertiary rounded-full animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 h-full flex items-center justify-center bg-bg-primary">
+        <div className="text-center space-y-3">
+          <p className="text-sm text-accent-red">Failed to load privacy preferences</p>
+          <button onClick={() => window.location.reload()} className="btn-primary text-sm">Retry</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 h-full overflow-y-auto bg-bg-primary">

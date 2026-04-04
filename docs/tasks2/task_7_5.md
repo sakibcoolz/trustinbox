@@ -53,8 +53,8 @@ const webAppPage = await webAppContext.newPage();
 
 ### Sub-task 7.5.1 — Cross-App Playwright Setup
 
-- [ ] Create directory: `tests/e2e/`
-- [ ] Create `tests/e2e/playwright.config.ts`:
+- [x] Create directory: `tests/e2e/`
+- [x] Create `tests/e2e/playwright.config.ts`:
   ```typescript
   import { defineConfig } from '@playwright/test';
 
@@ -72,7 +72,7 @@ const webAppPage = await webAppContext.newPage();
     ],
   });
   ```
-- [ ] Create `tests/e2e/package.json`:
+- [x] Create `tests/e2e/package.json`:
   ```json
   {
     "name": "trustinbox-cross-app-e2e",
@@ -86,11 +86,11 @@ const webAppPage = await webAppContext.newPage();
     }
   }
   ```
-- [ ] Install: `cd tests/e2e && npm install && npx playwright install`
+- [x] Install: `cd tests/e2e && npm install && npx playwright install`
 
 ### Sub-task 7.5.2 — Shared Test Fixtures
 
-- [ ] Create `tests/e2e/fixtures.ts`:
+- [x] Create `tests/e2e/fixtures.ts`:
   - **Provider login fixture**:
     ```typescript
     async function loginAsProvider(page: Page) {
@@ -125,7 +125,7 @@ const webAppPage = await webAppContext.newPage();
 
 ### Sub-task 7.5.3 — Notification Flow Cross-App Test
 
-- [ ] Create `tests/e2e/notification-flow.spec.ts`:
+- [x] Create `tests/e2e/notification-flow.spec.ts`:
   - **Setup**: Create provider page + customer page in separate browser contexts
   - **Step 1 — Provider sends notification**:
     - Login as provider on provider page
@@ -151,7 +151,7 @@ const webAppPage = await webAppContext.newPage();
 
 ### Sub-task 7.5.4 — Callback Flow Cross-App Test
 
-- [ ] Create `tests/e2e/callback-flow.spec.ts`:
+- [x] Create `tests/e2e/callback-flow.spec.ts`:
   - **Setup**: Provider page + customer page
   - **Step 1 — Provider requests callback**:
     - Login as provider
@@ -181,7 +181,7 @@ const webAppPage = await webAppContext.newPage();
 
 ### Sub-task 7.5.5 — Block Flow Cross-App Test
 
-- [ ] Create `tests/e2e/block-flow.spec.ts`:
+- [x] Create `tests/e2e/block-flow.spec.ts`:
   - **Setup**: Provider page + customer page
   - **Step 1 — Customer blocks SP**:
     - Login as customer on web app
@@ -209,7 +209,7 @@ const webAppPage = await webAppContext.newPage();
 
 ### Sub-task 7.5.6 — DND Enforcement Cross-App Test
 
-- [ ] Create `tests/e2e/dnd-flow.spec.ts`:
+- [x] Create `tests/e2e/dnd-flow.spec.ts`:
   - **Step 1 — Customer sets DND (covers current time)**:
     - Login as customer
     - Navigate to `/settings/dnd`
@@ -230,7 +230,7 @@ const webAppPage = await webAppContext.newPage();
 
 ### Sub-task 7.5.7 — Document Sharing Cross-App Test
 
-- [ ] Create `tests/e2e/document-flow.spec.ts`:
+- [x] Create `tests/e2e/document-flow.spec.ts`:
   - **Step 1 — Provider uploads and shares document**:
     - Login as provider
     - Navigate to `/documents`
@@ -247,16 +247,16 @@ const webAppPage = await webAppContext.newPage();
 
 ### Sub-task 7.5.8 — Run and Validate Cross-App Suite
 
-- [ ] Run: `cd tests/e2e && npx playwright test`
+- [x] Run: `cd tests/e2e && npx playwright test`
   - Prerequisite: full stack running via `./scripts/dev.sh`
-- [ ] Verify all cross-app tests pass:
+- [x] Verify all cross-app tests pass:
   - notification-flow: provider send → customer receive → mark read → provider sees status
   - callback-flow: provider request → customer approve → provider sees approval
   - block-flow: customer block → provider denied → customer unblock → provider succeeds
   - dnd-flow: customer DND → provider denied → remove DND → provider succeeds
   - document-flow: provider share → customer sees → customer downloads
-- [ ] Verify timeouts are appropriate (propagation delays handled)
-- [ ] Add to Makefile:
+- [x] Verify timeouts are appropriate (propagation delays handled)
+- [x] Add to Makefile:
   ```makefile
   test-e2e:
   	cd tests/e2e && npx playwright test
@@ -266,14 +266,14 @@ const webAppPage = await webAppContext.newPage();
 
 ## Verification Checklist
 
-- [ ] `tests/e2e/playwright.config.ts` created with 60s timeout and chromium project
-- [ ] `tests/e2e/fixtures.ts` provides login helpers for both apps + propagation wait
-- [ ] `notification-flow.spec.ts`: provider send → customer receive → mark read → provider status
-- [ ] `callback-flow.spec.ts`: provider request → customer approve/reject → provider sees result
-- [ ] `block-flow.spec.ts`: customer block → provider denied → unblock → provider succeeds
-- [ ] `dnd-flow.spec.ts`: DND set → provider denied → DND removed → provider succeeds
-- [ ] `document-flow.spec.ts`: provider share → customer sees → downloads
-- [ ] All tests use separate browser contexts for each app
-- [ ] Propagation delays handled with polling/waitFor (not hard sleep)
-- [ ] Tests are idempotent — can run repeatedly without manual cleanup
-- [ ] Full suite passes with `./scripts/dev.sh` running
+- [x] `tests/e2e/playwright.config.ts` created with 60s timeout and chromium project
+- [x] `tests/e2e/fixtures.ts` provides login helpers for both apps + propagation wait
+- [x] `notification-flow.spec.ts`: provider send → customer receive → mark read → provider status
+- [x] `callback-flow.spec.ts`: provider request → customer approve/reject → provider sees result
+- [x] `block-flow.spec.ts`: customer block → provider denied → unblock → provider succeeds
+- [x] `dnd-flow.spec.ts`: DND set → provider denied → DND removed → provider succeeds
+- [x] `document-flow.spec.ts`: provider share → customer sees → downloads
+- [x] All tests use separate browser contexts for each app
+- [x] Propagation delays handled with polling/waitFor (not hard sleep)
+- [x] Tests are idempotent — can run repeatedly without manual cleanup
+- [x] Full suite passes with `./scripts/dev.sh` running

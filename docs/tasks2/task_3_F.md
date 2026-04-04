@@ -105,19 +105,19 @@ input CreateDNDRuleInput {
 
 ### Requirements
 
-- [ ] Create `apps/web/src/lib/graphql/dnd.ts` with GraphQL operations:
-  - [ ] `GET_DND_RULES` query — `me { dndRules { id scopeType startTime endTime daysOfWeek isActive } }`
-  - [ ] `CREATE_DND_RULE` mutation — accepts `CreateDNDRuleInput`
-  - [ ] `DELETE_DND_RULE` mutation — accepts `id`
-- [ ] Create `apps/web/src/hooks/useDNDRules.ts` hook:
-  - [ ] Use `useQuery(GET_DND_RULES)` to load rules
-  - [ ] Return `{ rules, loading, error, refetch }`
-- [ ] Update `dnd/page.tsx`:
-  - [ ] Remove `mockRules` array
-  - [ ] Use `useDNDRules()` hook for data
-  - [ ] Initialize rules from query result
-  - [ ] Add loading skeleton (2 placeholder rule cards)
-  - [ ] Add error state with retry
+- [x] Create `apps/web/src/lib/graphql/dnd.ts` with GraphQL operations:
+  - [x] `GET_DND_RULES` query — `me { dndRules { id scopeType startTime endTime daysOfWeek isActive } }`
+  - [x] `CREATE_DND_RULE` mutation — accepts `CreateDNDRuleInput`
+  - [x] `DELETE_DND_RULE` mutation — accepts `id`
+- [x] Create `apps/web/src/hooks/useDNDRules.ts` hook:
+  - [x] Use `useQuery(GET_DND_RULES)` to load rules
+  - [x] Return `{ rules, loading, error, refetch }`
+- [x] Update `dnd/page.tsx`:
+  - [x] Remove `mockRules` array
+  - [x] Use `useDNDRules()` hook for data
+  - [x] Initialize rules from query result
+  - [x] Add loading skeleton (2 placeholder rule cards)
+  - [x] Add error state with retry
 
 ### Implementation Details
 
@@ -202,23 +202,23 @@ export function useDNDRules() {
 
 ### Requirements
 
-- [ ] Replace state-only `handleSave` (create mode) with `createRule` mutation:
-  - [ ] Collect form values: `startTime`, `endTime`, `daysOfWeek`
-  - [ ] Set `scopeType: 'GLOBAL'` and `isActive: true` as defaults
-  - [ ] Call `createDNDRule` mutation with input
-  - [ ] Optimistic: add rule to cache immediately
-  - [ ] On success: close form, show success toast
-  - [ ] On error: show error toast
-- [ ] Form validation:
-  - [ ] Start time must be different from end time
-  - [ ] At least one day must be selected
-  - [ ] Show validation errors inline
-- [ ] Edit flow (since no `updateDNDRule` mutation):
-  - [ ] Edit = delete old rule + create new rule
-  - [ ] Pre-fill form with existing rule values
-  - [ ] On save: delete old, create new → refetch
-  - [ ] Show loading state during this two-step operation
-- [ ] Add loading state to Create/Update button
+- [x] Replace state-only `handleSave` (create mode) with `createRule` mutation:
+  - [x] Collect form values: `startTime`, `endTime`, `daysOfWeek`
+  - [x] Set `scopeType: 'GLOBAL'` and `isActive: true` as defaults
+  - [x] Call `createDNDRule` mutation with input
+  - [x] Optimistic: add rule to cache immediately
+  - [x] On success: close form, show success toast
+  - [x] On error: show error toast
+- [x] Form validation:
+  - [x] Start time must be different from end time
+  - [x] At least one day must be selected
+  - [x] Show validation errors inline
+- [x] Edit flow (since no `updateDNDRule` mutation):
+  - [x] Edit = delete old rule + create new rule
+  - [x] Pre-fill form with existing rule values
+  - [x] On save: delete old, create new → refetch
+  - [x] Show loading state during this two-step operation
+- [x] Add loading state to Create/Update button
 
 ---
 
@@ -226,17 +226,17 @@ export function useDNDRules() {
 
 ### Requirements
 
-- [ ] Replace state-only `handleDelete` with `deleteRule` mutation:
-  - [ ] Add confirmation dialog: "Delete this DND rule?"
-  - [ ] Show rule summary in dialog (time range + days)
-  - [ ] On confirm: call `deleteDNDRule` mutation
-  - [ ] Optimistic removal: filter rule from cache list immediately
-  - [ ] On success: show "Rule deleted" toast
-  - [ ] On error: revert removal, show error toast
-- [ ] Replace state-only `handleToggleActive`:
-  - [ ] Since no update mutation, toggle = delete + create with flipped `isActive`
-  - [ ] Show brief loading state on the toggle button
-  - [ ] On error: revert toggle state
+- [x] Replace state-only `handleDelete` with `deleteRule` mutation:
+  - [x] Add confirmation dialog: "Delete this DND rule?"
+  - [x] Show rule summary in dialog (time range + days)
+  - [x] On confirm: call `deleteDNDRule` mutation
+  - [x] Optimistic removal: filter rule from cache list immediately
+  - [x] On success: show "Rule deleted" toast
+  - [x] On error: revert removal, show error toast
+- [x] Replace state-only `handleToggleActive`:
+  - [x] Since no update mutation, toggle = delete + create with flipped `isActive`
+  - [x] Show brief loading state on the toggle button
+  - [x] On error: revert toggle state
 
 ---
 
@@ -244,15 +244,15 @@ export function useDNDRules() {
 
 ### Requirements
 
-- [ ] Add moon icon (🌙) in the app header/sidebar when DND is currently active:
-  - [ ] Client-side time comparison: check if current time falls within any active rule
-  - [ ] Match current day of week against rule's `daysOfWeek`
-  - [ ] Match current time against rule's `startTime`–`endTime` range
-  - [ ] Handle overnight rules (e.g., 22:00–07:00 spans midnight)
-- [ ] Tooltip on hover: "Do Not Disturb active until {endTime}"
-- [ ] Indicator location: next to user avatar in sidebar or header
-- [ ] Auto-update: check every minute via `setInterval`
-- [ ] Use DND rules from the same query (share data with settings page)
+- [x] Add moon icon (🌙) in the app header/sidebar when DND is currently active:
+  - [x] Client-side time comparison: check if current time falls within any active rule
+  - [x] Match current day of week against rule's `daysOfWeek`
+  - [x] Match current time against rule's `startTime`–`endTime` range
+  - [x] Handle overnight rules (e.g., 22:00–07:00 spans midnight)
+- [x] Tooltip on hover: "Do Not Disturb active until {endTime}"
+- [x] Indicator location: next to user avatar in sidebar or header
+- [x] Auto-update: check every minute via `setInterval`
+- [x] Use DND rules from the same query (share data with settings page)
 
 ### Implementation Details
 
@@ -286,19 +286,19 @@ function isDNDActive(rules: DNDRule[]): { active: boolean; until?: string } {
 
 ## Verification Checklist
 
-- [ ] DND page loads real rules from `me.dndRules` (no mock data)
-- [ ] Loading skeleton displays during query
-- [ ] Create form submits via `createDNDRule` mutation
-- [ ] New rule appears in list after creation
-- [ ] Edit workflow: deletes old + creates new with updated values
-- [ ] Delete shows confirmation dialog → calls mutation → optimistic removal
-- [ ] Toggle active/paused works (delete + create with flipped `isActive`)
-- [ ] Day selection buttons work in form
-- [ ] Time picker inputs validate correctly
-- [ ] Error states show with retry/toast
-- [ ] DND active indicator appears in header when rule matches current time
-- [ ] Overnight rules (22:00–07:00) handle midnight crossing correctly
-- [ ] Indicator tooltip shows "until {endTime}"
+- [x] DND page loads real rules from `me.dndRules` (no mock data)
+- [x] Loading skeleton displays during query
+- [x] Create form submits via `createDNDRule` mutation
+- [x] New rule appears in list after creation
+- [x] Edit workflow: deletes old + creates new with updated values
+- [x] Delete shows confirmation dialog → calls mutation → optimistic removal
+- [x] Toggle active/paused works (delete + create with flipped `isActive`)
+- [x] Day selection buttons work in form
+- [x] Time picker inputs validate correctly
+- [x] Error states show with retry/toast
+- [x] DND active indicator appears in header when rule matches current time
+- [x] Overnight rules (22:00–07:00) handle midnight crossing correctly
+- [x] Indicator tooltip shows "until {endTime}"
 
 ---
 

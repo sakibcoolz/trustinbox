@@ -50,6 +50,9 @@ func (r *mutationResolver) UpdatePrivacyPreference(ctx context.Context, input mo
 	if input.RequireCallApproval != nil {
 		req.RequireCallApproval = input.RequireCallApproval
 	}
+	if input.NotificationSoundEnabled != nil {
+		req.NotificationSoundEnabled = input.NotificationSoundEnabled
+	}
 
 	resp, err := r.Clients.User.UpdatePrivacyPreference(ctx, req)
 	if err != nil {

@@ -127,19 +127,19 @@ input UpdatePrivacyPreferenceInput {
 
 ### Requirements
 
-- [ ] Create `apps/web/src/lib/graphql/privacy.ts` with GraphQL operations:
-  - [ ] `GET_PRIVACY_PREFERENCES` query — `me { privacyPreference { ...all 7 fields } }`
-  - [ ] `UPDATE_PRIVACY_PREFERENCE` mutation — accepts `UpdatePrivacyPreferenceInput`
-- [ ] Create `apps/web/src/hooks/usePrivacySettings.ts` hook:
-  - [ ] Use `useQuery(GET_PRIVACY_PREFERENCES)` to load current prefs
-  - [ ] Return `{ preferences, loading, error, refetch }`
-  - [ ] Merge query data into local state for toggle management
-- [ ] Update `privacy/page.tsx`:
-  - [ ] Remove hardcoded `useState<PrivacyState>({...})`
-  - [ ] Use hook to load initial preferences
-  - [ ] Initialize toggle state from query result
-  - [ ] Add loading skeleton while preferences load
-  - [ ] Add error state with retry
+- [x] Create `apps/web/src/lib/graphql/privacy.ts` with GraphQL operations:
+  - [x] `GET_PRIVACY_PREFERENCES` query — `me { privacyPreference { ...all 7 fields } }`
+  - [x] `UPDATE_PRIVACY_PREFERENCE` mutation — accepts `UpdatePrivacyPreferenceInput`
+- [x] Create `apps/web/src/hooks/usePrivacySettings.ts` hook:
+  - [x] Use `useQuery(GET_PRIVACY_PREFERENCES)` to load current prefs
+  - [x] Return `{ preferences, loading, error, refetch }`
+  - [x] Merge query data into local state for toggle management
+- [x] Update `privacy/page.tsx`:
+  - [x] Remove hardcoded `useState<PrivacyState>({...})`
+  - [x] Use hook to load initial preferences
+  - [x] Initialize toggle state from query result
+  - [x] Add loading skeleton while preferences load
+  - [x] Add error state with retry
 
 ### Implementation Details
 
@@ -213,19 +213,19 @@ export function usePrivacySettings() {
 
 ### Requirements
 
-- [ ] Replace REST PATCH `handleSave` with GraphQL mutation:
-  - [ ] Call `UPDATE_PRIVACY_PREFERENCE` mutation
-  - [ ] Send only changed fields (partial input)
-  - [ ] Optimistic update: immediately reflect toggle in cache
-- [ ] Add debounced auto-save (500ms):
-  - [ ] On any toggle change, start 500ms debounce timer
-  - [ ] If another toggle changes within 500ms, reset timer and batch changes
-  - [ ] After 500ms of inactivity, send mutation with all changed fields
-  - [ ] Show "Saving..." indicator during mutation
-  - [ ] Show "✓ Saved" checkmark on success (auto-dismiss after 2s)
-  - [ ] Show error toast on failure with retry option
-- [ ] Keep manual "Save Changes" button as fallback:
-  - [ ] Clicking immediately saves (cancels debounce timer)
+- [x] Replace REST PATCH `handleSave` with GraphQL mutation:
+  - [x] Call `UPDATE_PRIVACY_PREFERENCE` mutation
+  - [x] Send only changed fields (partial input)
+  - [x] Optimistic update: immediately reflect toggle in cache
+- [x] Add debounced auto-save (500ms):
+  - [x] On any toggle change, start 500ms debounce timer
+  - [x] If another toggle changes within 500ms, reset timer and batch changes
+  - [x] After 500ms of inactivity, send mutation with all changed fields
+  - [x] Show "Saving..." indicator during mutation
+  - [x] Show "✓ Saved" checkmark on success (auto-dismiss after 2s)
+  - [x] Show error toast on failure with retry option
+- [x] Keep manual "Save Changes" button as fallback:
+  - [x] Clicking immediately saves (cancels debounce timer)
 
 ### Implementation Details
 
@@ -260,20 +260,20 @@ const handleToggle = useCallback((key: keyof PrivacyState) => {
 
 ### Requirements
 
-- [ ] Group toggles by communication category:
-  - [ ] **Personal**: `allowPersonalNotifications`
-  - [ ] **Service Provider**: `allowSPNotifications`, `allowCallbackRequests`, `allowChat`, `allowDocumentShares`
-  - [ ] **Advertisement**: `allowAdvertisements`
-- [ ] Add visual grouping with section headers:
-  - [ ] "Personal Communications" section
-  - [ ] "Service Provider Communications" section with sub-toggles
-  - [ ] "Advertisements" section
-- [ ] Add ad cap slider (future — schema extension needed):
-  - [ ] "Maximum ads per day" slider (1–10)
-  - [ ] Note: Currently not in schema — add TODO with placeholder disabled slider
-- [ ] Cross-toggle dependencies:
-  - [ ] If `allowSPNotifications` is OFF, gray out `allowCallbackRequests`, `allowChat`, `allowDocumentShares`
-  - [ ] Show tooltip: "Enable SP notifications first"
+- [x] Group toggles by communication category:
+  - [x] **Personal**: `allowPersonalNotifications`
+  - [x] **Service Provider**: `allowSPNotifications`, `allowCallbackRequests`, `allowChat`, `allowDocumentShares`
+  - [x] **Advertisement**: `allowAdvertisements`
+- [x] Add visual grouping with section headers:
+  - [x] "Personal Communications" section
+  - [x] "Service Provider Communications" section with sub-toggles
+  - [x] "Advertisements" section
+- [x] Add ad cap slider (future — schema extension needed):
+  - [x] "Maximum ads per day" slider (1–10)
+  - [x] Note: Currently not in schema — add TODO with placeholder disabled slider
+- [x] Cross-toggle dependencies:
+  - [x] If `allowSPNotifications` is OFF, gray out `allowCallbackRequests`, `allowChat`, `allowDocumentShares`
+  - [x] Show tooltip: "Enable SP notifications first"
 
 ---
 
@@ -281,32 +281,32 @@ const handleToggle = useCallback((key: keyof PrivacyState) => {
 
 ### Requirements
 
-- [ ] Add per-channel toggle matrix (future — schema extension needed):
-  - [ ] Channels: Push, Email, SMS, In-App
-  - [ ] Per category: Personal × channels, SP × channels, Ads × channels
-  - [ ] Matrix layout: rows = categories, columns = channels
-- [ ] Note: `PrivacyPreference` type does not include per-channel fields yet
-  - [ ] Add TODO comments indicating schema extension needed
-  - [ ] Show channel toggles in disabled state with "Coming soon" badge
-  - [ ] Wire the infrastructure so it's ready when schema adds fields
-- [ ] Mobile layout: stack vertically instead of matrix grid
+- [x] Add per-channel toggle matrix (future — schema extension needed):
+  - [x] Channels: Push, Email, SMS, In-App
+  - [x] Per category: Personal × channels, SP × channels, Ads × channels
+  - [x] Matrix layout: rows = categories, columns = channels
+- [x] Note: `PrivacyPreference` type does not include per-channel fields yet
+  - [x] Add TODO comments indicating schema extension needed
+  - [x] Show channel toggles in disabled state with "Coming soon" badge
+  - [x] Wire the infrastructure so it's ready when schema adds fields
+- [x] Mobile layout: stack vertically instead of matrix grid
 
 ---
 
 ## Verification Checklist
 
-- [ ] Privacy page loads current preferences from `me.privacyPreference` (not hardcoded)
-- [ ] Loading skeleton shows while preferences load
-- [ ] Each toggle reflects backend state
-- [ ] Toggling saves via GraphQL mutation (not REST PATCH)
-- [ ] Debounced auto-save fires after 500ms of inactivity
-- [ ] Multiple rapid toggles are batched into one mutation
-- [ ] "Saving..." and "✓ Saved" indicators work
-- [ ] Error toast shows on save failure
-- [ ] Category grouping with section headers
-- [ ] Cross-toggle dependencies (SP off → sub-toggles disabled)
-- [ ] Per-channel matrix shows as "Coming soon" placeholder
-- [ ] Manual "Save Changes" button works as fallback
+- [x] Privacy page loads current preferences from `me.privacyPreference` (not hardcoded)
+- [x] Loading skeleton shows while preferences load
+- [x] Each toggle reflects backend state
+- [x] Toggling saves via GraphQL mutation (not REST PATCH)
+- [x] Debounced auto-save fires after 500ms of inactivity
+- [x] Multiple rapid toggles are batched into one mutation
+- [x] "Saving..." and "✓ Saved" indicators work
+- [x] Error toast shows on save failure
+- [x] Category grouping with section headers
+- [x] Cross-toggle dependencies (SP off → sub-toggles disabled)
+- [x] Per-channel matrix shows as "Coming soon" placeholder
+- [x] Manual "Save Changes" button works as fallback
 
 ---
 

@@ -88,49 +88,49 @@ export function Providers({ children }: { children: React.ReactNode }) {
 ## Requirements
 
 ### 4.1.1 — Create Service Worker
-- [ ] Create `apps/web/public/` directory
-- [ ] Create `apps/web/public/sw.js` with push event listener:
-  - [ ] Listen for `push` event
-  - [ ] Parse notification payload from push data (JSON: `{ title, body, icon, url, notificationId }`)
-  - [ ] Show browser notification via `self.registration.showNotification(title, options)`
-  - [ ] Include notification icon, badge, and action buttons
-- [ ] Handle `notificationclick` event:
-  - [ ] Open the app URL from notification data (e.g., `/inbox?id=<notificationId>`)
-  - [ ] Focus existing tab if open, otherwise open new tab
-- [ ] Handle `notificationclose` event for analytics (optional)
+- [x] Create `apps/web/public/` directory
+- [x] Create `apps/web/public/sw.js` with push event listener:
+  - [x] Listen for `push` event
+  - [x] Parse notification payload from push data (JSON: `{ title, body, icon, url, notificationId }`)
+  - [x] Show browser notification via `self.registration.showNotification(title, options)`
+  - [x] Include notification icon, badge, and action buttons
+- [x] Handle `notificationclick` event:
+  - [x] Open the app URL from notification data (e.g., `/inbox?id=<notificationId>`)
+  - [x] Focus existing tab if open, otherwise open new tab
+- [x] Handle `notificationclose` event for analytics (optional)
 
 ### 4.1.2 — Create Push Notification Utility
-- [ ] Create `apps/web/src/lib/push-notifications.ts`:
-  - [ ] `requestNotificationPermission()` — requests `Notification.permission` and returns result
-  - [ ] `registerServiceWorker()` — registers `/sw.js` and returns `ServiceWorkerRegistration`
-  - [ ] `subscribeToPush(registration)` — creates a `PushSubscription` using VAPID public key
-  - [ ] `sendSubscriptionToServer(subscription)` — POST subscription to gateway endpoint
-  - [ ] `isNotificationSupported()` — checks `'Notification' in window && 'serviceWorker' in navigator`
-  - [ ] `getNotificationPermission()` — returns current `Notification.permission` value
+- [x] Create `apps/web/src/lib/push-notifications.ts`:
+  - [x] `requestNotificationPermission()` — requests `Notification.permission` and returns result
+  - [x] `registerServiceWorker()` — registers `/sw.js` and returns `ServiceWorkerRegistration`
+  - [x] `subscribeToPush(registration)` — creates a `PushSubscription` using VAPID public key
+  - [x] `sendSubscriptionToServer(subscription)` — POST subscription to gateway endpoint
+  - [x] `isNotificationSupported()` — checks `'Notification' in window && 'serviceWorker' in navigator`
+  - [x] `getNotificationPermission()` — returns current `Notification.permission` value
 
 ### 4.1.3 — Request Permission on First Login
-- [ ] In `notification-context.tsx`, after successful SSE connection:
-  - [ ] Check if notification permission is `'default'` (not yet asked)
-  - [ ] Show a non-intrusive in-app prompt: "Enable push notifications to stay updated even when the tab is closed"
-  - [ ] On "Enable" → call `requestNotificationPermission()`
-  - [ ] On "Maybe later" → dismiss, don't ask again for this session (localStorage flag)
-  - [ ] If granted → register service worker → subscribe to push → send subscription to server
-- [ ] Do NOT use the browser's default permission popup immediately — show custom UI first
+- [x] In `notification-context.tsx`, after successful SSE connection:
+  - [x] Check if notification permission is `'default'` (not yet asked)
+  - [x] Show a non-intrusive in-app prompt: "Enable push notifications to stay updated even when the tab is closed"
+  - [x] On "Enable" → call `requestNotificationPermission()`
+  - [x] On "Maybe later" → dismiss, don't ask again for this session (localStorage flag)
+  - [x] If granted → register service worker → subscribe to push → send subscription to server
+- [x] Do NOT use the browser's default permission popup immediately — show custom UI first
 
 ### 4.1.4 — Wire SSE Events to Browser Notifications
-- [ ] In `notification-context.tsx`, when an SSE `notification` event arrives:
-  - [ ] Check if `document.hidden === true` (tab is not active)
-  - [ ] If hidden AND permission is `'granted'` → show native `new Notification(title, { body, icon })`
-  - [ ] If hidden AND service worker registered → let service worker handle via `showNotification()`
-  - [ ] Include notification click handler to focus the tab and navigate to `/inbox?id=<notificationId>`
-- [ ] Do NOT show browser notification when tab is active (in-app notification is sufficient)
+- [x] In `notification-context.tsx`, when an SSE `notification` event arrives:
+  - [x] Check if `document.hidden === true` (tab is not active)
+  - [x] If hidden AND permission is `'granted'` → show native `new Notification(title, { body, icon })`
+  - [x] If hidden AND service worker registered → let service worker handle via `showNotification()`
+  - [x] Include notification click handler to focus the tab and navigate to `/inbox?id=<notificationId>`
+- [x] Do NOT show browser notification when tab is active (in-app notification is sufficient)
 
 ### 4.1.5 — Add Permission Toggle in Settings
-- [ ] In `apps/web/src/app/(dashboard)/settings/preferences/page.tsx`:
-  - [ ] Add "Push Notifications" toggle in notification preferences section
-  - [ ] Show current permission state: Enabled / Disabled / Not Supported
-  - [ ] Toggle ON → request permission if needed → register SW
-  - [ ] Toggle OFF → unsubscribe from push → unregister SW subscription
+- [x] In `apps/web/src/app/(dashboard)/settings/preferences/page.tsx`:
+  - [x] Add "Push Notifications" toggle in notification preferences section
+  - [x] Show current permission state: Enabled / Disabled / Not Supported
+  - [x] Toggle ON → request permission if needed → register SW
+  - [x] Toggle OFF → unsubscribe from push → unregister SW subscription
 
 ---
 
@@ -335,13 +335,13 @@ function showBrowserNotification(notification: { id: string; title: string; body
 
 ## Verification
 
-- [ ] Service worker registers successfully (`navigator.serviceWorker.ready` resolves)
-- [ ] Permission prompt appears on first authenticated visit (only if permission is `'default'`)
-- [ ] Granting permission → push subscription is created and sent to server
-- [ ] When tab is hidden → receiving SSE notification → browser push notification appears
-- [ ] Clicking browser notification → tab focuses → navigates to `/inbox?id=<id>`
-- [ ] When tab is active → NO browser notification (in-app notification handles it)
-- [ ] "Maybe later" → no re-prompt until next session
-- [ ] Settings toggle correctly reflects and controls push notification state
-- [ ] Works in Chrome, Firefox, Edge (Safari has limited Push API support — graceful fallback)
-- [ ] Service worker does not interfere with Next.js routing or hydration
+- [x] Service worker registers successfully (`navigator.serviceWorker.ready` resolves)
+- [x] Permission prompt appears on first authenticated visit (only if permission is `'default'`)
+- [x] Granting permission → push subscription is created and sent to server
+- [x] When tab is hidden → receiving SSE notification → browser push notification appears
+- [x] Clicking browser notification → tab focuses → navigates to `/inbox?id=<id>`
+- [x] When tab is active → NO browser notification (in-app notification handles it)
+- [x] "Maybe later" → no re-prompt until next session
+- [x] Settings toggle correctly reflects and controls push notification state
+- [x] Works in Chrome, Firefox, Edge (Safari has limited Push API support — graceful fallback)
+- [x] Service worker does not interfere with Next.js routing or hydration

@@ -348,6 +348,7 @@ type PrivacyPreference struct {
 	AllowChat                  bool                   `protobuf:"varint,6,opt,name=allow_chat,json=allowChat,proto3" json:"allow_chat,omitempty"`
 	AllowDocumentShares        bool                   `protobuf:"varint,7,opt,name=allow_document_shares,json=allowDocumentShares,proto3" json:"allow_document_shares,omitempty"`
 	RequireCallApproval        bool                   `protobuf:"varint,8,opt,name=require_call_approval,json=requireCallApproval,proto3" json:"require_call_approval,omitempty"`
+	NotificationSoundEnabled   bool                   `protobuf:"varint,9,opt,name=notification_sound_enabled,json=notificationSoundEnabled,proto3" json:"notification_sound_enabled,omitempty"`
 	unknownFields              protoimpl.UnknownFields
 	sizeCache                  protoimpl.SizeCache
 }
@@ -438,6 +439,13 @@ func (x *PrivacyPreference) GetRequireCallApproval() bool {
 	return false
 }
 
+func (x *PrivacyPreference) GetNotificationSoundEnabled() bool {
+	if x != nil {
+		return x.NotificationSoundEnabled
+	}
+	return false
+}
+
 type UpdatePrivacyPreferenceRequest struct {
 	state                      protoimpl.MessageState `protogen:"open.v1"`
 	UserId                     string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -448,6 +456,7 @@ type UpdatePrivacyPreferenceRequest struct {
 	AllowChat                  *bool                  `protobuf:"varint,6,opt,name=allow_chat,json=allowChat,proto3,oneof" json:"allow_chat,omitempty"`
 	AllowDocumentShares        *bool                  `protobuf:"varint,7,opt,name=allow_document_shares,json=allowDocumentShares,proto3,oneof" json:"allow_document_shares,omitempty"`
 	RequireCallApproval        *bool                  `protobuf:"varint,8,opt,name=require_call_approval,json=requireCallApproval,proto3,oneof" json:"require_call_approval,omitempty"`
+	NotificationSoundEnabled   *bool                  `protobuf:"varint,9,opt,name=notification_sound_enabled,json=notificationSoundEnabled,proto3,oneof" json:"notification_sound_enabled,omitempty"`
 	unknownFields              protoimpl.UnknownFields
 	sizeCache                  protoimpl.SizeCache
 }
@@ -534,6 +543,13 @@ func (x *UpdatePrivacyPreferenceRequest) GetAllowDocumentShares() bool {
 func (x *UpdatePrivacyPreferenceRequest) GetRequireCallApproval() bool {
 	if x != nil && x.RequireCallApproval != nil {
 		return *x.RequireCallApproval
+	}
+	return false
+}
+
+func (x *UpdatePrivacyPreferenceRequest) GetNotificationSoundEnabled() bool {
+	if x != nil && x.NotificationSoundEnabled != nil {
+		return *x.NotificationSoundEnabled
 	}
 	return false
 }
@@ -1658,7 +1674,7 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x19UpdateUserProfileResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"6\n" +
 	"\x1bGetPrivacyPreferenceRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"\x96\x03\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xd4\x03\n" +
 	"\x11PrivacyPreference\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12@\n" +
 	"\x1callow_personal_notifications\x18\x02 \x01(\bR\x1aallowPersonalNotifications\x124\n" +
@@ -1668,7 +1684,8 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\n" +
 	"allow_chat\x18\x06 \x01(\bR\tallowChat\x122\n" +
 	"\x15allow_document_shares\x18\a \x01(\bR\x13allowDocumentShares\x122\n" +
-	"\x15require_call_approval\x18\b \x01(\bR\x13requireCallApproval\"\xfa\x04\n" +
+	"\x15require_call_approval\x18\b \x01(\bR\x13requireCallApproval\x12<\n" +
+	"\x1anotification_sound_enabled\x18\t \x01(\bR\x18notificationSoundEnabled\"\xdc\x05\n" +
 	"\x1eUpdatePrivacyPreferenceRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12E\n" +
 	"\x1callow_personal_notifications\x18\x02 \x01(\bH\x00R\x1aallowPersonalNotifications\x88\x01\x01\x129\n" +
@@ -1678,14 +1695,16 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\n" +
 	"allow_chat\x18\x06 \x01(\bH\x04R\tallowChat\x88\x01\x01\x127\n" +
 	"\x15allow_document_shares\x18\a \x01(\bH\x05R\x13allowDocumentShares\x88\x01\x01\x127\n" +
-	"\x15require_call_approval\x18\b \x01(\bH\x06R\x13requireCallApproval\x88\x01\x01B\x1f\n" +
+	"\x15require_call_approval\x18\b \x01(\bH\x06R\x13requireCallApproval\x88\x01\x01\x12A\n" +
+	"\x1anotification_sound_enabled\x18\t \x01(\bH\aR\x18notificationSoundEnabled\x88\x01\x01B\x1f\n" +
 	"\x1d_allow_personal_notificationsB\x19\n" +
 	"\x17_allow_sp_notificationsB\x17\n" +
 	"\x15_allow_advertisementsB\x1a\n" +
 	"\x18_allow_callback_requestsB\r\n" +
 	"\v_allow_chatB\x18\n" +
 	"\x16_allow_document_sharesB\x18\n" +
-	"\x16_require_call_approval\"7\n" +
+	"\x16_require_call_approvalB\x1d\n" +
+	"\x1b_notification_sound_enabled\"7\n" +
 	"\x1cListAvailabilitySlotsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"P\n" +
 	"\x1dListAvailabilitySlotsResponse\x12/\n" +

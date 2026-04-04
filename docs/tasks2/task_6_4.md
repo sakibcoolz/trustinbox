@@ -84,44 +84,44 @@ func (uc *DocumentUseCase) GetDocument(ctx, docID, spID) → *Document
 
 ### Sub-task 6.4.1 — Provider Portal: Upload Document
 
-- [ ] Open Provider Portal → navigate to `/documents`
-- [ ] Click upload area or drag-and-drop a file:
+- [x] Open Provider Portal → navigate to `/documents`
+- [x] Click upload area or drag-and-drop a file:
   - Test file: PDF document (e.g., `invoice-2024-001.pdf`, ~500 KB)
-- [ ] Verify upload flow:
+- [x] Verify upload flow:
   1. Frontend requests presigned upload URL: POST `/api/documents/upload`
      - Response: `{ uploadUrl: "https://minio:9000/bucket/key?signature=...", s3Key: "..." }`
   2. Frontend PUTs file directly to MinIO presigned URL
   3. Frontend registers document: POST `/api/documents`
      - Payload: `{ fileName, fileType, s3Key, fileSize, classification }`
-- [ ] Verify `document-service.CreateDocument()`:
+- [x] Verify `document-service.CreateDocument()`:
   - Creates document entity with status `ACTIVE`
   - Creates `DocumentVersion` v1
   - Persists to PostgreSQL
-- [ ] Verify document appears in provider's document list:
+- [x] Verify document appears in provider's document list:
   - File name, size, classification badge, upload timestamp
   - Version: v1
-- [ ] Verify file exists in MinIO:
+- [x] Verify file exists in MinIO:
   - MinIO console at `localhost:9001` (or via `mc` CLI)
   - Bucket and key match the registered s3Key
 
 ### Sub-task 6.4.2 — Provider Portal: Set Classification
 
-- [ ] Click on uploaded document → verify classification:
+- [x] Click on uploaded document → verify classification:
   - Default or selected during upload
   - Options: invoice, identity, contract, report, general
-- [ ] Change classification (if editable):
+- [x] Change classification (if editable):
   - Verify backend update
-- [ ] Verify classification badge updates on document card
+- [x] Verify classification badge updates on document card
 
 ### Sub-task 6.4.3 — Provider Portal: Share with Customer
 
-- [ ] Click "Share" button on the document
-- [ ] Share modal/dialog opens:
+- [x] Click "Share" button on the document
+- [x] Share modal/dialog opens:
   - Search for customer by virtual ID
   - Select recipient
   - Optional: share context/message
-- [ ] Click "Share" / "Send"
-- [ ] Verify `document-service.ShareDocument()` executes:
+- [x] Click "Share" / "Send"
+- [x] Verify `document-service.ShareDocument()` executes:
   - Creates share record in PostgreSQL:
     ```sql
     SELECT id, document_id, recipient_user_id, shared_by, share_context, created_at
@@ -130,63 +130,63 @@ func (uc *DocumentUseCase) GetDocument(ctx, docID, spID) → *Document
     ORDER BY created_at DESC LIMIT 1;
     ```
   - Publishes `document.shared` event
-- [ ] Verify success toast: "Document shared with [customer name/VID]"
-- [ ] Verify share count increments on document card
+- [x] Verify success toast: "Document shared with [customer name/VID]"
+- [x] Verify share count increments on document card
 
 ### Sub-task 6.4.4 — Web App: See Shared Document
 
-- [ ] Open Web App → navigate to `/documents`
-- [ ] Verify shared document appears in list:
+- [x] Open Web App → navigate to `/documents`
+- [x] Verify shared document appears in list:
   - File name: `invoice-2024-001.pdf`
   - SP name: the sharing organization
   - Classification badge
   - Shared date
   - File size
   - File type icon (PDF)
-- [ ] Verify document is ONLY visible to the intended recipient:
+- [x] Verify document is ONLY visible to the intended recipient:
   - Log in as a different customer → document should NOT appear
   - Query: `myDocuments` returns only documents shared with the authenticated user
 
 ### Sub-task 6.4.5 — Web App: Preview Document
 
-- [ ] Click on the document to open detail/preview
-- [ ] For PDF files:
+- [x] Click on the document to open detail/preview
+- [x] For PDF files:
   - Verify inline PDF preview renders (embedded viewer or iframe)
   - Verify presigned URL is fetched for preview
-- [ ] For image files (if testing with images):
+- [x] For image files (if testing with images):
   - Verify inline image preview
   - Verify image loads via presigned URL
-- [ ] For unsupported formats (xlsx, zip, etc.):
+- [x] For unsupported formats (xlsx, zip, etc.):
   - Verify file type icon displayed as fallback
   - "Download" button shown instead of preview
 
 ### Sub-task 6.4.6 — Web App: Download Document
 
-- [ ] Click "Download" button on the document
-- [ ] Verify presigned URL flow:
+- [x] Click "Download" button on the document
+- [x] Verify presigned URL flow:
   1. Frontend calls GET `/api/documents/{id}/download` (or similar endpoint)
   2. Gateway calls `document-service.GetPresignedURL(docID, spID)`
   3. Returns time-limited presigned URL from MinIO
   4. Browser redirects to presigned URL → file downloads
-- [ ] Verify file integrity:
+- [x] Verify file integrity:
   - Downloaded file size matches original upload
   - File content is identical (checksum/hash comparison)
   - File name preserved in download
-- [ ] Verify presigned URL is time-limited:
+- [x] Verify presigned URL is time-limited:
   - URL should expire after a short window (e.g., 5–15 minutes)
   - Accessing expired URL returns 403
 
 ### Sub-task 6.4.7 — Access Control Validation
 
-- [ ] Verify customer can only access their own shared documents:
+- [x] Verify customer can only access their own shared documents:
   - API returns only documents where `recipient_user_id` matches authenticated user
   - Direct presigned URL request for another user's document → 403 or 404
-- [ ] Verify SP can only manage their own documents:
+- [x] Verify SP can only manage their own documents:
   - Provider Portal shows only documents owned by the active SP
   - Attempting to share/delete another SP's document → 403
-- [ ] Verify unshared documents are invisible to customers:
+- [x] Verify unshared documents are invisible to customers:
   - Document exists in MinIO but has no share record → customer cannot see it
-- [ ] Verify deleted documents are inaccessible:
+- [x] Verify deleted documents are inaccessible:
   - Provider deletes document → customer's list no longer shows it
   - Previous presigned URLs stop working (or document marked as deleted)
 
@@ -194,15 +194,15 @@ func (uc *DocumentUseCase) GetDocument(ctx, docID, spID) → *Document
 
 ## Verification Checklist
 
-- [ ] Provider: upload file → presigned URL workflow → file in MinIO → registered in service
-- [ ] Provider: document appears in list with correct name, size, classification, version
-- [ ] Provider: share document with specific customer → share record created → event published
-- [ ] Web App: shared document appears in customer's document list
-- [ ] Web App: correct SP name, classification, file type, shared date displayed
-- [ ] Web App: preview works for PDF and images (via presigned URLs)
-- [ ] Web App: download preserves file integrity (size and content match)
-- [ ] Access control: document visible only to intended recipient
-- [ ] Access control: other customers cannot see or download the document
-- [ ] Presigned URLs: time-limited, expire appropriately
-- [ ] Jaeger: traces for upload → share → download flow
-- [ ] MinIO: file physically present in correct bucket/key
+- [x] Provider: upload file → presigned URL workflow → file in MinIO → registered in service
+- [x] Provider: document appears in list with correct name, size, classification, version
+- [x] Provider: share document with specific customer → share record created → event published
+- [x] Web App: shared document appears in customer's document list
+- [x] Web App: correct SP name, classification, file type, shared date displayed
+- [x] Web App: preview works for PDF and images (via presigned URLs)
+- [x] Web App: download preserves file integrity (size and content match)
+- [x] Access control: document visible only to intended recipient
+- [x] Access control: other customers cannot see or download the document
+- [x] Presigned URLs: time-limited, expire appropriately
+- [x] Jaeger: traces for upload → share → download flow
+- [x] MinIO: file physically present in correct bucket/key

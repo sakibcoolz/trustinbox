@@ -41,7 +41,21 @@ func (h *UserHandler) UpdateUserProfile(ctx context.Context, req *pb.UpdateUserP
 }
 
 func (h *UserHandler) GetPrivacyPreference(ctx context.Context, req *pb.GetPrivacyPreferenceRequest) (*pb.PrivacyPreference, error) {
-	return nil, status.Errorf(codes.Unimplemented, "not implemented")
+	pref, err := h.uc.GetPrivacyPreference(ctx, req.UserId)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &pb.PrivacyPreference{
+		UserId:                     pref.UserID,
+		AllowPersonalNotifications: pref.AllowPersonalNotifications,
+		AllowSpNotifications:       pref.AllowOrgNotifications,
+		AllowAdvertisements:        pref.AllowAdvertisements,
+		AllowCallbackRequests:      pref.AllowCallbackRequests,
+		AllowChat:                  pref.AllowChat,
+		AllowDocumentShares:        pref.AllowDocumentShares,
+		RequireCallApproval:        pref.RequireCallApproval,
+		NotificationSoundEnabled:   pref.NotificationSoundEnabled,
+	}, nil
 }
 
 func (h *UserHandler) UpdatePrivacyPreference(ctx context.Context, req *pb.UpdatePrivacyPreferenceRequest) (*pb.PrivacyPreference, error) {
@@ -67,6 +81,9 @@ func (h *UserHandler) UpdatePrivacyPreference(ctx context.Context, req *pb.Updat
 	if req.RequireCallApproval != nil {
 		pref.RequireCallApproval = *req.RequireCallApproval
 	}
+	if req.NotificationSoundEnabled != nil {
+		pref.NotificationSoundEnabled = *req.NotificationSoundEnabled
+	}
 
 	if err := h.uc.UpdatePrivacyPreference(ctx, pref); err != nil {
 		return nil, mapError(err)
@@ -80,6 +97,7 @@ func (h *UserHandler) UpdatePrivacyPreference(ctx context.Context, req *pb.Updat
 		AllowChat:                  pref.AllowChat,
 		AllowDocumentShares:        pref.AllowDocumentShares,
 		RequireCallApproval:        pref.RequireCallApproval,
+		NotificationSoundEnabled:   pref.NotificationSoundEnabled,
 	}, nil
 }
 
@@ -213,7 +231,15 @@ func (h *UserHandler) UnblockServiceProvider(ctx context.Context, req *pb.Unbloc
 }
 
 func (h *UserHandler) ListBlockedServiceProviders(ctx context.Context, req *pb.ListBlockedServiceProvidersRequest) (*pb.ListBlockedServiceProvidersResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "not implemented")
+	blocked, err := h.uc.ListBlockedServiceProviders(ctx, req.UserId)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	ids := make([]string, len(blocked))
+	for i, b := range blocked {
+		ids[i] = b.ServiceProviderID
+	}
+	return &pb.ListBlockedServiceProvidersResponse{ServiceProviderIds: ids}, nil
 }
 
 func mapError(err error) error {

@@ -1,0 +1,1 @@
+ALTER TABLE privacy_preferences DROP COLUMN notification_sound_enabled;

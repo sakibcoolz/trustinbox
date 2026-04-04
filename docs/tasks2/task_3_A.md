@@ -80,23 +80,23 @@ notificationReceived: Notification!
 
 ### Requirements
 
-- [ ] Create `apps/web/src/lib/graphql/notifications.ts` with GraphQL operations:
-  - [ ] `GET_NOTIFICATIONS` query — accepts `category`, `status`, `limit`, `offset`
-  - [ ] `GET_NOTIFICATION` query — accepts `id`
-  - [ ] `MARK_NOTIFICATION_READ` mutation — accepts `id`
-  - [ ] `ARCHIVE_NOTIFICATION` mutation — accepts `id`
-- [ ] Create `apps/web/src/hooks/useNotificationsQuery.ts` hook:
-  - [ ] Use `useQuery(GET_NOTIFICATIONS, { variables })` from Apollo Client
-  - [ ] Accept `category` and `page` parameters
-  - [ ] Return `{ notifications, totalCount, loading, error, refetch }`
-  - [ ] Page size: 20 items per page
-- [ ] Update `inbox/page.tsx`:
-  - [ ] Import and use `useNotificationsQuery()` for the list data
-  - [ ] Keep SSE `useNotifications()` for real-time incoming — merge new SSE items into query results
-  - [ ] Map category tabs to query variables: `null` (All), `PERSONAL`, `SERVICE_PROVIDER`, `ADVERTISEMENT`
-  - [ ] Add loading skeleton while query loads
-  - [ ] Add error state with retry button
-  - [ ] Add pagination controls (Previous / Next or infinite scroll)
+- [x] Create `apps/web/src/lib/graphql/notifications.ts` with GraphQL operations:
+  - [x] `GET_NOTIFICATIONS` query — accepts `category`, `status`, `limit`, `offset`
+  - [x] `GET_NOTIFICATION` query — accepts `id`
+  - [x] `MARK_NOTIFICATION_READ` mutation — accepts `id`
+  - [x] `ARCHIVE_NOTIFICATION` mutation — accepts `id`
+- [x] Create `apps/web/src/hooks/useNotificationsQuery.ts` hook:
+  - [x] Use `useQuery(GET_NOTIFICATIONS, { variables })` from Apollo Client
+  - [x] Accept `category` and `page` parameters
+  - [x] Return `{ notifications, totalCount, loading, error, refetch }`
+  - [x] Page size: 20 items per page
+- [x] Update `inbox/page.tsx`:
+  - [x] Import and use `useNotificationsQuery()` for the list data
+  - [x] Keep SSE `useNotifications()` for real-time incoming — merge new SSE items into query results
+  - [x] Map category tabs to query variables: `null` (All), `PERSONAL`, `SERVICE_PROVIDER`, `ADVERTISEMENT`
+  - [x] Add loading skeleton while query loads
+  - [x] Add error state with retry button
+  - [x] Add pagination controls (Previous / Next or infinite scroll)
 
 ### Implementation Details
 
@@ -191,17 +191,17 @@ export function useNotificationsQuery(category: NotificationCategory | null, pag
 
 ### Requirements
 
-- [ ] Create `useMarkNotificationRead()` hook or inline `useMutation`:
-  - [ ] Call `MARK_NOTIFICATION_READ` mutation on notification select
-  - [ ] Optimistic update: set `status: 'READ'` in Apollo cache immediately
-  - [ ] Also call SSE context `markRead([id])` to sync sidebar badge
-  - [ ] Handle error: revert optimistic update, show toast
-- [ ] Wire to existing `handleSelect` in inbox page:
-  - [ ] Replace local-only `markRead` with GraphQL mutation + context sync
-- [ ] Add "Mark All Read" button:
-  - [ ] Loop through unread notifications and call mutation for each (or batch if available)
-  - [ ] Update SSE context `markAllRead()` for immediate UI feedback
-- [ ] Update sidebar unread badge to reflect mutation success
+- [x] Create `useMarkNotificationRead()` hook or inline `useMutation`:
+  - [x] Call `MARK_NOTIFICATION_READ` mutation on notification select
+  - [x] Optimistic update: set `status: 'READ'` in Apollo cache immediately
+  - [x] Also call SSE context `markRead([id])` to sync sidebar badge
+  - [x] Handle error: revert optimistic update, show toast
+- [x] Wire to existing `handleSelect` in inbox page:
+  - [x] Replace local-only `markRead` with GraphQL mutation + context sync
+- [x] Add "Mark All Read" button:
+  - [x] Loop through unread notifications and call mutation for each (or batch if available)
+  - [x] Update SSE context `markAllRead()` for immediate UI feedback
+- [x] Update sidebar unread badge to reflect mutation success
 
 ### Implementation Details
 
@@ -237,20 +237,20 @@ const handleSelect = async (id: string) => {
 
 ### Requirements
 
-- [ ] Add archive action to each notification item:
-  - [ ] Swipe-to-archive on mobile or archive icon button
-  - [ ] Call `ARCHIVE_NOTIFICATION` mutation
-  - [ ] Optimistic removal from list (filter out by ID)
-  - [ ] Show undo toast with 5-second timer to revert
-- [ ] Add "Mute Sender" action:
-  - [ ] Shows in notification item overflow menu (three-dot menu)
-  - [ ] Calls `blockServiceProvider(serviceProviderId)` mutation
-  - [ ] Shows confirmation dialog before blocking
-  - [ ] Removes all notifications from that SP from view
-- [ ] Add "Report Spam" action:
-  - [ ] Shows in notification item overflow menu
-  - [ ] Calls `reportSpam` mutation with `notificationId` and `serviceProviderId`
-  - [ ] Prompts for reason selection
+- [x] Add archive action to each notification item:
+  - [x] Swipe-to-archive on mobile or archive icon button
+  - [x] Call `ARCHIVE_NOTIFICATION` mutation
+  - [x] Optimistic removal from list (filter out by ID)
+  - [x] Show undo toast with 5-second timer to revert
+- [x] Add "Mute Sender" action:
+  - [x] Shows in notification item overflow menu (three-dot menu)
+  - [x] Calls `blockServiceProvider(serviceProviderId)` mutation
+  - [x] Shows confirmation dialog before blocking
+  - [x] Removes all notifications from that SP from view
+- [x] Add "Report Spam" action:
+  - [x] Shows in notification item overflow menu
+  - [x] Calls `reportSpam` mutation with `notificationId` and `serviceProviderId`
+  - [x] Prompts for reason selection
 
 ### Implementation Details
 
@@ -287,23 +287,23 @@ const handleArchive = async (id: string) => {
 
 ### Requirements
 
-- [ ] Create slide-over drawer component for notification detail:
-  - [ ] Full notification body (rendered as text, not truncated)
-  - [ ] Sender info: SP name, industry, verification badge
-  - [ ] Category badge (Personal / Service Provider / Advertisement)
-  - [ ] Priority badge (Low / Normal / High / Urgent)
-  - [ ] Timestamp with relative time
-  - [ ] Metadata display (if present in JSON)
-- [ ] Action buttons in drawer:
-  - [ ] "Archive" — calls archive mutation
-  - [ ] "Block Sender" — opens confirmation, calls `blockServiceProvider`
-  - [ ] "Report Spam" — opens report dialog
-- [ ] Wire to notification select:
-  - [ ] Desktop: side panel (right third of screen)
-  - [ ] Mobile: full-screen slide-up drawer
-- [ ] Fetch full notification detail:
-  - [ ] Use `GET_NOTIFICATION` query with `id` for complete data
-  - [ ] Show loading skeleton while fetching
+- [x] Create slide-over drawer component for notification detail:
+  - [x] Full notification body (rendered as text, not truncated)
+  - [x] Sender info: SP name, industry, verification badge
+  - [x] Category badge (Personal / Service Provider / Advertisement)
+  - [x] Priority badge (Low / Normal / High / Urgent)
+  - [x] Timestamp with relative time
+  - [x] Metadata display (if present in JSON)
+- [x] Action buttons in drawer:
+  - [x] "Archive" — calls archive mutation
+  - [x] "Block Sender" — opens confirmation, calls `blockServiceProvider`
+  - [x] "Report Spam" — opens report dialog
+- [x] Wire to notification select:
+  - [x] Desktop: side panel (right third of screen)
+  - [x] Mobile: full-screen slide-up drawer
+- [x] Fetch full notification detail:
+  - [x] Use `GET_NOTIFICATION` query with `id` for complete data
+  - [x] Show loading skeleton while fetching
 
 ### Implementation Details
 
@@ -325,19 +325,19 @@ interface NotificationDetailDrawerProps {
 
 ## Verification Checklist
 
-- [ ] Inbox loads notifications from GraphQL query (not just SSE)
-- [ ] Category tab switching triggers re-query with correct `category` variable
-- [ ] Pagination works — Previous/Next buttons or infinite scroll
-- [ ] New SSE notifications appear at top without full re-fetch
-- [ ] Clicking a notification marks it as read (persisted via mutation)
-- [ ] Sidebar unread badge decrements after mark-read
-- [ ] Archive removes notification from list with undo toast
-- [ ] Detail drawer opens with full notification info
-- [ ] Detail drawer shows SP verification badge
-- [ ] Block sender from drawer works (with confirmation)
-- [ ] Loading skeleton shows during initial query
-- [ ] Error state shows with retry button
-- [ ] Mobile responsive — drawer becomes full-screen
+- [x] Inbox loads notifications from GraphQL query (not just SSE)
+- [x] Category tab switching triggers re-query with correct `category` variable
+- [x] Pagination works — Previous/Next buttons or infinite scroll
+- [x] New SSE notifications appear at top without full re-fetch
+- [x] Clicking a notification marks it as read (persisted via mutation)
+- [x] Sidebar unread badge decrements after mark-read
+- [x] Archive removes notification from list with undo toast
+- [x] Detail drawer opens with full notification info
+- [x] Detail drawer shows SP verification badge
+- [x] Block sender from drawer works (with confirmation)
+- [x] Loading skeleton shows during initial query
+- [x] Error state shows with retry button
+- [x] Mobile responsive — drawer becomes full-screen
 
 ---
 

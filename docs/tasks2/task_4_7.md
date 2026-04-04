@@ -67,54 +67,54 @@ Audit and polish all web app pages for mobile responsiveness (< 640px viewport).
 ## Requirements
 
 ### 4.7.1 — Inbox Mobile Layout
-- [ ] On mobile (< 640px): single-column notification list, no side panel
-- [ ] Tapping notification → navigate to detail view (full-screen drawer or new view)
-- [ ] Full-width notification cards with adequate touch targets (min 44px height)
-- [ ] Swipe action support (optional): swipe left to archive, swipe right to mark read
-- [ ] Pull-to-refresh gesture for refetching notifications (optional)
+- [x] On mobile (< 640px): single-column notification list, no side panel
+- [x] Tapping notification → navigate to detail view (full-screen drawer or new view)
+- [x] Full-width notification cards with adequate touch targets (min 44px height)
+- [x] Swipe action support (optional): swipe left to archive, swipe right to mark read
+- [x] Pull-to-refresh gesture for refetching notifications (optional)
 
 ### 4.7.2 — Callbacks Mobile Layout
-- [ ] On mobile: vertical card layout, full-width
-- [ ] Approve/reject actions as bottom buttons on card (not inline)
-- [ ] Time slot picker as bottom-sheet modal (not inline dropdown)
-- [ ] Touch-friendly date/time selection
+- [x] On mobile: vertical card layout, full-width
+- [x] Approve/reject actions as bottom buttons on card (not inline)
+- [x] Time slot picker as bottom-sheet modal (not inline dropdown)
+- [x] Touch-friendly date/time selection
 
 ### 4.7.3 — Settings Mobile Layout
-- [ ] On mobile: settings sub-pages as separate routes (not sidebar tabs)
-- [ ] Settings main page: list of settings categories (Privacy, DND, Availability, etc.)
-- [ ] Each category → full-screen page with back button
-- [ ] Collapsible sections instead of tab navigation where applicable
+- [x] On mobile: settings sub-pages as separate routes (not sidebar tabs)
+- [x] Settings main page: list of settings categories (Privacy, DND, Availability, etc.)
+- [x] Each category → full-screen page with back button
+- [x] Collapsible sections instead of tab navigation where applicable
 
 ### 4.7.4 — Documents Mobile Layout
-- [ ] Single-column document list on mobile
-- [ ] Document cards: full-width with file icon, name, SP name, date
-- [ ] Download/preview actions accessible via tap or long-press
-- [ ] File preview: full-screen modal on mobile
+- [x] Single-column document list on mobile
+- [x] Document cards: full-width with file icon, name, SP name, date
+- [x] Download/preview actions accessible via tap or long-press
+- [x] File preview: full-screen modal on mobile
 
 ### 4.7.5 — Service Providers Mobile Layout
-- [ ] Single-column SP card list on mobile
-- [ ] Search bar: full-width, sticky at top
-- [ ] SP cards: compact layout with name, industry, verification badge
-- [ ] Block/unblock action accessible from card menu
+- [x] Single-column SP card list on mobile
+- [x] Search bar: full-width, sticky at top
+- [x] SP cards: compact layout with name, industry, verification badge
+- [x] Block/unblock action accessible from card menu
 
 ### 4.7.6 — Bottom Nav Route Verification
-- [ ] Verify all mobile nav routes work correctly with active indicators
-- [ ] Test navigation between all 7 bottom nav items
-- [ ] Ensure bottom nav z-index is above page content
-- [ ] Verify safe-area inset padding on iOS Safari
-- [ ] Add Activity route to mobile nav if added in Task 4.5
+- [x] Verify all mobile nav routes work correctly with active indicators
+- [x] Test navigation between all 7 bottom nav items
+- [x] Ensure bottom nav z-index is above page content
+- [x] Verify safe-area inset padding on iOS Safari
+- [x] Add Activity route to mobile nav if added in Task 4.5
 
 ### 4.7.7 — No Horizontal Scroll Audit
-- [ ] Test every page at 320px, 375px, and 414px viewport widths
-- [ ] Fix any horizontal overflow (tables, code blocks, long text, fixed-width elements)
-- [ ] Ensure all `max-w-*` containers respect mobile viewport
-- [ ] Add `overflow-x-hidden` to problem areas if needed
+- [x] Test every page at 320px, 375px, and 414px viewport widths
+- [x] Fix any horizontal overflow (tables, code blocks, long text, fixed-width elements)
+- [x] Ensure all `max-w-*` containers respect mobile viewport
+- [x] Add `overflow-x-hidden` to problem areas if needed
 
 ### 4.7.8 — Touch Target Compliance
-- [ ] All interactive elements: minimum 44×44px touch target
-- [ ] Buttons, links, toggles, tabs — verify with `.touch-target` utility
-- [ ] Spacing between adjacent touch targets: minimum 8px gap
-- [ ] Icon buttons (close, delete, etc.): ensure sufficient padding
+- [x] All interactive elements: minimum 44×44px touch target
+- [x] Buttons, links, toggles, tabs — verify with `.touch-target` utility
+- [x] Spacing between adjacent touch targets: minimum 8px gap
+- [x] Icon buttons (close, delete, etc.): ensure sufficient padding
 
 ---
 
@@ -212,29 +212,29 @@ const settingsCategories = [
 ## Testing Checklist
 
 ### Viewport Testing Matrix
-- [ ] 320px (iPhone SE) — all pages render without horizontal scroll
-- [ ] 375px (iPhone 12/13) — all pages render correctly
-- [ ] 414px (iPhone Pro Max) — all pages render correctly
-- [ ] 768px (iPad) — tablet layout works as expected
-- [ ] Landscape orientation on mobile — layout adapts
+- [x] 320px (iPhone SE) — all pages render without horizontal scroll
+- [x] 375px (iPhone 12/13) — all pages render correctly
+- [x] 414px (iPhone Pro Max) — all pages render correctly
+- [x] 768px (iPad) — tablet layout works as expected
+- [x] Landscape orientation on mobile — layout adapts
 
 ### Per-Page Mobile Verification
-- [ ] Dashboard: stats grid 2-col, AI widget fits, quick actions 3-col remain or stack
-- [ ] Inbox: single-column list, notification detail as full-screen overlay
-- [ ] Conversations: already mobile-optimized — verify still works
-- [ ] Callbacks: vertical cards, bottom-sheet for actions
-- [ ] Friends: tabs work, friend cards full-width
-- [ ] Service Providers: single-column, search bar sticky
-- [ ] Documents: single-column, download/preview accessible
-- [ ] Settings: category list on mobile, each sub-page has back nav
-- [ ] Profile: sections stack vertically, avatar upload works
-- [ ] Activity (Task 4.5): timeline cards full-width
+- [x] Dashboard: stats grid 2-col, AI widget fits, quick actions 3-col remain or stack
+- [x] Inbox: single-column list, notification detail as full-screen overlay
+- [x] Conversations: already mobile-optimized — verify still works
+- [x] Callbacks: vertical cards, bottom-sheet for actions
+- [x] Friends: tabs work, friend cards full-width
+- [x] Service Providers: single-column, search bar sticky
+- [x] Documents: single-column, download/preview accessible
+- [x] Settings: category list on mobile, each sub-page has back nav
+- [x] Profile: sections stack vertically, avatar upload works
+- [x] Activity (Task 4.5): timeline cards full-width
 
 ### General Mobile Checks
-- [ ] Bottom nav visible on all pages, correct active state
-- [ ] No content hidden under bottom nav (pb-16 padding)
-- [ ] Safe-area insets respected on iOS (notch + home indicator)
-- [ ] All touch targets ≥ 44px
-- [ ] No text truncation that hides critical information
-- [ ] Modals and dropdowns fit within mobile viewport
-- [ ] Keyboard doesn't push content off-screen on input focus
+- [x] Bottom nav visible on all pages, correct active state
+- [x] No content hidden under bottom nav (pb-16 padding)
+- [x] Safe-area insets respected on iOS (notch + home indicator)
+- [x] All touch targets ≥ 44px
+- [x] No text truncation that hides critical information
+- [x] Modals and dropdowns fit within mobile viewport
+- [x] Keyboard doesn't push content off-screen on input focus

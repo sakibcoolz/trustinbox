@@ -46,8 +46,8 @@ Create a load testing suite (`tests/load/`) that exercises the platform under re
 
 ### Sub-task 7.7.1 — Load Test Infrastructure Setup
 
-- [ ] Create directory: `tests/load/`
-- [ ] Install k6:
+- [x] Create directory: `tests/load/`
+- [x] Install k6:
   ```bash
   # macOS
   brew install k6
@@ -56,7 +56,7 @@ Create a load testing suite (`tests/load/`) that exercises the platform under re
   echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
   sudo apt-get update && sudo apt-get install k6
   ```
-- [ ] Create `tests/load/common.js` — shared utilities:
+- [x] Create `tests/load/common.js` — shared utilities:
   ```javascript
   export const GATEWAY_URL = 'http://localhost:4000';
   export const PROVIDER_TOKEN = __ENV.PROVIDER_TOKEN || 'dev-provider-jwt';
@@ -76,8 +76,8 @@ Create a load testing suite (`tests/load/`) that exercises the platform under re
     };
   }
   ```
-- [ ] Create `tests/load/README.md` with instructions for running tests
-- [ ] Add Makefile target:
+- [x] Create `tests/load/README.md` with instructions for running tests
+- [x] Add Makefile target:
   ```makefile
   test-load:
   	cd tests/load && k6 run all-scenarios.js
@@ -85,7 +85,7 @@ Create a load testing suite (`tests/load/`) that exercises the platform under re
 
 ### Sub-task 7.7.2 — SSE Connection Stability Test
 
-- [ ] Create `tests/load/sse-connections.js`:
+- [x] Create `tests/load/sse-connections.js`:
   - **Scenario**: 100 concurrent SSE connections
   - **Duration**: 5 minutes sustained
   - **Setup**:
@@ -114,7 +114,7 @@ Create a load testing suite (`tests/load/`) that exercises the platform under re
 
 ### Sub-task 7.7.3 — Notification Send Load Test
 
-- [ ] Create `tests/load/notification-send.js`:
+- [x] Create `tests/load/notification-send.js`:
   - **Scenario**: 50 concurrent notification sends
   - **Duration**: 2 minutes sustained
   - **Setup**:
@@ -147,7 +147,7 @@ Create a load testing suite (`tests/load/`) that exercises the platform under re
 
 ### Sub-task 7.7.4 — Callback Mutation Load Test
 
-- [ ] Create `tests/load/callback-mutations.js`:
+- [x] Create `tests/load/callback-mutations.js`:
   - **Scenario**: 20 concurrent approve/reject mutations
   - **Duration**: 2 minutes
   - **Setup**:
@@ -179,7 +179,7 @@ Create a load testing suite (`tests/load/`) that exercises the platform under re
 
 ### Sub-task 7.7.5 — GraphQL Query Throughput Test
 
-- [ ] Create `tests/load/graphql-throughput.js`:
+- [x] Create `tests/load/graphql-throughput.js`:
   - **Scenario**: Sustained 500 req/s GraphQL queries
   - **Duration**: 3 minutes
   - **Setup**:
@@ -217,7 +217,7 @@ Create a load testing suite (`tests/load/`) that exercises the platform under re
 
 ### Sub-task 7.7.6 — Policy Evaluation Under Load
 
-- [ ] Create `tests/load/policy-evaluation.js`:
+- [x] Create `tests/load/policy-evaluation.js`:
   - **Scenario**: Direct policy evaluation throughput
   - 100 concurrent notification sends (each triggers policy evaluation)
   - Vary: users with different block/DND/preference states to exercise all 8 policy steps
@@ -230,7 +230,7 @@ Create a load testing suite (`tests/load/`) that exercises the platform under re
 
 ### Sub-task 7.7.7 — Campaign Fan-Out Test
 
-- [ ] Create `tests/load/campaign-fanout.js`:
+- [x] Create `tests/load/campaign-fanout.js`:
   - **Scenario**: Launch campaign with 500 targets
   - Measure time from launch to all targets processed
   - Track per-target processing time
@@ -243,8 +243,8 @@ Create a load testing suite (`tests/load/`) that exercises the platform under re
 
 ### Sub-task 7.7.8 — Generate Load Test Report
 
-- [ ] Run all load test scenarios
-- [ ] Collect results into report:
+- [x] Run all load test scenarios
+- [x] Collect results into report:
   ```markdown
   ## Load Test Results — [date]
 
@@ -257,21 +257,21 @@ Create a load testing suite (`tests/load/`) that exercises the platform under re
   | Policy Evaluation | 100 | 2m | Xms | Xms | Xms | X% | ✅/❌ |
   | Campaign Fan-out | 500 targets | - | Xms | Xms | Xms | X% | ✅/❌ |
   ```
-- [ ] Capture Grafana dashboard screenshots during peak load
-- [ ] Capture Jaeger slowest traces for each scenario
-- [ ] Document: bottlenecks identified, recommendations for production scaling
+- [x] Capture Grafana dashboard screenshots during peak load
+- [x] Capture Jaeger slowest traces for each scenario
+- [x] Document: bottlenecks identified, recommendations for production scaling
 
 ---
 
 ## Verification Checklist
 
-- [ ] `tests/load/` directory created with k6 scripts and shared utilities
-- [ ] SSE test: 100 concurrent connections stable for 5 minutes, <1% drops
-- [ ] Notification send: 50/s sustained, P95 < 200ms, error < 1%
-- [ ] Callback mutations: 20/s sustained, P95 < 150ms, error < 1%
-- [ ] GraphQL throughput: 500/s sustained, P95 < 100ms, error < 5%
-- [ ] Policy evaluation: P95 < 50ms under concurrent load, no false denials
-- [ ] Campaign fan-out: 500 targets processed in < 60 seconds
-- [ ] Load test report generated with latency tables and Grafana snapshots
-- [ ] No gateway OOM or crash during any test scenario
-- [ ] All services remain responsive during and after load tests
+- [x] `tests/load/` directory created with k6 scripts and shared utilities
+- [x] SSE test: 100 concurrent connections stable for 5 minutes, <1% drops
+- [x] Notification send: 50/s sustained, P95 < 200ms, error < 1%
+- [x] Callback mutations: 20/s sustained, P95 < 150ms, error < 1%
+- [x] GraphQL throughput: 500/s sustained, P95 < 100ms, error < 5%
+- [x] Policy evaluation: P95 < 50ms under concurrent load, no false denials
+- [x] Campaign fan-out: 500 targets processed in < 60 seconds
+- [x] Load test report generated with latency tables and Grafana snapshots
+- [x] No gateway OOM or crash during any test scenario
+- [x] All services remain responsive during and after load tests

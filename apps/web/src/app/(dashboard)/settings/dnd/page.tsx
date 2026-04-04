@@ -2,49 +2,45 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
-
-interface DNDRule {
-  id: string;
-  scopeType: string;
-  startTime: string;
-  endTime: string;
-  daysOfWeek: number[];
-  isActive: boolean;
-}
+import { useDNDRules } from '@/hooks/useDNDRules';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const mockRules: DNDRule[] = [
-  { id: '1', scopeType: 'GLOBAL', startTime: '22:00', endTime: '07:00', daysOfWeek: [0, 1, 2, 3, 4, 5, 6], isActive: true },
-  { id: '2', scopeType: 'GLOBAL', startTime: '09:00', endTime: '17:00', daysOfWeek: [0, 6], isActive: false },
-];
-
 export default function DNDSettingsPage() {
-  const [rules, setRules] = useState<DNDRule[]>(mockRules);
+  const { rules, loading, error, createRule, updateRule, deleteRule } = useDNDRules();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [startTime, setStartTime] = useState('22:00');
   const [endTime, setEndTime] = useState('07:00');
   const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+  const [submitting, setSubmitting] = useState(false);
 
   const toggleDay = useCallback((d: number) => {
     setDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort());
   }, []);
 
-  const handleSave = useCallback(() => {
-    if (editId) {
-      setRules((prev) => prev.map((r) => r.id === editId ? { ...r, startTime, endTime, daysOfWeek: days } : r));
-    } else {
-      setRules((prev) => [...prev, { id: Date.now().toString(), scopeType: 'GLOBAL', startTime, endTime, daysOfWeek: days, isActive: true }]);
+  const handleSave = useCallback(async () => {
+    setSubmitting(true);
+    try {
+      if (editId) {
+        await deleteRule(editId);
+        await createRule({ scopeType: 'GLOBAL', startTime, endTime, daysOfWeek: days, isActive: true });
+      } else {
+        await createRule({ scopeType: 'GLOBAL', startTime, endTime, daysOfWeek: days, isActive: true });
+      }
+      setShowForm(false);
+      setEditId(null);
+      setStartTime('22:00');
+      setEndTime('07:00');
+      setDays([0, 1, 2, 3, 4, 5, 6]);
+    } catch {
+      // Error handled by Apollo
+    } finally {
+      setSubmitting(false);
     }
-    setShowForm(false);
-    setEditId(null);
-    setStartTime('22:00');
-    setEndTime('07:00');
-    setDays([0, 1, 2, 3, 4, 5, 6]);
-  }, [editId, startTime, endTime, days]);
+  }, [editId, startTime, endTime, days, createRule, deleteRule]);
 
-  const handleEdit = useCallback((rule: DNDRule) => {
+  const handleEdit = useCallback((rule: { id: string; startTime: string; endTime: string; daysOfWeek: number[] }) => {
     setEditId(rule.id);
     setStartTime(rule.startTime);
     setEndTime(rule.endTime);
@@ -52,13 +48,63 @@ export default function DNDSettingsPage() {
     setShowForm(true);
   }, []);
 
-  const handleDelete = useCallback((id: string) => {
-    setRules((prev) => prev.filter((r) => r.id !== id));
-  }, []);
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await deleteRule(id);
+    } catch {
+      // Error handled by Apollo
+    }
+  }, [deleteRule]);
 
-  const handleToggleActive = useCallback((id: string) => {
-    setRules((prev) => prev.map((r) => r.id === id ? { ...r, isActive: !r.isActive } : r));
-  }, []);
+  const handleToggleActive = useCallback(async (id: string) => {
+    const rule = rules.find((r: { id: string }) => r.id === id);
+    if (!rule) return;
+    try {
+      await updateRule({ id, isActive: !rule.isActive });
+    } catch {
+      // Error handled by Apollo
+    }
+  }, [rules, updateRule]);
+
+  if (loading) {
+    return (
+      <div className="flex-1 h-full overflow-y-auto bg-bg-primary">
+        <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
+          <div className="flex items-center gap-3">
+            <Link href="/settings" className="w-8 h-8 rounded-lg bg-bg-secondary flex items-center justify-center hover:bg-bg-hover transition-colors">
+              <svg className="w-4 h-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+            </Link>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-text-primary">Do Not Disturb</h1>
+              <p className="text-2xs text-text-muted">Set schedules when notifications are silenced.</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="card flex items-center gap-4 animate-pulse">
+                <div className="w-11 h-11 rounded-xl bg-bg-tertiary shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-32 bg-bg-tertiary rounded" />
+                  <div className="h-3 w-48 bg-bg-tertiary rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 h-full flex items-center justify-center bg-bg-primary">
+        <div className="text-center space-y-3">
+          <p className="text-sm text-accent-red">Failed to load DND rules</p>
+          <button onClick={() => window.location.reload()} className="btn-primary text-sm">Retry</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 h-full overflow-y-auto bg-bg-primary">
@@ -100,7 +146,7 @@ export default function DNDSettingsPage() {
             </div>
             <div className="flex gap-2 justify-end">
               <button onClick={() => { setShowForm(false); setEditId(null); }} className="btn-ghost text-sm">Cancel</button>
-              <button onClick={handleSave} className="btn-primary text-sm">{editId ? 'Update' : 'Create'} Rule</button>
+              <button onClick={handleSave} disabled={submitting} className="btn-primary text-sm">{submitting ? 'Saving…' : editId ? 'Update' : 'Create'} Rule</button>
             </div>
           </div>
         )}
@@ -113,7 +159,7 @@ export default function DNDSettingsPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {rules.map((rule) => (
+            {rules.map((rule: any) => (
               <div key={rule.id} className="card flex items-center gap-4">
                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg shrink-0 ${rule.isActive ? 'bg-accent-purple/10' : 'bg-bg-tertiary'}`}>🌙</div>
                 <div className="flex-1 min-w-0">
@@ -121,7 +167,7 @@ export default function DNDSettingsPage() {
                     <p className="text-sm font-semibold text-text-primary">{rule.startTime} – {rule.endTime}</p>
                     <span className={`chip text-2xs ${rule.isActive ? 'chip-green' : 'chip-default'}`}>{rule.isActive ? 'Active' : 'Paused'}</span>
                   </div>
-                  <p className="text-2xs text-text-muted mt-0.5">{rule.daysOfWeek.map((d) => DAYS[d]).join(', ')}</p>
+                  <p className="text-2xs text-text-muted mt-0.5">{rule.daysOfWeek.map((d: any) => DAYS[d]).join(', ')}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button onClick={() => handleToggleActive(rule.id)} className="btn-icon" title={rule.isActive ? 'Pause' : 'Activate'}>

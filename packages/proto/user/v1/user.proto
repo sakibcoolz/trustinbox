@@ -64,6 +64,7 @@ message PrivacyPreference {
   bool allow_chat = 6;
   bool allow_document_shares = 7;
   bool require_call_approval = 8;
+  bool notification_sound_enabled = 9;
 }
 
 message UpdatePrivacyPreferenceRequest {
@@ -75,6 +76,7 @@ message UpdatePrivacyPreferenceRequest {
   optional bool allow_chat = 6;
   optional bool allow_document_shares = 7;
   optional bool require_call_approval = 8;
+  optional bool notification_sound_enabled = 9;
 }
 
 message ListAvailabilitySlotsRequest {

@@ -184,7 +184,7 @@ function ConversationDetailContent({ id }: { id: string }) {
   const [assignOpen, setAssignOpen] = useState(false);
   const [typingLabel, setTypingLabel] = useState<string | null>(null);
 
-  const { data, loading, fetchMoreMessages, hasMoreMessages } = useConversation(id);
+  const { data, loading, refetch, fetchMoreMessages, hasMoreMessages } = useConversation(id);
   const { sendMessage, loading: sending } = useSendMessage();
 
   // Real-time
@@ -330,6 +330,7 @@ function ConversationDetailContent({ id }: { id: string }) {
         onClose={() => setAssignOpen(false)}
         conversationId={id}
         currentAssigneeId={conversation.assignee?.id}
+        onAssigned={() => { refetch(); }}
       />
     </div>
   );

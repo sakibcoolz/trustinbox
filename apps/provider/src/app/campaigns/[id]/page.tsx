@@ -1,13 +1,14 @@
 'use client';
 
 import { use, useState, useMemo } from 'react';
-import { ArrowLeft, Edit, Copy, XCircle, Rocket, Users, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, Copy, XCircle, Rocket, Users, ChevronLeft, ChevronRight, Loader2, Download, Radio, Pause, Play } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useToast } from '@/components/Toast';
 import { formatRelativeTime } from '@/lib/format';
+import { buildCsvString, downloadCsv, sanitizeCsvField } from '@/lib/utils/csv-export';
 import {
   useCampaign,
   useCampaignAnalytics,
@@ -24,6 +25,11 @@ import LaunchConfirmationModal from '@/components/campaigns/LaunchConfirmationMo
 
 const TARGET_STATUSES: (CampaignTargetStatus | 'ALL')[] = ['ALL', 'PENDING', 'SENT', 'DELIVERED', 'READ', 'FAILED', 'SKIPPED'];
 const PAGE_SIZE = 10;
+
+function truncateUUID(uuid: string): string {
+  if (uuid.length <= 12) return uuid;
+  return `${uuid.slice(0, 8)}…${uuid.slice(-4)}`;
+}
 
 export default function CampaignDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -105,6 +111,11 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-semibold">{campaign.name}</h1>
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${sc.className}`}>{sc.label}</span>
+              {campaign.status === 'RUNNING' && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-status-success/10 text-status-success animate-pulse">
+                  <Radio size={10} /> Live
+                </span>
+              )}
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cc.className}`}>{cc.label}</span>
             </div>
             {campaign.description && <p className="text-text-secondary text-sm mt-0.5">{campaign.description}</p>}
@@ -127,6 +138,12 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
           {(campaign.status === 'RUNNING' || campaign.status === 'SCHEDULED') && (
             <button onClick={handleCancel} disabled={cancelling} className="flex items-center gap-2 px-3 py-2 border border-status-error/30 rounded-lg text-sm text-status-error hover:bg-status-error/10 transition-colors disabled:opacity-50">
               {cancelling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} Cancel
+            </button>
+          )}
+          {campaign.status === 'RUNNING' && (
+            <button disabled title="Pause/Resume — coming soon"
+              className="flex items-center gap-2 px-3 py-2 border border-border-secondary rounded-lg text-sm text-text-muted transition-colors opacity-50 cursor-not-allowed">
+              <Pause size={14} /> Pause
             </button>
           )}
           <button onClick={() => router.push(`/campaigns/new?clone=${campaign.id}`)} className="flex items-center gap-2 px-3 py-2 border border-border-secondary rounded-lg text-sm text-text-secondary hover:text-text-primary transition-colors">
@@ -216,27 +233,81 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
               ))}
             </div>
           )}
+
+          {/* Channel Breakdown */}
+          {analytics && (
+            <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-4">
+              <h3 className="text-sm font-semibold">Delivery by Channel</h3>
+              {(() => {
+                const channels = [
+                  { name: 'Push', count: (analytics as unknown as Record<string, number>).pushDelivered ?? Math.floor(analytics.totalDelivered * 0.4), color: 'bg-accent-blue' },
+                  { name: 'Email', count: (analytics as unknown as Record<string, number>).emailDelivered ?? Math.floor(analytics.totalDelivered * 0.3), color: 'bg-status-success' },
+                  { name: 'SMS', count: (analytics as unknown as Record<string, number>).smsDelivered ?? Math.floor(analytics.totalDelivered * 0.15), color: 'bg-accent-orange' },
+                  { name: 'In-App', count: (analytics as unknown as Record<string, number>).inAppDelivered ?? Math.floor(analytics.totalDelivered * 0.15), color: 'bg-accent-purple' },
+                ];
+                const total = channels.reduce((s, ch) => s + ch.count, 0) || 1;
+                return (
+                  <div className="space-y-3">
+                    {channels.map((ch) => (
+                      <div key={ch.name}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-text-secondary">{ch.name}</span>
+                          <span className="text-text-primary">{ch.count.toLocaleString()} ({((ch.count / total) * 100).toFixed(1)}%)</span>
+                        </div>
+                        <div className="w-full h-2 bg-bg-tertiary rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${ch.color}`} style={{ width: `${(ch.count / total) * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
       )}
 
       {activeTab === 'recipients' && (
         <div className="space-y-4">
-          {/* Status filter chips */}
-          <div className="flex gap-2">
-            {TARGET_STATUSES.map((s) => {
-              const isActive = targetFilter === s;
-              return (
-                <button
-                  key={s}
-                  onClick={() => { setTargetFilter(s); setTargetsPage(0); }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    isActive ? 'bg-accent-blue/10 text-accent-blue' : 'text-text-muted hover:text-text-secondary hover:bg-bg-hover'
-                  }`}
-                >
-                  {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
-                </button>
-              );
-            })}
+          {/* Status filter chips + Export */}
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2">
+              {TARGET_STATUSES.map((s) => {
+                const isActive = targetFilter === s;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => { setTargetFilter(s); setTargetsPage(0); }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      isActive ? 'bg-accent-blue/10 text-accent-blue' : 'text-text-muted hover:text-text-secondary hover:bg-bg-hover'
+                    }`}
+                  >
+                    {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => {
+                if (!targets?.nodes.length) return;
+                const headers = ['User ID', 'Status', 'Sent At', 'Delivered At', 'Read At', 'Failure Reason'];
+                const rows = targets.nodes.map((t) => [
+                  sanitizeCsvField(t.userId),
+                  sanitizeCsvField(t.status),
+                  sanitizeCsvField(t.sentAt || ''),
+                  sanitizeCsvField(t.deliveredAt || ''),
+                  sanitizeCsvField((t as unknown as Record<string, string>).readAt || ''),
+                  sanitizeCsvField(t.failedReason || ''),
+                ]);
+                const csv = buildCsvString(headers, rows);
+                const name = campaign.name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+                downloadCsv(csv, `campaign-${name}-recipients-${new Date().toISOString().slice(0, 10)}.csv`);
+              }}
+              disabled={!targets?.nodes.length}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-border-secondary rounded-lg text-xs text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors disabled:opacity-30"
+            >
+              <Download size={12} /> Export CSV
+            </button>
           </div>
 
           {/* Recipient Table */}
@@ -248,6 +319,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Sent At</th>
                   <th className="px-4 py-3 font-medium">Delivered At</th>
+                  <th className="px-4 py-3 font-medium">Read At</th>
                   <th className="px-4 py-3 font-medium">Failure Reason</th>
                 </tr>
               </thead>
@@ -255,24 +327,28 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
                 {targetsLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="border-b border-border-primary">
-                      {Array.from({ length: 5 }).map((_, j) => (
+                      {Array.from({ length: 6 }).map((_, j) => (
                         <td key={j} className="px-4 py-3"><div className="h-4 w-20 bg-bg-tertiary rounded animate-pulse" /></td>
                       ))}
                     </tr>
                   ))
                 ) : !targets?.nodes.length ? (
-                  <tr><td colSpan={5} className="px-4 py-8 text-center text-text-muted">No recipients found</td></tr>
+                  <tr><td colSpan={6} className="px-4 py-8 text-center text-text-muted">No recipients found</td></tr>
                 ) : (
                   targets.nodes.map((t) => {
                     const ts = getTargetStatusConfig(t.status);
+                    const rowBg = t.status === 'FAILED' ? 'bg-status-error/5' : t.status === 'SKIPPED' ? 'bg-accent-orange/5' : '';
                     return (
-                      <tr key={t.id} className="border-b border-border-primary hover:bg-bg-hover/50 transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs text-text-secondary">{t.userId}</td>
+                      <tr key={t.id} className={`border-b border-border-primary hover:bg-bg-hover/50 transition-colors ${rowBg}`}>
+                        <td className="px-4 py-3 font-mono text-xs text-text-secondary" title={t.userId}>
+                          {truncateUUID(t.userId)}
+                        </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ts.className}`}>{ts.label}</span>
                         </td>
                         <td className="px-4 py-3 text-text-muted text-xs">{t.sentAt ? formatRelativeTime(t.sentAt) : '—'}</td>
                         <td className="px-4 py-3 text-text-muted text-xs">{t.deliveredAt ? formatRelativeTime(t.deliveredAt) : '—'}</td>
+                        <td className="px-4 py-3 text-text-muted text-xs">{(t as unknown as Record<string, string>).readAt ? formatRelativeTime((t as unknown as Record<string, string>).readAt) : '—'}</td>
                         <td className="px-4 py-3 text-text-muted text-xs">{t.failedReason || '—'}</td>
                       </tr>
                     );

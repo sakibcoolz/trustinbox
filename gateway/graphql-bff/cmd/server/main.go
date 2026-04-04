@@ -34,7 +34,7 @@ import (
 
 	gqlhandler "github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 func main() {
@@ -95,6 +95,12 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go wsHub.run(ctx)
+
+	// Provider SSE event subscriber — listens to Redis Pub/Sub and pushes to connected SSE clients
+	go startProviderEventSubscriber(ctx, rdb, sseHub, log)
+
+	// Consumer SSE event subscriber — listens to domain events and pushes to consumer (web app) clients
+	go startConsumerEventSubscriber(ctx, rdb, db, sseHub, log)
 
 	// Presence refresh ticker
 	go func() {
@@ -313,8 +319,8 @@ func main() {
 	providerMux := http.NewServeMux()
 	providerMux.HandleFunc("/api/v1/notifications", handleProviderNotifications(svc, db, log))
 	providerMux.HandleFunc("/api/v1/notifications/", handleProviderNotifications(svc, db, log))
-	providerMux.HandleFunc("/api/v1/callbacks", handleProviderCallbacks(svc, db, log))
-	providerMux.HandleFunc("/api/v1/callbacks/", handleProviderCallbacks(svc, db, log))
+	providerMux.HandleFunc("/api/v1/callbacks", handleProviderCallbacks(svc, db, rdb, log))
+	providerMux.HandleFunc("/api/v1/callbacks/", handleProviderCallbacks(svc, db, rdb, log))
 	providerMux.HandleFunc("/api/v1/messages", handleProviderMessages(svc, db, log))
 	providerMux.HandleFunc("/api/v1/messages/", handleProviderMessages(svc, db, log))
 	providerMux.HandleFunc("/api/v1/documents", handleProviderDocumentsAll(svc, db, log, minioClient))
@@ -895,22 +901,30 @@ func extractUserID(r *http.Request, tokenSvc *jwt.TokenService) (string, error) 
 
 type sseClient struct {
 	userID string
+	spID   string // service provider scope (empty for consumer users)
 	ch     chan []byte
 }
 
 type sseHub struct {
-	mu      sync.RWMutex
-	clients map[string][]*sseClient
+	mu        sync.RWMutex
+	clients   map[string][]*sseClient // userID → clients
+	spClients map[string][]*sseClient // spID   → clients
 }
 
 func newSSEHub() *sseHub {
-	return &sseHub{clients: make(map[string][]*sseClient)}
+	return &sseHub{
+		clients:   make(map[string][]*sseClient),
+		spClients: make(map[string][]*sseClient),
+	}
 }
 
 func (h *sseHub) register(c *sseClient) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.clients[c.userID] = append(h.clients[c.userID], c)
+	if c.spID != "" {
+		h.spClients[c.spID] = append(h.spClients[c.spID], c)
+	}
 }
 
 func (h *sseHub) unregister(c *sseClient) {
@@ -921,6 +935,15 @@ func (h *sseHub) unregister(c *sseClient) {
 		if cl == c {
 			h.clients[c.userID] = append(clients[:i], clients[i+1:]...)
 			break
+		}
+	}
+	if c.spID != "" {
+		spClients := h.spClients[c.spID]
+		for i, cl := range spClients {
+			if cl == c {
+				h.spClients[c.spID] = append(spClients[:i], spClients[i+1:]...)
+				break
+			}
 		}
 	}
 }
@@ -937,9 +960,31 @@ func (h *sseHub) send(userID string, eventType string, data interface{}) {
 		select {
 		case c.ch <- []byte(msg):
 		default:
-			// Drop if client buffer full
 		}
 	}
+}
+
+// sendToSP broadcasts an SSE event to all clients connected for a given service provider.
+func (h *sseHub) sendToSP(spID string, eventType string, data interface{}) {
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return
+	}
+	msg := fmt.Sprintf("event: %s\ndata: %s\n\n", eventType, string(payload))
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	for _, c := range h.spClients[spID] {
+		select {
+		case c.ch <- []byte(msg):
+		default:
+		}
+	}
+}
+
+func (h *sseHub) countSPClients(spID string) int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return len(h.spClients[spID])
 }
 
 // ==================== SSE Stream ====================
@@ -965,6 +1010,10 @@ func handleSSEStream(tokenSvc *jwt.TokenService, log *zap.Logger, hub *sseHub) h
 			return
 		}
 		userID := claims.UserID
+		spID := r.URL.Query().Get("serviceProviderId")
+		if spID == "" {
+			spID = claims.ServiceProviderID
+		}
 
 		flusher, ok := w.(http.Flusher)
 		if !ok {
@@ -983,11 +1032,11 @@ func handleSSEStream(tokenSvc *jwt.TokenService, log *zap.Logger, hub *sseHub) h
 		w.Header().Set("Access-Control-Allow-Origin", sseOrigin)
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
-		client := &sseClient{userID: userID, ch: make(chan []byte, 16)}
+		client := &sseClient{userID: userID, spID: spID, ch: make(chan []byte, 16)}
 		hub.register(client)
 		defer hub.unregister(client)
 
-		log.Info("SSE client connected", zap.String("user_id", userID))
+		log.Info("SSE client connected", zap.String("user_id", userID), zap.String("sp_id", spID))
 
 		// Send initial keepalive
 		fmt.Fprintf(w, ": connected\n\n")
@@ -1046,6 +1095,114 @@ func createNotification(db *sql.DB, hub *sseHub, userID, nType, title, body stri
 		"read":      false,
 		"createdAt": time.Now().Format(time.RFC3339),
 	})
+}
+
+// ==================== Provider SSE Event Subscriber ====================
+
+// sseEventMap translates domain event types to SSE event names for the provider portal.
+var sseEventMap = map[string]string{
+	"callback.requested":         "callback_created",
+	"callback.approved":          "callback_updated",
+	"callback.rejected":          "callback_updated",
+	"callback.expired":           "callback_updated",
+	"notification.created":       "notification_delivered",
+	"notification.delivered":     "notification_delivered",
+	"notification.read":          "notification_read",
+	"message.sent":               "message_received",
+	"campaign.launched":          "campaign_progress",
+	"campaign.completed":         "campaign_progress",
+	"document.shared":            "document_shared",
+	"webhook.delivery.succeeded": "webhook_delivery",
+	"webhook.delivery.failed":    "webhook_delivery",
+	"team.member.invited":        "team_update",
+	"invitation.accepted":        "team_update",
+	"team.member.role_changed":   "team_update",
+}
+
+// startProviderEventSubscriber subscribes to Redis Pub/Sub channels for domain
+// events and pushes them to connected SSE provider clients scoped by service_provider_id.
+func startProviderEventSubscriber(ctx context.Context, rdb *redis.Client, hub *sseHub, log *zap.Logger) {
+	channels := make([]string, 0, len(sseEventMap))
+	for domainType := range sseEventMap {
+		channels = append(channels, "trustinbox:events:"+domainType)
+	}
+
+	pubsub := rdb.Subscribe(ctx, channels...)
+	_, err := pubsub.Receive(ctx)
+	if err != nil {
+		log.Error("failed to subscribe to provider events", zap.Error(err))
+		return
+	}
+	log.Info("provider event subscriber started", zap.Int("channels", len(channels)))
+
+	ch := pubsub.Channel()
+	for {
+		select {
+		case <-ctx.Done():
+			pubsub.Close()
+			return
+		case msg, ok := <-ch:
+			if !ok {
+				return
+			}
+			var envelope struct {
+				ID                string          `json:"id"`
+				Type              string          `json:"type"`
+				ServiceProviderID string          `json:"service_provider_id"`
+				UserID            string          `json:"user_id"`
+				EntityID          string          `json:"entity_id"`
+				Payload           json.RawMessage `json:"payload"`
+				OccurredAt        string          `json:"occurred_at"`
+			}
+			if err := json.Unmarshal([]byte(msg.Payload), &envelope); err != nil {
+				log.Error("failed to unmarshal provider event", zap.Error(err))
+				continue
+			}
+
+			log.Info("provider subscriber received event",
+				zap.String("event_type", envelope.Type),
+				zap.String("sp_id", envelope.ServiceProviderID),
+				zap.String("user_id", envelope.UserID),
+				zap.String("entity_id", envelope.EntityID),
+			)
+
+			sseType, ok := sseEventMap[envelope.Type]
+			if !ok {
+				continue
+			}
+
+			// Build the SSE payload
+			notification := map[string]interface{}{
+				"id":        envelope.ID,
+				"eventType": envelope.Type,
+				"entityId":  envelope.EntityID,
+				"timestamp": envelope.OccurredAt,
+			}
+			if len(envelope.Payload) > 0 && string(envelope.Payload) != "null" {
+				var payloadData map[string]interface{}
+				if err := json.Unmarshal(envelope.Payload, &payloadData); err == nil {
+					for k, v := range payloadData {
+						notification[k] = v
+					}
+				}
+			}
+
+			// Route to the correct SP
+			spID := envelope.ServiceProviderID
+			if spID != "" {
+				log.Info("dispatching SSE to SP",
+					zap.String("sp_id", spID),
+					zap.String("sse_type", sseType),
+					zap.Int("sp_clients", hub.countSPClients(spID)),
+				)
+				hub.sendToSP(spID, sseType, notification)
+			}
+			// Also send to the user who triggered the event (for cross-device sync)
+			if envelope.UserID != "" {
+				hub.send(envelope.UserID, sseType, notification)
+			}
+		}
+	}
 }
 
 // ==================== Friend Request Handlers ====================
@@ -1482,5 +1639,180 @@ func handleMarkNotificationsRead(db *sql.DB, tokenSvc *jwt.TokenService, log *za
 		}
 
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}
+}
+
+// ==================== Consumer SSE Event Subscriber ====================
+
+// consumerEventLabels maps domain event types to human-readable labels for consumer-facing notifications.
+var consumerEventLabels = map[string]struct{ Title, Body string }{
+	"notification.created":   {"New Notification", "You have a new notification from a service provider"},
+	"notification.delivered": {"Notification Delivered", "A notification has been delivered to you"},
+	"callback.approved":      {"Callback Approved", "Your callback request has been approved"},
+	"callback.rejected":      {"Callback Declined", "Your callback request was declined"},
+	"callback.expired":       {"Callback Expired", "A callback request has expired"},
+	"message.sent":           {"New Message", "You have a new message"},
+	"document.shared":        {"Document Shared", "A document has been shared with you"},
+}
+
+// isUserInDND checks whether a user has an active GLOBAL DND rule matching the current time.
+func isUserInDND(ctx context.Context, db *sql.DB, userID string) bool {
+	rows, err := db.QueryContext(ctx,
+		`SELECT start_time, end_time, days_of_week
+		 FROM dnd_rules
+		 WHERE user_id = $1 AND is_active = true AND scope_type = 'GLOBAL'`, userID)
+	if err != nil {
+		return false
+	}
+	defer rows.Close()
+
+	now := time.Now()
+	currentDay := int(now.Weekday()) // 0=Sunday
+	currentMinutes := now.Hour()*60 + now.Minute()
+
+	for rows.Next() {
+		var startStr, endStr string
+		var daysArr []int64
+		if err := rows.Scan(&startStr, &endStr, pq.Array(&daysArr)); err != nil {
+			continue
+		}
+
+		// Check if today is in the DND days list (empty = every day)
+		if len(daysArr) > 0 {
+			dayMatch := false
+			for _, d := range daysArr {
+				if int(d) == currentDay {
+					dayMatch = true
+					break
+				}
+			}
+			if !dayMatch {
+				continue
+			}
+		}
+
+		startParts := parseHHMM(startStr)
+		endParts := parseHHMM(endStr)
+		if startParts < 0 || endParts < 0 {
+			continue
+		}
+
+		// Handle overnight ranges (e.g., 22:00 → 07:00)
+		if startParts <= endParts {
+			if currentMinutes >= startParts && currentMinutes < endParts {
+				return true
+			}
+		} else {
+			if currentMinutes >= startParts || currentMinutes < endParts {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// parseHHMM converts "HH:MM" to minutes since midnight, returns -1 on error.
+func parseHHMM(s string) int {
+	if len(s) < 5 || s[2] != ':' {
+		return -1
+	}
+	h := int(s[0]-'0')*10 + int(s[1]-'0')
+	m := int(s[3]-'0')*10 + int(s[4]-'0')
+	if h > 23 || m > 59 {
+		return -1
+	}
+	return h*60 + m
+}
+
+// isUserSoundEnabled checks whether a user has notification sounds enabled (defaults to true).
+func isUserSoundEnabled(ctx context.Context, db *sql.DB, userID string) bool {
+	var enabled bool
+	err := db.QueryRowContext(ctx,
+		`SELECT notification_sound_enabled FROM privacy_preferences WHERE user_id = $1`, userID,
+	).Scan(&enabled)
+	if err != nil {
+		return true // default: sound enabled
+	}
+	return enabled
+}
+
+// startConsumerEventSubscriber listens to domain events via Redis Pub/Sub and pushes
+// notifications to consumer (web app) SSE clients, enriched with DND and sound preference status.
+func startConsumerEventSubscriber(ctx context.Context, rdb *redis.Client, db *sql.DB, hub *sseHub, log *zap.Logger) {
+	channels := make([]string, 0, len(consumerEventLabels))
+	for domainType := range consumerEventLabels {
+		channels = append(channels, "trustinbox:events:"+domainType)
+	}
+
+	pubsub := rdb.Subscribe(ctx, channels...)
+	_, err := pubsub.Receive(ctx)
+	if err != nil {
+		log.Error("failed to subscribe to consumer events", zap.Error(err))
+		return
+	}
+	log.Info("consumer event subscriber started", zap.Int("channels", len(channels)))
+
+	ch := pubsub.Channel()
+	for {
+		select {
+		case <-ctx.Done():
+			pubsub.Close()
+			return
+		case msg, ok := <-ch:
+			if !ok {
+				return
+			}
+			var envelope struct {
+				ID                string          `json:"id"`
+				Type              string          `json:"type"`
+				ServiceProviderID string          `json:"service_provider_id"`
+				UserID            string          `json:"user_id"`
+				EntityID          string          `json:"entity_id"`
+				Payload           json.RawMessage `json:"payload"`
+				OccurredAt        string          `json:"occurred_at"`
+			}
+			if err := json.Unmarshal([]byte(msg.Payload), &envelope); err != nil {
+				log.Error("failed to unmarshal consumer event", zap.Error(err))
+				continue
+			}
+
+			labels, ok := consumerEventLabels[envelope.Type]
+			if !ok || envelope.UserID == "" {
+				continue
+			}
+
+			// Enrich with DND and sound preference
+			suppressed := isUserInDND(ctx, db, envelope.UserID)
+			soundEnabled := isUserSoundEnabled(ctx, db, envelope.UserID)
+
+			// Extract title/body from payload if available, fallback to defaults
+			title := labels.Title
+			body := labels.Body
+			if len(envelope.Payload) > 0 && string(envelope.Payload) != "null" {
+				var payloadData map[string]interface{}
+				if err := json.Unmarshal(envelope.Payload, &payloadData); err == nil {
+					if t, ok := payloadData["title"].(string); ok && t != "" {
+						title = t
+					}
+					if b, ok := payloadData["body"].(string); ok && b != "" {
+						body = b
+					}
+				}
+			}
+
+			notification := map[string]interface{}{
+				"id":           envelope.ID,
+				"type":         envelope.Type,
+				"title":        title,
+				"body":         body,
+				"read":         false,
+				"createdAt":    envelope.OccurredAt,
+				"suppressed":   suppressed,
+				"soundEnabled": soundEnabled,
+				"entityId":     envelope.EntityID,
+			}
+
+			hub.send(envelope.UserID, "notification", notification)
+		}
 	}
 }

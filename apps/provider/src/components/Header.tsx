@@ -4,10 +4,11 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Bell, Search, Settings, LogOut, ChevronDown, UserCircle,
+  Search, Settings, LogOut, ChevronDown, UserCircle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Breadcrumb } from '@/components/Breadcrumb';
+import { NotificationBell } from '@/components/NotificationBell';
 import ConnectionStatus from '@/components/ConnectionStatus';
 import { cn } from '@/lib/utils';
 import { ROLE_LABELS, type Role } from '@/lib/roles';
@@ -109,10 +110,7 @@ export default function Header() {
           </button>
 
           {/* Notifications bell */}
-          <button className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors relative" title="Notifications">
-            <Bell size={16} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-status-error rounded-full"></span>
-          </button>
+          <NotificationBell />
 
           {/* Connection status indicator */}
           <ConnectionStatus />

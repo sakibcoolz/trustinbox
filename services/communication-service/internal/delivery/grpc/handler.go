@@ -93,7 +93,30 @@ func (h *CommunicationHandler) ListCallbackRequests(ctx context.Context, req *pb
 }
 
 func (h *CommunicationHandler) GetCallbackRequest(ctx context.Context, req *pb.GetCallbackRequestRequest) (*pb.CallbackRequest, error) {
-	return nil, status.Errorf(codes.Unimplemented, "not implemented")
+	r, err := h.uc.GetCallbackRequest(ctx, req.CallbackRequestId)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	cbReq := &pb.CallbackRequest{
+		Id:                  r.ID,
+		UserId:              r.UserID,
+		ServiceProviderId:   r.ServiceProviderID,
+		RequestedBySpUserId: r.RequestedBySPUser,
+		Reason:              r.Reason,
+		Details:             r.Details,
+		Status:              r.Status,
+		RequestedAt:         timestamppb.New(r.RequestedAt),
+	}
+	if r.RespondedAt != nil {
+		cbReq.RespondedAt = timestamppb.New(*r.RespondedAt)
+	}
+	if r.ApprovedSlotStart != nil {
+		cbReq.ApprovedSlotStart = timestamppb.New(*r.ApprovedSlotStart)
+	}
+	if r.ApprovedSlotEnd != nil {
+		cbReq.ApprovedSlotEnd = timestamppb.New(*r.ApprovedSlotEnd)
+	}
+	return cbReq, nil
 }
 
 func (h *CommunicationHandler) CreateConversation(ctx context.Context, req *pb.CreateConversationRequest) (*pb.Conversation, error) {
@@ -162,7 +185,28 @@ func (h *CommunicationHandler) ShareDocument(ctx context.Context, req *pb.ShareD
 }
 
 func (h *CommunicationHandler) ListDocumentShares(ctx context.Context, req *pb.ListDocumentSharesRequest) (*pb.ListDocumentSharesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "not implemented")
+	shares, total, err := h.uc.ListDocumentShares(ctx, req.UserId, int(req.Limit), int(req.Offset))
+	if err != nil {
+		return nil, mapError(err)
+	}
+	pbShares := make([]*pb.DocumentShare, len(shares))
+	for i, s := range shares {
+		ds := &pb.DocumentShare{
+			Id:                s.ID,
+			DocumentId:        s.DocumentID,
+			UserId:            s.UserID,
+			ServiceProviderId: s.ServiceProviderID,
+			ShareContext:      s.ShareContext,
+			FileName:          s.FileName,
+			FileType:          s.FileType,
+			CreatedAt:         timestamppb.New(s.CreatedAt),
+		}
+		if s.OpenedAt != nil {
+			ds.OpenedAt = timestamppb.New(*s.OpenedAt)
+		}
+		pbShares[i] = ds
+	}
+	return &pb.ListDocumentSharesResponse{Shares: pbShares, Total: int32(total)}, nil
 }
 
 func (h *CommunicationHandler) ReportSpam(ctx context.Context, req *pb.ReportSpamRequest) (*pb.ReportSpamResponse, error) {

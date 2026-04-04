@@ -17,4 +17,5 @@ use (
 	./services/user-service
 	./services/webhook-service
 	./services/worker-service
+	./tests/integration
 )

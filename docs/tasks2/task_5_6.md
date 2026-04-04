@@ -87,24 +87,24 @@ function BotTestPanel({ systemPrompt, botId }: { systemPrompt: string; botId?: s
 
 ### Sub-task 5.6.1 — Restructure Wizard Steps to 7
 
-- [ ] Update `STEPS` array to 7 steps:
+- [x] Update `STEPS` array to 7 steps:
   ```tsx
   const STEPS = ['Basics', 'Personality', 'Tools', 'Knowledge', 'Permissions', 'Test Chat', 'Deploy'];
   ```
-- [ ] Merge current Step 2 (Model) and Step 3 (Prompt) into a single **Personality** step (Step 2)
+- [x] Merge current Step 2 (Model) and Step 3 (Prompt) into a single **Personality** step (Step 2)
   - Keep all Model fields: AI model card selection, temperature slider, max response tokens
   - Add tone + writing style dropdowns (currently in Model)
   - Add system prompt textarea (currently in Prompt) below model settings
   - Add language selection dropdown (new field)
-- [ ] Rename current Step 4 (Permissions with tools) to **Tools** (Step 3)
+- [x] Rename current Step 4 (Permissions with tools) to **Tools** (Step 3)
   - Keep all `ALLOWED_BOT_TOOLS` checkboxes
   - Add per-tool policy check indicator (badge showing if policy service allows the tool)
-- [ ] Add new **Knowledge** step (Step 4) — see Sub-task 5.6.2
-- [ ] Keep **Permissions** as Step 5 — but focus on user interaction permissions and escalation triggers (see Sub-task 5.6.4)
-- [ ] Add new **Test Chat** step (Step 6) — see Sub-task 5.6.3
-- [ ] Keep **Deploy** as Step 7 — update review summary to include new steps
-- [ ] Update step navigation: Back/Next buttons, step indicator circles, `canAdvance()` validation
-- [ ] Update `WizardForm` interface with new fields:
+- [x] Add new **Knowledge** step (Step 4) — see Sub-task 5.6.2
+- [x] Keep **Permissions** as Step 5 — but focus on user interaction permissions and escalation triggers (see Sub-task 5.6.4)
+- [x] Add new **Test Chat** step (Step 6) — see Sub-task 5.6.3
+- [x] Keep **Deploy** as Step 7 — update review summary to include new steps
+- [x] Update step navigation: Back/Next buttons, step indicator circles, `canAdvance()` validation
+- [x] Update `WizardForm` interface with new fields:
   ```tsx
   interface WizardForm {
     // Basics
@@ -136,21 +136,21 @@ function BotTestPanel({ systemPrompt, botId }: { systemPrompt: string; botId?: s
 
 ### Sub-task 5.6.2 — Knowledge Sources Step
 
-- [ ] Create inline Knowledge Sources step (Step 4) in the wizard
+- [x] Create inline Knowledge Sources step (Step 4) in the wizard
   - Reuse the pattern from `bots/[id]/knowledge/page.tsx` `AddSourceForm`
   - Show a list of added sources with type icon, name, and remove button
   - "Add Source" button opens an inline form (not a separate page)
-- [ ] Source types with appropriate input fields:
+- [x] Source types with appropriate input fields:
   - **DOCUMENT**: Drag-and-drop file upload (PDF, TXT, MD, DOCX — max 10 MB)
   - **URL**: URL text input with basic validation
   - **TEXT**: Multi-line textarea for pasting content
   - **FAQ**: Structured Q&A textarea with format hints (`Q: …\nA: …`)
   - **API**: API endpoint / OpenAPI spec textarea (monospace font)
-- [ ] Track sources in wizard state (`knowledgeSources` array) — don't persist until final create
+- [x] Track sources in wizard state (`knowledgeSources` array) — don't persist until final create
   - Each entry: `{ sourceType, name, description?, content?, file? }`
   - Show count badge on step indicator: "Knowledge (3)"
-- [ ] `canAdvance()` for this step: allow advancing with zero sources (optional step)
-- [ ] Wire to API in `handleCreate` after bot creation:
+- [x] `canAdvance()` for this step: allow advancing with zero sources (optional step)
+- [x] Wire to API in `handleCreate` after bot creation:
   ```tsx
   // Step 4: Add knowledge sources
   for (const source of form.knowledgeSources) {
@@ -169,16 +169,16 @@ function BotTestPanel({ systemPrompt, botId }: { systemPrompt: string; botId?: s
 
 ### Sub-task 5.6.3 — Dedicated Test Chat Step
 
-- [ ] Move `BotTestPanel` from inline on Prompt step to a dedicated **Test Chat** step (Step 6)
-- [ ] Expand the test panel to full-width layout:
+- [x] Move `BotTestPanel` from inline on Prompt step to a dedicated **Test Chat** step (Step 6)
+- [x] Expand the test panel to full-width layout:
   - Left side (60%): Chat interface with messages and input
   - Right side (40%): Configuration summary showing current personality settings (model, temperature, tone, prompt preview)
-- [ ] Show test status indicators:
+- [x] Show test status indicators:
   - Policy decision badge (ALLOWED / DENIED) per message
   - Escalation indicator when bot escalates to human
   - Response time in ms
-- [ ] Add "Clear Chat" button to reset test conversation
-- [ ] Add pre-built test scenarios as quick-action buttons:
+- [x] Add "Clear Chat" button to reset test conversation
+- [x] Add pre-built test scenarios as quick-action buttons:
   ```tsx
   const TEST_SCENARIOS = [
     { label: 'Greeting', message: 'Hello, I need help' },
@@ -187,12 +187,12 @@ function BotTestPanel({ systemPrompt, botId }: { systemPrompt: string; botId?: s
     { label: 'Escalation', message: 'I want to speak to a human agent' },
   ];
   ```
-- [ ] Handle case where bot hasn't been created yet (test uses preview mode with `botId: 'test'`)
-- [ ] Handle case where bot was created in an earlier step (use real `createdBotId`)
+- [x] Handle case where bot hasn't been created yet (test uses preview mode with `botId: 'test'`)
+- [x] Handle case where bot was created in an earlier step (use real `createdBotId`)
 
 ### Sub-task 5.6.4 — Permissions & Escalation Triggers
 
-- [ ] Restructure Step 5 (Permissions) to focus on user interaction permissions:
+- [x] Restructure Step 5 (Permissions) to focus on user interaction permissions:
   - **Conversation limits**: Max conversation length (number input)
   - **File sharing**: Toggle to allow/disallow file attachments in bot conversations
   - **Escalation triggers**: Configurable keyword/intent list that triggers human handoff
@@ -203,12 +203,12 @@ function BotTestPanel({ systemPrompt, botId }: { systemPrompt: string; botId?: s
     ];
     ```
   - **Auto-escalation**: Toggle + threshold for consecutive unresolved messages
-- [ ] Keep tool permissions from Step 3 (Tools) visible as read-only summary
-- [ ] Add escalation trigger input with tag-style UI:
+- [x] Keep tool permissions from Step 3 (Tools) visible as read-only summary
+- [x] Add escalation trigger input with tag-style UI:
   - Text input + Enter to add
   - Click "×" on tag to remove
   - Show default triggers as suggestions
-- [ ] Wire new permission fields in `handleCreate`:
+- [x] Wire new permission fields in `handleCreate`:
   ```tsx
   // Step 5: Set permissions (tools already set, add interaction permissions)
   await updateConfig({
@@ -221,7 +221,7 @@ function BotTestPanel({ systemPrompt, botId }: { systemPrompt: string; botId?: s
 
 ### Sub-task 5.6.5 — Updated Deploy Step & Creation Flow
 
-- [ ] Update Deploy/Review step (Step 7) to show all 6 previous steps:
+- [x] Update Deploy/Review step (Step 7) to show all 6 previous steps:
   ```tsx
   const REVIEW_ITEMS = [
     { label: 'Name', value: form.name },
@@ -237,24 +237,24 @@ function BotTestPanel({ systemPrompt, botId }: { systemPrompt: string; botId?: s
     { label: 'Max Conversation Length', value: String(form.maxConversationLength) },
   ];
   ```
-- [ ] Update `handleCreate` to orchestrate the full 7-step creation:
+- [x] Update `handleCreate` to orchestrate the full 7-step creation:
   1. Create bot (name, purpose, description, department)
   2. Update configuration (model, temperature, tokens, tone, style, prompt, language, escalation, conversation limits)
   3. Set tool permissions (loop through enabled tools)
   4. Add knowledge sources (loop through sources)
   5. Set interaction permissions
   6. Deploy if requested (set status to ACTIVE)
-- [ ] Add progress indicator during creation (show which step is executing):
+- [x] Add progress indicator during creation (show which step is executing):
   ```tsx
   const [createProgress, setCreateProgress] = useState<string>('');
   // "Creating bot..." → "Configuring..." → "Setting permissions..." → "Adding knowledge..." → "Deploying..."
   ```
-- [ ] Handle partial failure: if creation succeeds but later steps fail, redirect to bot detail page with error toast suggesting manual completion
-- [ ] Keep the deploy-immediately checkbox + draft warning
+- [x] Handle partial failure: if creation succeeds but later steps fail, redirect to bot detail page with error toast suggesting manual completion
+- [x] Keep the deploy-immediately checkbox + draft warning
 
 ### Sub-task 5.6.6 — Step Validation & UX Polish
 
-- [ ] Add `canAdvance()` validation for each step:
+- [x] Add `canAdvance()` validation for each step:
   - **Basics**: `name.length >= 2` and `purpose` selected (existing)
   - **Personality**: `aiModel` selected and `systemPrompt.length >= 10` (existing logic, combined)
   - **Tools**: Always valid (can have zero tools)
@@ -262,12 +262,12 @@ function BotTestPanel({ systemPrompt, botId }: { systemPrompt: string; botId?: s
   - **Permissions**: Always valid (has defaults)
   - **Test Chat**: Always valid (testing is optional)
   - **Deploy**: Always valid
-- [ ] Add step completion indicators (green checkmark on completed steps)
-- [ ] Allow clicking on any previously completed step to go back and edit
-- [ ] Add unsaved changes warning if navigating away mid-wizard (`beforeunload`)
-- [ ] Handle responsive layout: steps indicator should wrap on narrow screens
-- [ ] Ensure wizard state persists during step navigation (already works via `useState`)
-- [ ] Loading state on "Create" button with spinner and progress text
+- [x] Add step completion indicators (green checkmark on completed steps)
+- [x] Allow clicking on any previously completed step to go back and edit
+- [x] Add unsaved changes warning if navigating away mid-wizard (`beforeunload`)
+- [x] Handle responsive layout: steps indicator should wrap on narrow screens
+- [x] Ensure wizard state persists during step navigation (already works via `useState`)
+- [x] Loading state on "Create" button with spinner and progress text
 
 ---
 
@@ -332,18 +332,18 @@ apps/provider/src/components/bots/wizard/
 
 ## Verification Checklist
 
-- [ ] Wizard shows 7 steps in the step indicator with correct labels
-- [ ] Step navigation (Back/Next) works across all 7 steps
-- [ ] Clicking a completed step circles navigates back to that step
-- [ ] Basics step: name validation (min 2 chars), purpose required
-- [ ] Personality step: model selection, temperature slider, tone/style dropdowns, system prompt (min 10 chars)
-- [ ] Tools step: all `ALLOWED_BOT_TOOLS` shown as checkboxes, can toggle each
-- [ ] Knowledge step: can add DOCUMENT/URL/TEXT/FAQ/API sources, list shows added sources, can remove
-- [ ] Permissions step: escalation trigger tag input works, conversation limit input, file sharing toggle
-- [ ] Test Chat step: can send messages, bot responds, policy decisions shown, clear chat works
-- [ ] Deploy step: review summary shows all configuration, deploy checkbox works, draft warning shown
-- [ ] Full creation flow: bot created → configured → permissions set → knowledge added → deployed (if checked)
-- [ ] Partial failure handled: redirects to bot detail page with error message
-- [ ] Create button shows progress indicator during creation
-- [ ] Permission check: non-bot-creators see "no permission" message
-- [ ] Responsive layout: steps indicator wraps correctly on narrow viewports
+- [x] Wizard shows 7 steps in the step indicator with correct labels
+- [x] Step navigation (Back/Next) works across all 7 steps
+- [x] Clicking a completed step circles navigates back to that step
+- [x] Basics step: name validation (min 2 chars), purpose required
+- [x] Personality step: model selection, temperature slider, tone/style dropdowns, system prompt (min 10 chars)
+- [x] Tools step: all `ALLOWED_BOT_TOOLS` shown as checkboxes, can toggle each
+- [x] Knowledge step: can add DOCUMENT/URL/TEXT/FAQ/API sources, list shows added sources, can remove
+- [x] Permissions step: escalation trigger tag input works, conversation limit input, file sharing toggle
+- [x] Test Chat step: can send messages, bot responds, policy decisions shown, clear chat works
+- [x] Deploy step: review summary shows all configuration, deploy checkbox works, draft warning shown
+- [x] Full creation flow: bot created → configured → permissions set → knowledge added → deployed (if checked)
+- [x] Partial failure handled: redirects to bot detail page with error message
+- [x] Create button shows progress indicator during creation
+- [x] Permission check: non-bot-creators see "no permission" message
+- [x] Responsive layout: steps indicator wraps correctly on narrow viewports

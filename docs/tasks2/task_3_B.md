@@ -120,23 +120,23 @@ callbackRequestUpdated(id: ID!): CallbackRequest!
 
 ### Requirements
 
-- [ ] Create `apps/web/src/lib/graphql/callbacks.ts` with GraphQL operations:
-  - [ ] `GET_CALLBACK_REQUESTS` query — accepts `status`, `limit`, `offset`
-  - [ ] `GET_CALLBACK_REQUEST` query — accepts `id`
-  - [ ] `APPROVE_CALLBACK` mutation — accepts `ApproveCallbackRequestInput`
-  - [ ] `REJECT_CALLBACK` mutation — accepts `RejectCallbackRequestInput`
-- [ ] Create `apps/web/src/hooks/useCallbackRequests.ts` hook:
-  - [ ] Use `useQuery(GET_CALLBACK_REQUESTS, { variables })` from Apollo Client
-  - [ ] Accept `status` filter (null = all) and `page` number
-  - [ ] Return `{ callbacks, totalCount, loading, error, refetch }`
-  - [ ] Page size: 20
-- [ ] Update `callbacks/page.tsx`:
-  - [ ] Remove `mockCallbacks` array entirely
-  - [ ] Import and use `useCallbackRequests()` instead of `useState(mockCallbacks)`
-  - [ ] Map tab filter to query variable: `null` → all, `'PENDING'`, `'APPROVED'`, `'REJECTED'`, `'EXPIRED'`
-  - [ ] Add loading skeleton (3 placeholder cards matching existing card layout)
-  - [ ] Add error state with retry
-  - [ ] Add pagination controls
+- [x] Create `apps/web/src/lib/graphql/callbacks.ts` with GraphQL operations:
+  - [x] `GET_CALLBACK_REQUESTS` query — accepts `status`, `limit`, `offset`
+  - [x] `GET_CALLBACK_REQUEST` query — accepts `id`
+  - [x] `APPROVE_CALLBACK` mutation — accepts `ApproveCallbackRequestInput`
+  - [x] `REJECT_CALLBACK` mutation — accepts `RejectCallbackRequestInput`
+- [x] Create `apps/web/src/hooks/useCallbackRequests.ts` hook:
+  - [x] Use `useQuery(GET_CALLBACK_REQUESTS, { variables })` from Apollo Client
+  - [x] Accept `status` filter (null = all) and `page` number
+  - [x] Return `{ callbacks, totalCount, loading, error, refetch }`
+  - [x] Page size: 20
+- [x] Update `callbacks/page.tsx`:
+  - [x] Remove `mockCallbacks` array entirely
+  - [x] Import and use `useCallbackRequests()` instead of `useState(mockCallbacks)`
+  - [x] Map tab filter to query variable: `null` → all, `'PENDING'`, `'APPROVED'`, `'REJECTED'`, `'EXPIRED'`
+  - [x] Add loading skeleton (3 placeholder cards matching existing card layout)
+  - [x] Add error state with retry
+  - [x] Add pagination controls
 
 ### Implementation Details
 
@@ -224,18 +224,18 @@ export function useCallbackRequests(status: string | null, page: number) {
 
 ### Requirements
 
-- [ ] Replace state-only `handleApprove` with `useMutation(APPROVE_CALLBACK)`:
-  - [ ] Pass `callbackRequestId`, `approvedSlotStart`, `approvedSlotEnd` from slot picker form
-  - [ ] Format dates as ISO DateTime strings
-  - [ ] Optimistic update: set `status: 'APPROVED'` in cache
-  - [ ] On success: close modal, show success toast
-  - [ ] On error: show error toast, revert
-- [ ] Enhance slot picker to show user's availability:
-  - [ ] Fetch `me { availabilitySlots { dayOfWeek startTime endTime slotType isActive } }` 
-  - [ ] Highlight available slots in the picker
-  - [ ] Validate that selected time falls within an availability window
-  - [ ] Show warning if picking outside availability hours
-- [ ] Add loading state to approve button while mutation in-flight
+- [x] Replace state-only `handleApprove` with `useMutation(APPROVE_CALLBACK)`:
+  - [x] Pass `callbackRequestId`, `approvedSlotStart`, `approvedSlotEnd` from slot picker form
+  - [x] Format dates as ISO DateTime strings
+  - [x] Optimistic update: set `status: 'APPROVED'` in cache
+  - [x] On success: close modal, show success toast
+  - [x] On error: show error toast, revert
+- [x] Enhance slot picker to show user's availability:
+  - [x] Fetch `me { availabilitySlots { dayOfWeek startTime endTime slotType isActive } }` 
+  - [x] Highlight available slots in the picker
+  - [x] Validate that selected time falls within an availability window
+  - [x] Show warning if picking outside availability hours
+- [x] Add loading state to approve button while mutation in-flight
 
 ### Implementation Details
 
@@ -281,13 +281,13 @@ const handleApprove = async (id: string) => {
 
 ### Requirements
 
-- [ ] Replace state-only `handleReject` with `useMutation(REJECT_CALLBACK)`:
-  - [ ] Pass `callbackRequestId` and optional `reason` from textarea
-  - [ ] Add reason textarea to reject modal (optional, max 500 chars)
-  - [ ] Optimistic update: set `status: 'REJECTED'` in cache
-  - [ ] On success: close modal, show toast
-  - [ ] On error: show error toast, revert
-- [ ] Add loading state to reject button while mutation in-flight
+- [x] Replace state-only `handleReject` with `useMutation(REJECT_CALLBACK)`:
+  - [x] Pass `callbackRequestId` and optional `reason` from textarea
+  - [x] Add reason textarea to reject modal (optional, max 500 chars)
+  - [x] Optimistic update: set `status: 'REJECTED'` in cache
+  - [x] On success: close modal, show toast
+  - [x] On error: show error toast, revert
+- [x] Add loading state to reject button while mutation in-flight
 
 ### Implementation Details
 
@@ -327,18 +327,18 @@ const handleReject = async (id: string) => {
 
 ### Requirements
 
-- [ ] Expand the existing detail panel (right side) to be a full detail view:
-  - [ ] Fetch full callback via `GET_CALLBACK_REQUEST` query when selected
-  - [ ] Show SP info: name, industry, verification badge
-  - [ ] Show callback reason and details (full text)
-  - [ ] Show timeline: requested → responded → scheduled (if approved)
-  - [ ] Show proposed time slot (if approved)
-- [ ] Add action buttons in detail view:
-  - [ ] "Approve" / "Reject" for PENDING callbacks
-  - [ ] "Block Provider" for any status
-  - [ ] "Report" for spam/abuse
-- [ ] Mobile: detail view becomes full-screen overlay
-- [ ] Desktop: detail panel occupies right third (existing layout)
+- [x] Expand the existing detail panel (right side) to be a full detail view:
+  - [x] Fetch full callback via `GET_CALLBACK_REQUEST` query when selected
+  - [x] Show SP info: name, industry, verification badge
+  - [x] Show callback reason and details (full text)
+  - [x] Show timeline: requested → responded → scheduled (if approved)
+  - [x] Show proposed time slot (if approved)
+- [x] Add action buttons in detail view:
+  - [x] "Approve" / "Reject" for PENDING callbacks
+  - [x] "Block Provider" for any status
+  - [x] "Report" for spam/abuse
+- [x] Mobile: detail view becomes full-screen overlay
+- [x] Desktop: detail panel occupies right third (existing layout)
 
 ---
 
@@ -346,17 +346,17 @@ const handleReject = async (id: string) => {
 
 ### Requirements
 
-- [ ] Update `apps/web/src/features/callback-requests/callback-request-list.tsx`:
-  - [ ] Replace mock data with `useQuery(GET_CALLBACK_REQUESTS, { variables: { status: 'PENDING', limit: 3 } })`
-  - [ ] Remove the fake `setTimeout` delay
-  - [ ] Show real pending callbacks with SP name, reason, and requested time
-  - [ ] "View All" link to `/callbacks`
-- [ ] Update `apps/web/src/features/dashboard/pending-callbacks.tsx`:
-  - [ ] Replace empty stub with real pending callbacks query
-  - [ ] Show next upcoming approved callback with countdown
-  - [ ] Show pending count badge
-  - [ ] Inline approve/reject buttons for quick action
-- [ ] Add sidebar badge for pending callbacks count
+- [x] Update `apps/web/src/features/callback-requests/callback-request-list.tsx`:
+  - [x] Replace mock data with `useQuery(GET_CALLBACK_REQUESTS, { variables: { status: 'PENDING', limit: 3 } })`
+  - [x] Remove the fake `setTimeout` delay
+  - [x] Show real pending callbacks with SP name, reason, and requested time
+  - [x] "View All" link to `/callbacks`
+- [x] Update `apps/web/src/features/dashboard/pending-callbacks.tsx`:
+  - [x] Replace empty stub with real pending callbacks query
+  - [x] Show next upcoming approved callback with countdown
+  - [x] Show pending count badge
+  - [x] Inline approve/reject buttons for quick action
+- [x] Add sidebar badge for pending callbacks count
 
 ### Implementation Details
 
@@ -401,17 +401,17 @@ export function PendingCallbacks() {
 
 ## Verification Checklist
 
-- [ ] Callbacks page loads real data from GraphQL (no mock data)
-- [ ] Status tab switching triggers re-query with correct filter
-- [ ] Pagination works with Previous/Next controls
-- [ ] Approve flow: modal opens → slot picker → submit → mutation → optimistic update → success toast
-- [ ] Reject flow: modal opens → optional reason → submit → mutation → optimistic update → success toast
-- [ ] Detail panel shows full callback info with SP verification badge
-- [ ] Timeline visualization shows request → response → scheduled dates
-- [ ] Dashboard widget shows real pending callbacks (not mock)
-- [ ] Loading skeletons display during queries
-- [ ] Error states show with retry buttons
-- [ ] Mobile responsive layout works
+- [x] Callbacks page loads real data from GraphQL (no mock data)
+- [x] Status tab switching triggers re-query with correct filter
+- [x] Pagination works with Previous/Next controls
+- [x] Approve flow: modal opens → slot picker → submit → mutation → optimistic update → success toast
+- [x] Reject flow: modal opens → optional reason → submit → mutation → optimistic update → success toast
+- [x] Detail panel shows full callback info with SP verification badge
+- [x] Timeline visualization shows request → response → scheduled dates
+- [x] Dashboard widget shows real pending callbacks (not mock)
+- [x] Loading skeletons display during queries
+- [x] Error states show with retry buttons
+- [x] Mobile responsive layout works
 
 ---
 

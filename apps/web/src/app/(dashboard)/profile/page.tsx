@@ -358,6 +358,37 @@ export default function ProfilePage() {
             )}
           </div>
 
+          {/* Profile Completeness */}
+          {!loading && profile && (() => {
+            const checks = [
+              { label: 'Full name', done: !!profile.fullName },
+              { label: 'Bio', done: !!bio },
+              { label: 'Location', done: !!location },
+              { label: 'Avatar', done: !!displayAvatarUrl },
+              { label: 'Work experience', done: (career.workExperience?.length ?? 0) > 0 },
+              { label: 'Education', done: (career.education?.length ?? 0) > 0 },
+            ];
+            const completed = checks.filter((c) => c.done).length;
+            const pct = Math.round((completed / checks.length) * 100);
+            if (pct === 100) return null;
+            return (
+              <div className="mb-4 card p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-2xs font-medium text-text-secondary">Profile Completeness</span>
+                  <span className="text-2xs font-bold text-accent-blue">{pct}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-bg-tertiary overflow-hidden">
+                  <div className="h-full rounded-full bg-accent-blue transition-all duration-300" style={{ width: `${pct}%` }} />
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {checks.filter((c) => !c.done).map((c) => (
+                    <span key={c.label} className="chip-default text-[10px]">+ {c.label}</span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Meta */}
           <div className="space-y-2 mb-5 text-sm">
             <div className="flex items-center gap-2 text-text-muted">

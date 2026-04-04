@@ -96,10 +96,10 @@ Create a standalone `ToastProvider` / `useToast()` context with builder methods 
 - [x] Remove `<ToastContainer />` from providers if rendering moves to `ToastProvider`
 
 ### Migrate NotificationProvider
-- [ ] Update `notification-context.tsx` to use `useToast()` instead of internal toast state
+- [x] Update `notification-context.tsx` to use `useToast()` instead of internal toast state
 - [x] OR keep both systems temporarily and migrate in a later task
-- [ ] If migrating: remove `toasts` state, `addToast`, `dismissToast` from notification context
-- [ ] If migrating: notification SSE handler calls `useToast().info()` / `useToast().success()` instead
+- [x] If migrating: remove `toasts` state, `addToast`, `dismissToast` from notification context
+- [x] If migrating: notification SSE handler calls `useToast().info()` / `useToast().success()` instead
 
 ---
 

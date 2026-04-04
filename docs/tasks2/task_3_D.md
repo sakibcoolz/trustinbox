@@ -110,25 +110,25 @@ Until the GraphQL schema adds a documents query, use REST API routes.
 
 ### Requirements
 
-- [ ] **Option A — GraphQL** (preferred, requires gateway change):
-  - [ ] Add `myDocuments(limit: Int, offset: Int): [DocumentShare!]!` query to schema
-  - [ ] Create `apps/web/src/lib/graphql/documents.ts` with operations
-  - [ ] Create `apps/web/src/hooks/useDocuments.ts` using `useQuery`
-- [ ] **Option B — REST fallback** (if schema not extended yet):
-  - [ ] Create `apps/web/src/hooks/useDocuments.ts` using `fetch` to REST endpoint
-  - [ ] API route: `GET /api/documents` → gateway proxy → document-service
-  - [ ] Return `{ documents, loading, error, refetch }`
-- [ ] Update `documents/page.tsx`:
-  - [ ] Remove `mockDocs` array
-  - [ ] Use `useDocuments()` hook for data
-  - [ ] Add loading skeleton matching existing card layout
-  - [ ] Add error state with retry
-  - [ ] Add pagination controls
-  - [ ] Map backend `DocumentShare` type to existing UI interface:
-    - [ ] `shareContext` → `classification`
-    - [ ] `createdAt` → `sharedAt`
-    - [ ] `openedAt` → `opened` (boolean: null = not opened)
-    - [ ] `fileSize` not in schema — hide or show "—" until added
+- [x] **Option A — GraphQL** (preferred, requires gateway change):
+  - [x] Add `myDocuments(limit: Int, offset: Int): [DocumentShare!]!` query to schema
+  - [x] Create `apps/web/src/lib/graphql/documents.ts` with operations
+  - [x] Create `apps/web/src/hooks/useDocuments.ts` using `useQuery`
+- [x] **Option B — REST fallback** (if schema not extended yet):
+  - [x] Create `apps/web/src/hooks/useDocuments.ts` using `fetch` to REST endpoint
+  - [x] API route: `GET /api/documents` → gateway proxy → document-service
+  - [x] Return `{ documents, loading, error, refetch }`
+- [x] Update `documents/page.tsx`:
+  - [x] Remove `mockDocs` array
+  - [x] Use `useDocuments()` hook for data
+  - [x] Add loading skeleton matching existing card layout
+  - [x] Add error state with retry
+  - [x] Add pagination controls
+  - [x] Map backend `DocumentShare` type to existing UI interface:
+    - [x] `shareContext` → `classification`
+    - [x] `createdAt` → `sharedAt`
+    - [x] `openedAt` → `opened` (boolean: null = not opened)
+    - [x] `fileSize` not in schema — hide or show "—" until added
 
 ### Implementation Details
 
@@ -187,19 +187,19 @@ export function useDocuments(page: number = 1) {
 
 ### Requirements
 
-- [ ] Replace placeholder `alert()` download with real presigned URL flow:
-  - [ ] Call document-service `GetPresignedURL` via gateway API
-  - [ ] Endpoint: `GET /api/documents/{documentId}/download` → returns `{ url: string, expiresAt: string }`
-  - [ ] Open presigned URL in new tab or trigger browser download
-- [ ] Add download progress indicator:
-  - [ ] Show spinner on download button while fetching URL
-  - [ ] Replace with checkmark on success
-- [ ] Handle expired URLs:
-  - [ ] If URL expired, re-fetch before download
-  - [ ] Show error toast on failure
-- [ ] Track downloads:
-  - [ ] Mark document as opened via API call after download
-  - [ ] Update local state to show "Downloaded" status
+- [x] Replace placeholder `alert()` download with real presigned URL flow:
+  - [x] Call document-service `GetPresignedURL` via gateway API
+  - [x] Endpoint: `GET /api/documents/{documentId}/download` → returns `{ url: string, expiresAt: string }`
+  - [x] Open presigned URL in new tab or trigger browser download
+- [x] Add download progress indicator:
+  - [x] Show spinner on download button while fetching URL
+  - [x] Replace with checkmark on success
+- [x] Handle expired URLs:
+  - [x] If URL expired, re-fetch before download
+  - [x] Show error toast on failure
+- [x] Track downloads:
+  - [x] Mark document as opened via API call after download
+  - [x] Update local state to show "Downloaded" status
 
 ### Implementation Details
 
@@ -229,19 +229,19 @@ const handleDownload = useCallback(async (documentId: string) => {
 
 ### Requirements
 
-- [ ] Add inline preview for supported file types:
-  - [ ] **PDF**: embed with `<iframe>` or `<object>` pointing to presigned URL
-  - [ ] **Images** (jpeg, png, gif, webp): display with `<img>` in detail panel
-  - [ ] **Other**: show file icon + "Preview not available" + download button
-- [ ] Preview in detail panel:
-  - [ ] Click document → detail panel shows preview (if supported) or info card
-  - [ ] "Open Full Screen" button → opens in new tab
-- [ ] Preview loading state:
-  - [ ] Show skeleton/spinner while presigned URL is fetched
-  - [ ] Lazy load the preview iframe/image
-- [ ] Security:
-  - [ ] Presigned URLs are temporary (expire) — re-fetch if needed
-  - [ ] Never store presigned URLs in client state long-term
+- [x] Add inline preview for supported file types:
+  - [x] **PDF**: embed with `<iframe>` or `<object>` pointing to presigned URL
+  - [x] **Images** (jpeg, png, gif, webp): display with `<img>` in detail panel
+  - [x] **Other**: show file icon + "Preview not available" + download button
+- [x] Preview in detail panel:
+  - [x] Click document → detail panel shows preview (if supported) or info card
+  - [x] "Open Full Screen" button → opens in new tab
+- [x] Preview loading state:
+  - [x] Show skeleton/spinner while presigned URL is fetched
+  - [x] Lazy load the preview iframe/image
+- [x] Security:
+  - [x] Presigned URLs are temporary (expire) — re-fetch if needed
+  - [x] Never store presigned URLs in client state long-term
 
 ---
 
@@ -249,39 +249,39 @@ const handleDownload = useCallback(async (documentId: string) => {
 
 ### Requirements
 
-- [ ] Add filter bar above document list:
-  - [ ] **By Service Provider**: dropdown of SPs that have shared docs
-  - [ ] **By File Type**: chips for PDF, Spreadsheet, Document, Image, Other
-  - [ ] **By Classification**: chips based on `shareContext` values
-  - [ ] **Sort**: Date (newest/oldest), Name (A-Z/Z-A)
-- [ ] Search by filename:
-  - [ ] Debounced input (300ms)
-  - [ ] Client-side filter on loaded documents
-  - [ ] If server supports search, pass as query param
-- [ ] Filter combination:
-  - [ ] Multiple filters are AND-combined
-  - [ ] Show active filter count badge
-  - [ ] "Clear Filters" button
-- [ ] Empty state when no documents match filters
+- [x] Add filter bar above document list:
+  - [x] **By Service Provider**: dropdown of SPs that have shared docs
+  - [x] **By File Type**: chips for PDF, Spreadsheet, Document, Image, Other
+  - [x] **By Classification**: chips based on `shareContext` values
+  - [x] **Sort**: Date (newest/oldest), Name (A-Z/Z-A)
+- [x] Search by filename:
+  - [x] Debounced input (300ms)
+  - [x] Client-side filter on loaded documents
+  - [x] If server supports search, pass as query param
+- [x] Filter combination:
+  - [x] Multiple filters are AND-combined
+  - [x] Show active filter count badge
+  - [x] "Clear Filters" button
+- [x] Empty state when no documents match filters
 
 ---
 
 ## Verification Checklist
 
-- [ ] Documents page loads real data (GraphQL or REST)
-- [ ] Document list shows file icon, name, SP name, date, classification
-- [ ] Download triggers presigned URL fetch and opens file
-- [ ] Download button shows spinner during URL fetch
-- [ ] Preview works for PDF files (embedded iframe)
-- [ ] Preview works for image files (inline display)
-- [ ] Filter by SP dropdown works
-- [ ] Filter by file type chips work
-- [ ] Search by filename filters the list
-- [ ] Sort by date/name works
-- [ ] Loading skeleton displays during initial fetch
-- [ ] Error state shows with retry button
-- [ ] Pagination works
-- [ ] Mobile responsive (detail panel becomes full-screen)
+- [x] Documents page loads real data (GraphQL or REST)
+- [x] Document list shows file icon, name, SP name, date, classification
+- [x] Download triggers presigned URL fetch and opens file
+- [x] Download button shows spinner during URL fetch
+- [x] Preview works for PDF files (embedded iframe)
+- [x] Preview works for image files (inline display)
+- [x] Filter by SP dropdown works
+- [x] Filter by file type chips work
+- [x] Search by filename filters the list
+- [x] Sort by date/name works
+- [x] Loading skeleton displays during initial fetch
+- [x] Error state shows with retry button
+- [x] Pagination works
+- [x] Mobile responsive (detail panel becomes full-screen)
 
 ---
 

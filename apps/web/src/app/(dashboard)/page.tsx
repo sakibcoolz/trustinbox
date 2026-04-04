@@ -6,11 +6,15 @@ import { useNotifications } from '@/lib/notification-context';
 import { useChat } from '@/lib/chat-context';
 import { useMemo } from 'react';
 import { AISummaryWidget } from '@/features/dashboard/ai-summary-widget';
+import { useDashboard } from '@/hooks/useDashboard';
+import { useNotificationsGql } from '@/hooks/useNotificationsGql';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { notifications, unreadCount } = useNotifications();
+  const { unreadCount } = useNotifications();
   const { conversations } = useChat();
+  const { summary, loading: summaryLoading } = useDashboard();
+  const { notifications: recentGql, loading: notifsLoading } = useNotificationsGql({ limit: 5 });
 
   const chatUnread = useMemo(
     () => conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0),
@@ -18,13 +22,14 @@ export default function DashboardPage() {
   );
 
   const stats = [
-    { label: 'Unread', value: unreadCount, color: 'text-accent-blue', bg: 'bg-accent-blue/10', href: '/inbox' },
-    { label: 'Conversations', value: conversations.length, color: 'text-accent-orange', bg: 'bg-accent-orange/10', href: '/conversations' },
-    { label: 'Unread Chats', value: chatUnread, color: 'text-accent-purple', bg: 'bg-accent-purple/10', href: '/conversations' },
-    { label: 'Friends', value: 0, color: 'text-accent-green', bg: 'bg-accent-green/10', href: '/friends' },
+    { label: 'Unread', value: summary?.unreadNotifications ?? unreadCount, color: 'text-accent-blue', bg: 'bg-accent-blue/10', href: '/inbox' },
+    { label: 'Conversations', value: summary?.totalConversations ?? conversations.length, color: 'text-accent-orange', bg: 'bg-accent-orange/10', href: '/conversations' },
+    { label: 'Pending Callbacks', value: summary?.pendingCallbackRequests ?? 0, color: 'text-accent-purple', bg: 'bg-accent-purple/10', href: '/callbacks' },
+    { label: 'Friends', value: summary?.totalFriends ?? 0, color: 'text-accent-green', bg: 'bg-accent-green/10', href: '/friends' },
   ];
 
-  const recentNotifs = notifications.slice(0, 5);
+  // Use GraphQL recent notifications if available, fall back to empty
+  const recentNotifs = recentGql.length > 0 ? recentGql : [];
 
   return (
     <div className="flex-1 h-full overflow-y-auto bg-bg-primary">
@@ -42,7 +47,11 @@ export default function DashboardPage() {
           {stats.map((s) => (
             <Link key={s.label} href={s.href} className="card hover:shadow-elevated transition-shadow duration-200 group">
               <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center mb-3`}>
-                <span className={`text-xl font-bold ${s.color}`}>{s.value}</span>
+                {summaryLoading ? (
+                  <div className="w-6 h-6 rounded bg-bg-tertiary animate-pulse" />
+                ) : (
+                  <span className={`text-xl font-bold ${s.color}`}>{s.value}</span>
+                )}
               </div>
               <p className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">{s.label}</p>
             </Link>
@@ -56,10 +65,19 @@ export default function DashboardPage() {
             <Link href="/inbox" className="text-2xs text-accent-blue hover:underline">View all</Link>
           </div>
           <div className="space-y-1">
-            {recentNotifs.length === 0 ? (
+            {notifsLoading ? (
+              <div className="space-y-2 py-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="animate-pulse flex items-center gap-3 py-2.5 px-2">
+                    <div className="w-8 h-8 rounded-lg bg-bg-tertiary shrink-0" />
+                    <div className="flex-1 h-4 bg-bg-tertiary rounded" />
+                  </div>
+                ))}
+              </div>
+            ) : recentNotifs.length === 0 ? (
               <p className="text-sm text-text-muted py-4 text-center">No recent activity</p>
             ) : (
-              recentNotifs.map((n) => (
+              recentNotifs.map((n: any) => (
                 <div key={n.id} className="flex items-center gap-3 py-2.5 px-2 rounded-lg hover:bg-bg-hover transition-colors cursor-pointer">
                   <div className="w-8 h-8 rounded-lg bg-accent-blue/10 flex items-center justify-center text-sm shrink-0">
                     <svg className="w-4 h-4 text-accent-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -67,7 +85,7 @@ export default function DashboardPage() {
                     </svg>
                   </div>
                   <p className="text-sm text-text-secondary flex-1 truncate">{n.title}</p>
-                  <span className="text-2xs text-text-muted shrink-0">{new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span className="text-2xs text-text-muted shrink-0">{n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                 </div>
               ))
             )}

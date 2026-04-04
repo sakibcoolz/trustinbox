@@ -52,12 +52,12 @@ Audit every interactive page in both the Provider Portal and Web App for WCAG 2.
 
 ### Sub-task 7.8.1 — Install axe-core and Configure
 
-- [ ] Install `@axe-core/playwright` in both apps:
+- [x] Install `@axe-core/playwright` in both apps:
   ```bash
   cd apps/provider && npm install -D @axe-core/playwright
   cd apps/web && npm install -D @axe-core/playwright
   ```
-- [ ] Create `apps/provider/e2e/helpers/a11y.ts`:
+- [x] Create `apps/provider/e2e/helpers/a11y.ts`:
   ```typescript
   import AxeBuilder from '@axe-core/playwright';
   import { Page, expect } from '@playwright/test';
@@ -76,12 +76,12 @@ Audit every interactive page in both the Provider Portal and Web App for WCAG 2.
     expect(results.violations).toEqual([]);
   }
   ```
-- [ ] Create identical helper in `apps/web/e2e/helpers/a11y.ts`
-- [ ] Create in `tests/e2e/helpers/a11y.ts` for cross-app tests
+- [x] Create identical helper in `apps/web/e2e/helpers/a11y.ts`
+- [x] Create in `tests/e2e/helpers/a11y.ts` for cross-app tests
 
 ### Sub-task 7.8.2 — Provider Portal: Automated axe-core Audit
 
-- [ ] Create `apps/provider/e2e/accessibility.spec.ts`:
+- [x] Create `apps/provider/e2e/accessibility.spec.ts`:
   - **Login page**:
     - Navigate to `/auth/login`
     - Run `checkA11y(page)`
@@ -123,7 +123,7 @@ Audit every interactive page in both the Provider Portal and Web App for WCAG 2.
 
 ### Sub-task 7.8.3 — Web App: Automated axe-core Audit
 
-- [ ] Create `apps/web/e2e/accessibility.spec.ts`:
+- [x] Create `apps/web/e2e/accessibility.spec.ts`:
   - **Login page**: navigate → `checkA11y(page)`
   - **Register page**: navigate → `checkA11y(page)`
   - **Dashboard**: login → `checkA11y(page)`
@@ -141,12 +141,12 @@ Audit every interactive page in both the Provider Portal and Web App for WCAG 2.
 
 ### Sub-task 7.8.4 — Fix: Form Input Labels
 
-- [ ] Audit all `<input>`, `<select>`, `<textarea>` elements across both apps:
+- [x] Audit all `<input>`, `<select>`, `<textarea>` elements across both apps:
   - Every input must have an associated `<label>` (via `htmlFor`/`id` or wrapping)
   - Placeholder text is NOT sufficient as a label
   - Search inputs: add `aria-label="Search"` if no visible label
   - File inputs: add accessible label describing expected file type
-- [ ] Fix violations found:
+- [x] Fix violations found:
   - Provider notifications compose form
   - Provider callback new form
   - Provider campaign wizard fields
@@ -157,7 +157,7 @@ Audit every interactive page in both the Provider Portal and Web App for WCAG 2.
 
 ### Sub-task 7.8.5 — Fix: Button Accessible Names
 
-- [ ] Audit all `<button>` and clickable elements:
+- [x] Audit all `<button>` and clickable elements:
   - Icon-only buttons must have `aria-label`:
     - Close buttons: `aria-label="Close"`
     - Delete buttons: `aria-label="Delete [item]"`
@@ -165,7 +165,7 @@ Audit every interactive page in both the Provider Portal and Web App for WCAG 2.
     - Sort buttons: `aria-label="Sort by [column]"`
     - Menu toggle: `aria-label="Open menu"` / `"Close menu"`
   - Buttons with just icons (SVG): add `aria-hidden="true"` to icon + `aria-label` on button
-- [ ] Fix violations in:
+- [x] Fix violations in:
   - Provider sidebar collapse button
   - Provider data table action buttons (edit, delete, view)
   - Provider notification action buttons
@@ -175,37 +175,37 @@ Audit every interactive page in both the Provider Portal and Web App for WCAG 2.
 
 ### Sub-task 7.8.6 — Fix: Color Contrast
 
-- [ ] Verify contrast ratios meet WCAG AA (4.5:1 normal text, 3:1 large text):
+- [x] Verify contrast ratios meet WCAG AA (4.5:1 normal text, 3:1 large text):
   - `text-text-primary (#e4e7eb)` on `bg-bg-primary (#0b0d0f)` → verify ≥4.5:1
   - `text-text-secondary (#8b929a)` on `bg-bg-card (#151820)` → verify ≥4.5:1
   - `text-text-muted (#545b65)` on `bg-bg-primary (#0b0d0f)` → **LIKELY FAILS** — check and fix
   - Status colors on dark backgrounds: `status-success`, `status-warning`, `status-error`
   - Badge text on badge backgrounds: `bg-status-success/10 text-status-success`
   - Link colors: accent-blue on dark backgrounds
-- [ ] Fix any failing contrast:
+- [x] Fix any failing contrast:
   - Increase `text-text-muted` luminosity if needed
   - Ensure status badges have sufficient contrast
   - Update `tailwind.config.js` color tokens if necessary
 
 ### Sub-task 7.8.7 — Fix: Focus Management
 
-- [ ] **Keyboard navigation**:
+- [x] **Keyboard navigation**:
   - Verify ALL interactive elements reachable via Tab key
   - Verify logical tab order (left-to-right, top-to-bottom)
   - Verify focus visible (`:focus-visible` outline) on all focusable elements
   - Sidebar navigation: Tab through all items, Enter/Space to activate
   - Data tables: Tab to rows, Enter to expand details
-- [ ] **Modal focus management**:
+- [x] **Modal focus management**:
   - Modal open → focus moves to first focusable element inside modal
   - Tab cycles within modal (focus trap)
   - Escape key closes modal
   - Modal close → focus returns to the trigger element
   - Apply to: confirmation dialogs, detail drawers, compose modals, wizard modals
-- [ ] **Toast announcements**:
+- [x] **Toast announcements**:
   - Add `aria-live="polite"` to toast container
   - Success/error toasts announced to screen readers
   - Toasts auto-dismiss with sufficient time (≥5 seconds)
-- [ ] **Skip navigation link**:
+- [x] **Skip navigation link**:
   - Add skip link as first focusable element in both apps:
     ```html
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute ...">
@@ -217,36 +217,36 @@ Audit every interactive page in both the Provider Portal and Web App for WCAG 2.
 
 ### Sub-task 7.8.8 — Fix: ARIA Attributes and Semantics
 
-- [ ] **Tabs**:
+- [x] **Tabs**:
   - Tab containers: `role="tablist"`
   - Tab buttons: `role="tab"`, `aria-selected="true/false"`, `aria-controls="panelId"`
   - Tab panels: `role="tabpanel"`, `id="panelId"`, `aria-labelledby="tabId"`
   - Apply to: inbox category tabs, callback status tabs, settings tabs, profile tabs
-- [ ] **Data tables**:
+- [x] **Data tables**:
   - `<table>` with `<thead>` and `<th>` for column headers
   - `scope="col"` on `<th>` elements
   - Sortable columns: `aria-sort="ascending/descending/none"`
   - Apply to: provider notifications table, callbacks table, campaigns table, customers table
-- [ ] **Notification badges** (unread count):
+- [x] **Notification badges** (unread count):
   - Not color-only — include text count
   - Badge: `aria-label="5 unread notifications"`
   - Apply to: sidebar badges, inbox unread indicators
-- [ ] **Status indicators**:
+- [x] **Status indicators**:
   - Not color-only — include text label or icon
   - Status badges: "Pending" text, not just yellow dot
   - Verification badge: "Verified" text, not just green checkmark
-- [ ] **Calendar/date pickers** (availability, DND):
+- [x] **Calendar/date pickers** (availability, DND):
   - Keyboard navigable: arrow keys to move between days/times
   - `aria-label` on each date cell
   - Selected state: `aria-selected="true"`
 
 ### Sub-task 7.8.9 — Integrate into E2E Suites
 
-- [ ] Add `checkA11y(page)` call to every existing Playwright test spec:
+- [x] Add `checkA11y(page)` call to every existing Playwright test spec:
   - Provider: `auth.spec.ts`, `notifications.spec.ts`, `callbacks.spec.ts`, `team.spec.ts`, `settings.spec.ts`
   - Web app: `auth.spec.ts`, `inbox.spec.ts`, `callbacks.spec.ts`, `settings.spec.ts`
   - Cross-app: Add after each navigation in flow tests
-- [ ] Example integration:
+- [x] Example integration:
   ```typescript
   import { checkA11y } from './helpers/a11y';
 
@@ -257,11 +257,11 @@ Audit every interactive page in both the Provider Portal and Web App for WCAG 2.
     // ... rest of functional test
   });
   ```
-- [ ] Verify: E2E test failures now include a11y violations in error output
+- [x] Verify: E2E test failures now include a11y violations in error output
 
 ### Sub-task 7.8.10 — Manual Screen Reader Testing
 
-- [ ] Test with VoiceOver (macOS) or NVDA (Windows) on key flows:
+- [x] Test with VoiceOver (macOS) or NVDA (Windows) on key flows:
   - **Provider Portal**:
     - Login → read form labels → submit
     - Dashboard → navigate stats cards → hear values read
@@ -272,25 +272,25 @@ Audit every interactive page in both the Provider Portal and Web App for WCAG 2.
     - Inbox → hear notification titles → expand → hear full content
     - Settings → toggle privacy switches → hear state change
     - Callbacks → approve → hear confirmation
-- [ ] Document issues found and fix
+- [x] Document issues found and fix
 
 ---
 
 ## Verification Checklist
 
-- [ ] `@axe-core/playwright` installed in both apps and cross-app test project
-- [ ] Automated axe-core audit passes on ALL pages in Provider Portal (zero violations)
-- [ ] Automated axe-core audit passes on ALL pages in Web App (zero violations)
-- [ ] Form inputs: every input has an associated label or aria-label
-- [ ] Buttons: every button has an accessible name (aria-label for icon-only)
-- [ ] Color contrast: all text/background combinations meet 4.5:1 AA ratio
-- [ ] `text-text-muted` contrast verified and fixed if needed
-- [ ] Keyboard navigation: all interactive elements reachable and operable via keyboard
-- [ ] Focus management: modals trap focus, return focus on close, Escape to dismiss
-- [ ] Toast notifications: `aria-live="polite"` on container, announced to screen readers
-- [ ] Skip navigation link: visible on focus, skips to main content
-- [ ] Tabs: proper ARIA tablist/tab/tabpanel roles and attributes
-- [ ] Data tables: proper `<th>` headers with scope, sortable columns have aria-sort
-- [ ] Status indicators: not color-only, include text labels
-- [ ] `checkA11y()` integrated into all existing Playwright E2E test files
-- [ ] Screen reader testing completed on key flows (no blocking issues)
+- [x] `@axe-core/playwright` installed in both apps and cross-app test project
+- [x] Automated axe-core audit passes on ALL pages in Provider Portal (zero violations)
+- [x] Automated axe-core audit passes on ALL pages in Web App (zero violations)
+- [x] Form inputs: every input has an associated label or aria-label
+- [x] Buttons: every button has an accessible name (aria-label for icon-only)
+- [x] Color contrast: all text/background combinations meet 4.5:1 AA ratio
+- [x] `text-text-muted` contrast verified and fixed if needed
+- [x] Keyboard navigation: all interactive elements reachable and operable via keyboard
+- [x] Focus management: modals trap focus, return focus on close, Escape to dismiss
+- [x] Toast notifications: `aria-live="polite"` on container, announced to screen readers
+- [x] Skip navigation link: visible on focus, skips to main content
+- [x] Tabs: proper ARIA tablist/tab/tabpanel roles and attributes
+- [x] Data tables: proper `<th>` headers with scope, sortable columns have aria-sort
+- [x] Status indicators: not color-only, include text labels
+- [x] `checkA11y()` integrated into all existing Playwright E2E test files
+- [x] Screen reader testing completed on key flows (no blocking issues)

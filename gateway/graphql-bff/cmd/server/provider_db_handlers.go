@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -187,7 +189,7 @@ func dbGetCallback(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.
 	writeJSON(w, http.StatusOK, c)
 }
 
-func dbUpdateCallbackStatus(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, spID, id, action string) {
+func dbUpdateCallbackStatus(w http.ResponseWriter, r *http.Request, db *sql.DB, rdb *redis.Client, log *zap.Logger, spID, id, action string) {
 	var newStatus string
 	switch action {
 	case "approve":
@@ -198,21 +200,49 @@ func dbUpdateCallbackStatus(w http.ResponseWriter, r *http.Request, db *sql.DB, 
 		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "unknown action"})
 		return
 	}
-	res, err := db.ExecContext(r.Context(),
+
+	// Use RETURNING to get the consumer's user_id for event publishing
+	var userID string
+	err := db.QueryRowContext(r.Context(),
 		`UPDATE callback_requests SET status = $1, responded_at = NOW()
-		 WHERE id = $2 AND service_provider_id = $3`,
+		 WHERE id = $2 AND service_provider_id = $3
+		 RETURNING user_id`,
 		newStatus, id, spID,
-	)
+	).Scan(&userID)
+	if err == sql.ErrNoRows {
+		writeJSON(w, http.StatusNotFound, errorResponse{Error: "callback not found"})
+		return
+	}
 	if err != nil {
 		log.Error("update callback status", zap.Error(err))
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
 		return
 	}
-	n, _ := res.RowsAffected()
-	if n == 0 {
-		writeJSON(w, http.StatusNotFound, errorResponse{Error: "callback not found"})
-		return
+
+	// Publish domain event so SSE subscribers dispatch real-time notifications
+	eventType := "callback.approved"
+	if action == "reject" {
+		eventType = "callback.rejected"
 	}
+	envelope, _ := json.Marshal(map[string]interface{}{
+		"id":                  uuid.New().String(),
+		"type":                eventType,
+		"service_provider_id": spID,
+		"user_id":             userID,
+		"entity_id":           id,
+		"payload": map[string]interface{}{
+			"callback_request_id": id,
+			"user_id":             userID,
+			"service_provider_id": spID,
+			"status":              newStatus,
+		},
+		"occurred_at": time.Now().UTC().Format(time.RFC3339),
+	})
+	channel := "trustinbox:events:" + eventType
+	if err := rdb.Publish(r.Context(), channel, envelope).Err(); err != nil {
+		log.Error("publish callback event", zap.Error(err), zap.String("event_type", eventType))
+	}
+
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 

@@ -10,6 +10,7 @@ export const MY_PRIVACY_PREFERENCES = gql`
       allowChat
       allowDocumentShares
       requireCallApproval
+      notificationSoundEnabled
     }
   }
 `;
@@ -24,6 +25,7 @@ export const UPDATE_PRIVACY = gql`
       allowChat
       allowDocumentShares
       requireCallApproval
+      notificationSoundEnabled
     }
   }
 `;

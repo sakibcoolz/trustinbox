@@ -62,53 +62,53 @@ Build a global search command palette (Cmd+K / Ctrl+K) that searches across noti
 ## Requirements
 
 ### 4.3.1 — Create Search Modal Component
-- [ ] Create `apps/web/src/components/ui/search-modal.tsx`:
-  - [ ] Full-screen overlay with backdrop blur (`bg-black/50 backdrop-blur-sm`)
-  - [ ] Centered modal card (max-w-lg, 15vh from top)
-  - [ ] Search input with auto-focus on open
-  - [ ] ESC key to close, click backdrop to close
-  - [ ] Keyboard shortcut hint badge (`⌘K` / `Ctrl+K`)
-  - [ ] Loading spinner during search
-  - [ ] Grouped results sections: Notifications, Conversations, Service Providers, Documents
-  - [ ] Empty state: "No results found for [query]"
-  - [ ] Initial state: "Type to search across all resources"
-  - [ ] Keyboard navigation: Arrow Up/Down to navigate, Enter to select
+- [x] Create `apps/web/src/components/ui/search-modal.tsx`:
+  - [x] Full-screen overlay with backdrop blur (`bg-black/50 backdrop-blur-sm`)
+  - [x] Centered modal card (max-w-lg, 15vh from top)
+  - [x] Search input with auto-focus on open
+  - [x] ESC key to close, click backdrop to close
+  - [x] Keyboard shortcut hint badge (`⌘K` / `Ctrl+K`)
+  - [x] Loading spinner during search
+  - [x] Grouped results sections: Notifications, Conversations, Service Providers, Documents
+  - [x] Empty state: "No results found for [query]"
+  - [x] Initial state: "Type to search across all resources"
+  - [x] Keyboard navigation: Arrow Up/Down to navigate, Enter to select
 
 ### 4.3.2 — Create Global Search Hook
-- [ ] Create `apps/web/src/hooks/useGlobalSearch.ts`:
-  - [ ] Accept `query: string` parameter
-  - [ ] Debounce search by 300ms
-  - [ ] Search across multiple sources in parallel:
+- [x] Create `apps/web/src/hooks/useGlobalSearch.ts`:
+  - [x] Accept `query: string` parameter
+  - [x] Debounce search by 300ms
+  - [x] Search across multiple sources in parallel:
     - Notifications: client-side filter from SSE buffer by title/body match
     - Conversations: client-side filter from chat context by participant name
     - Service Providers: GraphQL `serviceProviders(search: query)` query
     - Documents: client-side filter from documents by name (if loaded)
-  - [ ] Return `{ results: SearchResults, loading: boolean, error: Error | null }`
-  - [ ] Cancel in-flight requests when query changes
+  - [x] Return `{ results: SearchResults, loading: boolean, error: Error | null }`
+  - [x] Cancel in-flight requests when query changes
 
 ### 4.3.3 — Wire Keyboard Shortcut
-- [ ] In `header.tsx` or `search-modal.tsx`:
-  - [ ] Listen for `Cmd+K` (Mac) / `Ctrl+K` (Windows/Linux) keydown
-  - [ ] `e.preventDefault()` to prevent browser default behavior
-  - [ ] Toggle search modal open/closed
-  - [ ] Register listener on mount, cleanup on unmount
+- [x] In `header.tsx` or `search-modal.tsx`:
+  - [x] Listen for `Cmd+K` (Mac) / `Ctrl+K` (Windows/Linux) keydown
+  - [x] `e.preventDefault()` to prevent browser default behavior
+  - [x] Toggle search modal open/closed
+  - [x] Register listener on mount, cleanup on unmount
 
 ### 4.3.4 — Replace Header Search Input
-- [ ] Update `apps/web/src/components/layout/header.tsx`:
-  - [ ] Replace the static `<input>` with a clickable trigger button
-  - [ ] Button shows search icon + "Search..." placeholder + `⌘K` badge
-  - [ ] Click → opens search modal
-  - [ ] Remove `search` local state variable
-  - [ ] Also accessible from mobile via a search icon in the header
+- [x] Update `apps/web/src/components/layout/header.tsx`:
+  - [x] Replace the static `<input>` with a clickable trigger button
+  - [x] Button shows search icon + "Search..." placeholder + `⌘K` badge
+  - [x] Click → opens search modal
+  - [x] Remove `search` local state variable
+  - [x] Also accessible from mobile via a search icon in the header
 
 ### 4.3.5 — Navigate on Result Selection
-- [ ] Each search result item → navigable:
-  - [ ] Notification → `/inbox?id=<notification-id>`
-  - [ ] Conversation → `/conversations` (select conversation)
-  - [ ] Service Provider → `/service-providers` or `/service-providers/<sp-id>`
-  - [ ] Document → `/documents?id=<doc-id>`
-- [ ] Close modal after navigation
-- [ ] Use `router.push()` from `next/navigation`
+- [x] Each search result item → navigable:
+  - [x] Notification → `/inbox?id=<notification-id>`
+  - [x] Conversation → `/conversations` (select conversation)
+  - [x] Service Provider → `/service-providers` or `/service-providers/<sp-id>`
+  - [x] Document → `/documents?id=<doc-id>`
+- [x] Close modal after navigation
+- [x] Use `router.push()` from `next/navigation`
 
 ---
 
@@ -413,17 +413,17 @@ export function useGlobalSearch(query: string) {
 
 ## Verification
 
-- [ ] `Cmd+K` (Mac) / `Ctrl+K` (Windows/Linux) opens the search modal
-- [ ] Header search area shows trigger button with `⌘K` hint
-- [ ] Clicking header search trigger opens the modal
-- [ ] Search input auto-focuses on modal open
-- [ ] ESC closes the modal, backdrop click closes the modal
-- [ ] Typing query → 300ms debounce → results appear grouped by type
-- [ ] Results sections: Notifications, Conversations, Service Providers (Documents when available)
-- [ ] Arrow Up/Down navigates results, Enter selects and navigates
-- [ ] Empty query shows "Type to search..." message
-- [ ] No results shows "No results found for [query]" message
-- [ ] Loading spinner shows during search
-- [ ] Selecting a result navigates to correct page and closes modal
-- [ ] Works on mobile via search icon (no keyboard shortcut needed)
-- [ ] No body scroll while modal is open
+- [x] `Cmd+K` (Mac) / `Ctrl+K` (Windows/Linux) opens the search modal
+- [x] Header search area shows trigger button with `⌘K` hint
+- [x] Clicking header search trigger opens the modal
+- [x] Search input auto-focuses on modal open
+- [x] ESC closes the modal, backdrop click closes the modal
+- [x] Typing query → 300ms debounce → results appear grouped by type
+- [x] Results sections: Notifications, Conversations, Service Providers (Documents when available)
+- [x] Arrow Up/Down navigates results, Enter selects and navigates
+- [x] Empty query shows "Type to search..." message
+- [x] No results shows "No results found for [query]" message
+- [x] Loading spinner shows during search
+- [x] Selecting a result navigates to correct page and closes modal
+- [x] Works on mobile via search icon (no keyboard shortcut needed)
+- [x] No body scroll while modal is open

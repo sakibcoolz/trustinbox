@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Search, Check, X, UserMinus } from 'lucide-react';
+import { Search, Check, X, UserMinus, Loader2 } from 'lucide-react';
 import { Drawer } from '@/components/ui/Drawer';
-import { useTeamMembers, useAssignConversation } from '@/lib/graphql/conversations';
+import { useTeamMembers, useAssignConversation, useTransferConversation } from '@/lib/graphql/conversations';
 import type { TeamMember } from '@/lib/graphql/conversations';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
@@ -15,6 +15,7 @@ interface AgentAssignDrawerProps {
   onClose: () => void;
   conversationId: string;
   currentAssigneeId?: string;
+  onAssigned?: () => void;
 }
 
 // ─── Workload Helpers ───────────────────────────────────
@@ -33,19 +34,24 @@ function getWorkloadLabel(count: number): string {
 
 // ─── Component ──────────────────────────────────────────
 
-export function AgentAssignDrawer({ open, onClose, conversationId, currentAssigneeId }: AgentAssignDrawerProps) {
+export function AgentAssignDrawer({ open, onClose, conversationId, currentAssigneeId, onAssigned }: AgentAssignDrawerProps) {
   const { user } = useAuth();
   const { success, error: toastError } = useToast();
   const [search, setSearch] = useState('');
   const [assigning, setAssigning] = useState<string | null>(null);
+  const [transferNote, setTransferNote] = useState('');
+
+  const isTransferMode = !!currentAssigneeId;
 
   const { data: teamData, loading } = useTeamMembers(
     user?.activeServiceProvider?.id ?? '',
     'AGENT'
   );
   const { assign: assignConversation } = useAssignConversation();
+  const { transfer: transferConversation } = useTransferConversation();
 
   const members = teamData?.teamMembers ?? [];
+  const currentAgent = members.find((m) => m.id === currentAssigneeId);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return members;
@@ -60,11 +66,18 @@ export function AgentAssignDrawer({ open, onClose, conversationId, currentAssign
   async function handleAssign(agentId: string, name: string) {
     setAssigning(agentId);
     try {
-      await assignConversation(conversationId, agentId);
-      success(`Conversation assigned to ${name}`);
+      if (isTransferMode) {
+        await transferConversation(conversationId, agentId, transferNote || undefined);
+        success(`Conversation transferred to ${name}`);
+      } else {
+        await assignConversation(conversationId, agentId);
+        success(`Conversation assigned to ${name}`);
+      }
+      setTransferNote('');
+      onAssigned?.();
       onClose();
     } catch {
-      toastError('Failed to assign conversation');
+      toastError(isTransferMode ? 'Failed to transfer conversation' : 'Failed to assign conversation');
     }
     setAssigning(null);
   }
@@ -74,6 +87,7 @@ export function AgentAssignDrawer({ open, onClose, conversationId, currentAssign
     try {
       await assignConversation(conversationId, '');
       success('Conversation unassigned');
+      onAssigned?.();
       onClose();
     } catch {
       toastError('Failed to unassign conversation');
@@ -82,8 +96,30 @@ export function AgentAssignDrawer({ open, onClose, conversationId, currentAssign
   }
 
   return (
-    <Drawer open={open} onClose={onClose} title="Assign to Agent" size="sm">
+    <Drawer open={open} onClose={onClose} title={isTransferMode ? 'Transfer Conversation' : 'Assign to Agent'} size="sm">
       <div className="flex flex-col h-full">
+        {/* Current assignee info (transfer mode) */}
+        {isTransferMode && currentAgent && (
+          <div className="px-4 pb-2 flex items-center gap-2 text-xs text-text-muted">
+            <span>Currently assigned to</span>
+            <span className="font-medium text-text-secondary">{currentAgent.name}</span>
+          </div>
+        )}
+
+        {/* Transfer note (transfer mode) */}
+        {isTransferMode && (
+          <div className="px-4 pb-3">
+            <label className="block text-xs text-text-muted mb-1.5">Transfer Note (optional)</label>
+            <textarea
+              value={transferNote}
+              onChange={(e) => setTransferNote(e.target.value)}
+              rows={2}
+              className="w-full px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary resize-none placeholder:text-text-muted focus:outline-none focus:border-border-active"
+              placeholder="Reason for transfer…"
+            />
+          </div>
+        )}
+
         {/* Search */}
         <div className="px-4 pb-3">
           <div className="relative">
@@ -131,16 +167,20 @@ export function AgentAssignDrawer({ open, onClose, conversationId, currentAssign
           ) : filtered.length === 0 ? (
             <p className="text-sm text-text-muted py-6 text-center">No agents found</p>
           ) : (
-            filtered.map((member) => (
-              <AgentRow
-                key={member.id}
-                member={member}
-                isCurrent={member.id === currentAssigneeId}
-                loading={assigning === member.id}
-                disabled={assigning !== null}
-                onSelect={() => handleAssign(member.id, member.name)}
-              />
-            ))
+            filtered.map((member) => {
+              const isCurrent = member.id === currentAssigneeId;
+              return (
+                <AgentRow
+                  key={member.id}
+                  member={member}
+                  isCurrent={isCurrent}
+                  isFromAgent={isTransferMode && isCurrent}
+                  loading={assigning === member.id}
+                  disabled={assigning !== null}
+                  onSelect={() => handleAssign(member.id, member.name)}
+                />
+              );
+            })
           )}
         </div>
       </div>
@@ -153,12 +193,14 @@ export function AgentAssignDrawer({ open, onClose, conversationId, currentAssign
 function AgentRow({
   member,
   isCurrent,
+  isFromAgent,
   loading,
   disabled,
   onSelect,
 }: {
   member: TeamMember;
   isCurrent: boolean;
+  isFromAgent?: boolean;
   loading: boolean;
   disabled: boolean;
   onSelect: () => void;
@@ -175,9 +217,11 @@ function AgentRow({
       onClick={onSelect}
       disabled={disabled || isCurrent}
       className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors text-left mb-0.5 ${
-        isCurrent
-          ? 'bg-accent-blue/5 border border-accent-blue/20'
-          : 'hover:bg-bg-hover'
+        isFromAgent
+          ? 'bg-status-warning/5 border border-status-warning/20 opacity-60'
+          : isCurrent
+            ? 'bg-accent-blue/5 border border-accent-blue/20'
+            : 'hover:bg-bg-hover'
       }`}
     >
       {/* Avatar */}
@@ -194,6 +238,8 @@ function AgentRow({
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-text-primary truncate">{member.name}</span>
           {isCurrent && <Check size={14} className="text-accent-blue shrink-0" />}
+          {isFromAgent && <span className="text-[10px] text-status-warning font-medium">(current)</span>}
+          {loading && <Loader2 size={14} className="text-accent-blue shrink-0 animate-spin" />}
         </div>
         <span className="text-xs text-text-muted">{member.role}</span>
       </div>

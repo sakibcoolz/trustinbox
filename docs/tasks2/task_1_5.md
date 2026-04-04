@@ -20,10 +20,10 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
 - [x] Task 1.2 complete — Customer mutation types added to schema
 - [x] Task 1.3 complete — Customer auth middleware configured
 - [x] Task 1.4 complete — Customer resolvers implemented
-- [ ] All 13 backend services running (use `./scripts/dev.sh` or `make up-infra` + individual services)
-- [ ] Gateway running with `make dev-gateway` at `:4000`
-- [ ] Database migrated with `make migrate`
-- [ ] Seed data available with `make seed` (at least 1 customer user, 1 SP, sample notifications, callbacks, documents)
+- [x] All 13 backend services running (use `./scripts/dev.sh` or `make up-infra` + individual services)
+- [x] Gateway running with `make dev-gateway` at `:4000`
+- [x] Database migrated with `make migrate`
+- [x] Seed data available with `make seed` (at least 1 customer user, 1 SP, sample notifications, callbacks, documents)
 
 ---
 
@@ -31,7 +31,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
 
 ### 1. Generate a Customer JWT for Testing
 
-- [ ] Create a test customer JWT using the auth service:
+- [x] Create a test customer JWT using the auth service:
   ```bash
   # Option A: Use auth service login endpoint
   curl -X POST http://localhost:4000/api/auth/login \
@@ -44,7 +44,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   # Sign with JWT_SECRET from .env
   ```
 
-- [ ] Store token for subsequent tests:
+- [x] Store token for subsequent tests:
   ```bash
   export CUSTOMER_TOKEN="<your-jwt-token>"
   ```
@@ -52,7 +52,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
 ### 2. Test All Customer Queries
 
 #### 2a. `myProfile`
-- [ ] Execute query and verify response shape:
+- [x] Execute query and verify response shape:
   ```graphql
   query {
     myProfile {
@@ -77,7 +77,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Verify: All fields are populated (non-null where required by schema)
 
 #### 2b. `myNotifications`
-- [ ] Test with default pagination:
+- [x] Test with default pagination:
   ```graphql
   query {
     myNotifications(limit: 10, offset: 0) {
@@ -100,7 +100,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Verify: `nodes` array length <= `limit`
   - Verify: Each node has required fields
 
-- [ ] Test with category filter:
+- [x] Test with category filter:
   ```graphql
   query {
     myNotifications(limit: 10, offset: 0, category: SERVICE_PROVIDER) {
@@ -111,7 +111,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   ```
   - Verify: All returned notifications have `category: "SERVICE_PROVIDER"`
 
-- [ ] Test with status filter:
+- [x] Test with status filter:
   ```graphql
   query {
     myNotifications(limit: 10, offset: 0, status: "UNREAD") {
@@ -122,7 +122,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   ```
 
 #### 2c. `myCallbackRequests`
-- [ ] Test with default pagination:
+- [x] Test with default pagination:
   ```graphql
   query {
     myCallbackRequests(limit: 10, offset: 0) {
@@ -141,7 +141,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   ```
   - Expected: Returns callback requests directed at the user
 
-- [ ] Test with status filter:
+- [x] Test with status filter:
   ```graphql
   query {
     myCallbackRequests(limit: 10, offset: 0, status: PENDING) {
@@ -152,7 +152,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   ```
 
 #### 2d. `myConversations`
-- [ ] Test:
+- [x] Test:
   ```graphql
   query {
     myConversations(limit: 10, offset: 0) {
@@ -169,7 +169,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   ```
 
 #### 2e. `myDocuments`
-- [ ] Test:
+- [x] Test:
   ```graphql
   query {
     myDocuments(limit: 10, offset: 0) {
@@ -187,7 +187,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   }
   ```
 
-- [ ] Test with SP filter:
+- [x] Test with SP filter:
   ```graphql
   query {
     myDocuments(limit: 10, offset: 0, serviceProviderId: "<sp-uuid>") {
@@ -198,7 +198,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   ```
 
 #### 2f. `myPrivacyPreferences`
-- [ ] Test:
+- [x] Test:
   ```graphql
   query {
     myPrivacyPreferences {
@@ -215,7 +215,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Expected: Returns user's privacy settings (all boolean fields)
 
 #### 2g. `myDNDRules`
-- [ ] Test:
+- [x] Test:
   ```graphql
   query {
     myDNDRules {
@@ -231,7 +231,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Expected: Returns array (may be empty if no rules configured)
 
 #### 2h. `myAvailabilitySlots`
-- [ ] Test:
+- [x] Test:
   ```graphql
   query {
     myAvailabilitySlots {
@@ -246,7 +246,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   ```
 
 #### 2i. `myBlockedProviders`
-- [ ] Test:
+- [x] Test:
   ```graphql
   query {
     myBlockedProviders(limit: 10, offset: 0) {
@@ -261,7 +261,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   ```
 
 #### 2j. `myDashboardSummary`
-- [ ] Test:
+- [x] Test:
   ```graphql
   query {
     myDashboardSummary {
@@ -278,7 +278,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Verify: Counts are consistent with individual query results (e.g., `unreadNotifications` matches `myNotifications(status: "UNREAD").totalCount`)
 
 #### 2k. `serviceProviderDirectory`
-- [ ] Test:
+- [x] Test:
   ```graphql
   query {
     serviceProviderDirectory(limit: 10, offset: 0) {
@@ -295,7 +295,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   ```
   - Verify: Only verified SPs returned (if filtering is implemented)
 
-- [ ] Test with search:
+- [x] Test with search:
   ```graphql
   query {
     serviceProviderDirectory(limit: 10, offset: 0, search: "bank") {
@@ -305,7 +305,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   }
   ```
 
-- [ ] Test with industry filter:
+- [x] Test with industry filter:
   ```graphql
   query {
     serviceProviderDirectory(limit: 10, offset: 0, industry: "banking") {
@@ -318,7 +318,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
 ### 3. Test All Customer Mutations
 
 #### 3a. `updateMyProfile`
-- [ ] Test:
+- [x] Test:
   ```graphql
   mutation {
     updateMyProfile(input: { firstName: "Test", lastName: "User" }) {
@@ -331,7 +331,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Verify: `myProfile` query returns updated data
 
 #### 3b. `updateMyAvatar`
-- [ ] Test:
+- [x] Test:
   ```graphql
   mutation {
     updateMyAvatar(url: "https://example.com/avatar.jpg") {
@@ -343,7 +343,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Verify: `avatarUrl` is updated
 
 #### 3c. `updatePrivacyPreference`
-- [ ] Test:
+- [x] Test:
   ```graphql
   mutation {
     updatePrivacyPreference(input: { allowAdvertisements: false }) {
@@ -356,7 +356,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Verify: Other fields unchanged
 
 #### 3d. `createDNDRule` and `deleteDNDRule`
-- [ ] Create:
+- [x] Create:
   ```graphql
   mutation {
     createDNDRule(input: {
@@ -378,7 +378,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Verify: Returns created rule with `id`
   - Verify: `myDNDRules` includes the new rule
 
-- [ ] Delete:
+- [x] Delete:
   ```graphql
   mutation {
     deleteDNDRule(id: "<rule-id-from-above>")
@@ -388,7 +388,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Verify: `myDNDRules` no longer includes the rule
 
 #### 3e. `createAvailabilitySlot` and `deleteAvailabilitySlot`
-- [ ] Create:
+- [x] Create:
   ```graphql
   mutation {
     createAvailabilitySlot(input: {
@@ -406,7 +406,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   }
   ```
 
-- [ ] Delete:
+- [x] Delete:
   ```graphql
   mutation {
     deleteAvailabilitySlot(id: "<slot-id-from-above>")
@@ -414,7 +414,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   ```
 
 #### 3f. `blockServiceProvider` and `unblockServiceProvider`
-- [ ] Block:
+- [x] Block:
   ```graphql
   mutation {
     blockServiceProvider(serviceProviderId: "<sp-uuid>", reason: "Too many ads")
@@ -422,7 +422,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   ```
   - Verify: `myBlockedProviders` includes the SP
 
-- [ ] Unblock:
+- [x] Unblock:
   ```graphql
   mutation {
     unblockServiceProvider(serviceProviderId: "<sp-uuid>")
@@ -431,7 +431,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Verify: `myBlockedProviders` no longer includes the SP
 
 #### 3g. `markNotificationAsRead` and `archiveNotification`
-- [ ] Mark read:
+- [x] Mark read:
   ```graphql
   mutation {
     markNotificationAsRead(id: "<notification-uuid>")
@@ -440,7 +440,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Verify: Returns `true`
   - Verify: Notification status changes to read
 
-- [ ] Archive:
+- [x] Archive:
   ```graphql
   mutation {
     archiveNotification(id: "<notification-uuid>")
@@ -448,7 +448,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   ```
 
 #### 3h. `markAllNotificationsRead`
-- [ ] Test:
+- [x] Test:
   ```graphql
   mutation {
     markAllNotificationsRead
@@ -457,7 +457,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Verify: `myNotifications(status: "UNREAD").totalCount` is 0
 
 #### 3i. `approveCallbackRequest`
-- [ ] Test (requires a pending callback):
+- [x] Test (requires a pending callback):
   ```graphql
   mutation {
     approveCallbackRequest(input: {
@@ -475,7 +475,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Verify: Status changes to `APPROVED`
 
 #### 3j. `rejectCallbackRequest`
-- [ ] Test:
+- [x] Test:
   ```graphql
   mutation {
     rejectCallbackRequest(input: {
@@ -492,7 +492,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
 ### 4. Test Authorization / Security
 
 #### 4a. No Token
-- [ ] Send GraphQL request without `Authorization` header:
+- [x] Send GraphQL request without `Authorization` header:
   ```bash
   curl -X POST http://localhost:4000/graphql \
     -H "Content-Type: application/json" \
@@ -501,35 +501,35 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Expected: `401 Unauthorized` or GraphQL error with auth message
 
 #### 4b. Expired Token
-- [ ] Send GraphQL request with expired JWT:
+- [x] Send GraphQL request with expired JWT:
   - Expected: `401 Unauthorized`
 
 #### 4c. Provider Token on Customer Queries
-- [ ] Generate a provider JWT (`role: "SP_ADMIN"`, has `service_provider_id`)
-- [ ] Call a `my*` query with provider token:
+- [x] Generate a provider JWT (`role: "SP_ADMIN"`, has `service_provider_id`)
+- [x] Call a `my*` query with provider token:
   - Expected: Either works (if `my*` queries accept any authenticated role) or returns `403` (if customer-only)
   - Document the decided behavior
 
 #### 4d. Customer Token on Provider Queries
-- [ ] Call a provider-only query (e.g., `bots`, `campaigns`) with customer token:
+- [x] Call a provider-only query (e.g., `bots`, `campaigns`) with customer token:
   - Expected: `403 Forbidden` or GraphQL error with permission message
 
 ### 5. Test Edge Cases
 
-- [ ] Empty results: Query when user has no notifications, callbacks, etc.
+- [x] Empty results: Query when user has no notifications, callbacks, etc.
   - Expected: `{ nodes: [], totalCount: 0 }`
-- [ ] Large offset: Request `offset: 99999`
+- [x] Large offset: Request `offset: 99999`
   - Expected: `{ nodes: [], totalCount: <actual> }`
-- [ ] Negative limit: Request `limit: -1`
+- [x] Negative limit: Request `limit: -1`
   - Expected: Defaults to 0 or returns validation error
-- [ ] Zero limit: Request `limit: 0`
+- [x] Zero limit: Request `limit: 0`
   - Expected: Returns `totalCount` only, empty `nodes`
-- [ ] Invalid UUID in mutation: `markNotificationAsRead(id: "not-a-uuid")`
+- [x] Invalid UUID in mutation: `markNotificationAsRead(id: "not-a-uuid")`
   - Expected: Error message (not a 500 crash)
 
 ### 6. Run Automated Tests
 
-- [ ] Run gateway unit tests:
+- [x] Run gateway unit tests:
   ```bash
   make test-service SVC=graphql-bff
   # or
@@ -538,7 +538,7 @@ Verify that all customer-facing GraphQL queries and mutations work end-to-end th
   - Expected: All tests pass
   - Note: If no resolver tests exist yet, this validates compilation only
 
-- [ ] Run full test suite:
+- [x] Run full test suite:
   ```bash
   make test
   ```

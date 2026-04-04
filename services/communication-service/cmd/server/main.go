@@ -55,7 +55,7 @@ func main() {
 	rdb := redis.NewClient(redisOpts)
 	defer rdb.Close()
 
-	publisher := events.NewRedisStreamPublisher(rdb, log, "trustinbox:events")
+	publisher := events.NewDualPublisher(rdb, log, "trustinbox:events")
 	defer publisher.Close()
 
 	// PostgreSQL repository implementations
@@ -63,9 +63,10 @@ func main() {
 	convRepo := postgres.NewConversationRepository(db)
 	msgRepo := postgres.NewMessageRepository(db)
 	spamRepo := postgres.NewSpamReportRepository(db)
+	docShareRepo := postgres.NewDocumentShareRepository(db)
 
 	// PolicyChecker left nil for now — will be wired when cross-service integration is ready
-	commUC := usecase.NewCommunicationUseCase(callbackRepo, convRepo, msgRepo, spamRepo, nil, publisher, log)
+	commUC := usecase.NewCommunicationUseCase(callbackRepo, convRepo, msgRepo, spamRepo, docShareRepo, nil, publisher, log)
 	handler := grpcdelivery.NewCommunicationHandler(commUC)
 
 	srv := grpc.NewServer()

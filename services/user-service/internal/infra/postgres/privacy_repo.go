@@ -22,12 +22,12 @@ func (r *privacyRepo) Get(ctx context.Context, userID string) (*entity.PrivacyPr
 	err := r.db.QueryRowContext(ctx,
 		`SELECT user_id, allow_personal_notifications, allow_sp_notifications, allow_advertisements,
 		        allow_callback_requests, allow_chat, allow_document_shares, require_call_approval,
-		        created_at, updated_at
+		        notification_sound_enabled, created_at, updated_at
 		 FROM privacy_preferences WHERE user_id = $1`, userID,
 	).Scan(
 		&p.UserID, &p.AllowPersonalNotifications, &p.AllowOrgNotifications, &p.AllowAdvertisements,
 		&p.AllowCallbackRequests, &p.AllowChat, &p.AllowDocumentShares, &p.RequireCallApproval,
-		&p.CreatedAt, &p.UpdatedAt,
+		&p.NotificationSoundEnabled, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get privacy preferences: %w", err)
@@ -39,8 +39,9 @@ func (r *privacyRepo) Upsert(ctx context.Context, pref *entity.PrivacyPreference
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO privacy_preferences
 		 (user_id, allow_personal_notifications, allow_sp_notifications, allow_advertisements,
-		  allow_callback_requests, allow_chat, allow_document_shares, require_call_approval, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+		  allow_callback_requests, allow_chat, allow_document_shares, require_call_approval,
+		  notification_sound_enabled, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
 		 ON CONFLICT (user_id) DO UPDATE SET
 		   allow_personal_notifications = EXCLUDED.allow_personal_notifications,
 		   allow_sp_notifications = EXCLUDED.allow_sp_notifications,
@@ -49,9 +50,11 @@ func (r *privacyRepo) Upsert(ctx context.Context, pref *entity.PrivacyPreference
 		   allow_chat = EXCLUDED.allow_chat,
 		   allow_document_shares = EXCLUDED.allow_document_shares,
 		   require_call_approval = EXCLUDED.require_call_approval,
+		   notification_sound_enabled = EXCLUDED.notification_sound_enabled,
 		   updated_at = NOW()`,
 		pref.UserID, pref.AllowPersonalNotifications, pref.AllowOrgNotifications, pref.AllowAdvertisements,
 		pref.AllowCallbackRequests, pref.AllowChat, pref.AllowDocumentShares, pref.RequireCallApproval,
+		pref.NotificationSoundEnabled,
 	)
 	if err != nil {
 		return fmt.Errorf("upsert privacy preferences: %w", err)

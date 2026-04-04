@@ -148,8 +148,8 @@ func (r *mutationResolver) UpdateMyProfile(ctx context.Context, input model.Upda
 - [x] New `UpdateProfileInput` type is defined in schema
 - [x] `blockServiceProvider` mutation updated with optional `reason` parameter
 - [x] No duplicate mutation names
-- [ ] All mutations return appropriate types (not void — GraphQL doesn't have void)
-- [ ] Existing mutations remain untouched (avoid breaking provider portal)
+- [x] All mutations return appropriate types (not void — GraphQL doesn't have void)
+- [x] Existing mutations remain untouched (avoid breaking provider portal)
 
 ---
 

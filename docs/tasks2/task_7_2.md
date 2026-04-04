@@ -66,7 +66,7 @@ describe('ComponentName', () => {
 
 ### Sub-task 7.2.1 — Inbox Page Tests
 
-- [ ] Create `apps/web/src/app/(dashboard)/inbox/__tests__/page.test.tsx`:
+- [x] Create `apps/web/src/app/(dashboard)/inbox/__tests__/page.test.tsx`:
   - **Renders notification list**:
     - Mock `myNotifications` query returning 5 notifications
     - Wrap in `MockedProvider` + auth context
@@ -93,7 +93,7 @@ describe('ComponentName', () => {
 
 ### Sub-task 7.2.2 — Callbacks Page Tests
 
-- [ ] Create `apps/web/src/app/(dashboard)/callbacks/__tests__/page.test.tsx`:
+- [x] Create `apps/web/src/app/(dashboard)/callbacks/__tests__/page.test.tsx`:
   - **Renders callback list**:
     - Mock `myCallbackRequests` query returning mixed statuses
     - Assert each callback renders: SP name, reason, status badge, requested time
@@ -117,7 +117,7 @@ describe('ComponentName', () => {
 
 ### Sub-task 7.2.3 — Privacy Settings Page Tests
 
-- [ ] Create `apps/web/src/app/(dashboard)/settings/privacy/__tests__/page.test.tsx`:
+- [x] Create `apps/web/src/app/(dashboard)/settings/privacy/__tests__/page.test.tsx`:
   - **Renders current preferences**:
     - Mock `myPrivacyPreferences` query returning all 7 toggle states
     - Verify each toggle renders in correct on/off position:
@@ -143,7 +143,7 @@ describe('ComponentName', () => {
 
 ### Sub-task 7.2.4 — DND Settings Page Tests
 
-- [ ] Create `apps/web/src/app/(dashboard)/settings/dnd/__tests__/page.test.tsx`:
+- [x] Create `apps/web/src/app/(dashboard)/settings/dnd/__tests__/page.test.tsx`:
   - **Renders existing rules**:
     - Mock `myDNDRules` query returning 2 rules
     - Verify each rule card: scope type, time range, active days, status toggle
@@ -166,7 +166,7 @@ describe('ComponentName', () => {
 
 ### Sub-task 7.2.5 — Block Confirm Dialog Tests
 
-- [ ] Create `apps/web/src/components/ui/__tests__/block-confirm-dialog.test.tsx`:
+- [x] Create `apps/web/src/components/ui/__tests__/block-confirm-dialog.test.tsx`:
   - **Renders dialog**:
     - Pass SP name → verify warning text includes name
     - Verify consequence text: "You will no longer receive any communications from this provider"
@@ -184,7 +184,7 @@ describe('ComponentName', () => {
 
 ### Sub-task 7.2.6 — Documents Page Tests
 
-- [ ] Create `apps/web/src/app/(dashboard)/documents/__tests__/page.test.tsx`:
+- [x] Create `apps/web/src/app/(dashboard)/documents/__tests__/page.test.tsx`:
   - **Renders document list**:
     - Mock `myDocuments` query returning documents
     - Assert each row: filename, type icon, size, SP name, shared date
@@ -205,7 +205,7 @@ describe('ComponentName', () => {
 
 ### Sub-task 7.2.7 — Dashboard Page Tests
 
-- [ ] Create `apps/web/src/app/(dashboard)/__tests__/page.test.tsx`:
+- [x] Create `apps/web/src/app/(dashboard)/__tests__/page.test.tsx`:
   - **Renders stats cards**:
     - Mock dashboard summary query
     - Verify 4 cards: unread notifications, active conversations, unread chats, friends count
@@ -226,7 +226,7 @@ describe('ComponentName', () => {
 
 ### Sub-task 7.2.8 — Auth Login Page Tests
 
-- [ ] Create `apps/web/src/app/auth/login/__tests__/page.test.tsx`:
+- [x] Create `apps/web/src/app/auth/login/__tests__/page.test.tsx`:
   - **Renders login form**:
     - Verify email input, password input, submit button present
     - Verify "Forgot password" link
@@ -246,13 +246,13 @@ describe('ComponentName', () => {
 
 ### Sub-task 7.2.9 — Service Providers and Profile Page Tests
 
-- [ ] Create `apps/web/src/app/(dashboard)/service-providers/__tests__/page.test.tsx`:
+- [x] Create `apps/web/src/app/(dashboard)/service-providers/__tests__/page.test.tsx`:
   - Renders SP directory with names, verification badges, trust scores
   - Search: type in search → debounced query
   - Block: click block → confirmation dialog → mutation
   - Pagination: navigate pages
 
-- [ ] Create `apps/web/src/app/(dashboard)/profile/__tests__/page.test.tsx`:
+- [x] Create `apps/web/src/app/(dashboard)/profile/__tests__/page.test.tsx`:
   - Renders profile form with current data
   - Edit fields → save → verify mutation
   - Avatar upload: trigger file input → verify useAvatarUpload called
@@ -260,27 +260,27 @@ describe('ComponentName', () => {
 
 ### Sub-task 7.2.10 — Run Full Component Test Suite
 
-- [ ] Run: `cd apps/web && npm test`
+- [x] Run: `cd apps/web && npm test`
   - All component tests pass
   - No console warnings about missing providers or unhandled mutations
-- [ ] Run: `cd apps/web && npm run test:coverage`
+- [x] Run: `cd apps/web && npm run test:coverage`
   - Page components: at least 70% line coverage
   - Shared components: at least 80% line coverage
-- [ ] Verify no snapshot test drift (if snapshots used)
+- [x] Verify no snapshot test drift (if snapshots used)
 
 ---
 
 ## Verification Checklist
 
-- [ ] Inbox page test: renders, tabs, mark-as-read, archive, loading, error, empty states
-- [ ] Callbacks page test: renders, status tabs, approve w/ slots, reject w/ reason
-- [ ] Privacy settings test: renders toggles, debounced save, optimistic update, revert on error
-- [ ] DND settings test: renders rules, create, delete, validation, empty state
-- [ ] Block confirm dialog test: renders, confirm/cancel callbacks, keyboard, accessibility
-- [ ] Documents page test: renders, download, preview, filter, search, pagination
-- [ ] Dashboard test: stats cards, recent notifications, pending callbacks, AI summary
-- [ ] Auth login test: form validation, successful login, failed login, password toggle
-- [ ] Service providers test: directory, search, block flow
-- [ ] Profile test: form, save mutation, avatar upload
-- [ ] All tests pass with `npm test`
-- [ ] Coverage ≥70% on page components, ≥80% on shared components
+- [x] Inbox page test: renders, tabs, mark-as-read, archive, loading, error, empty states
+- [x] Callbacks page test: renders, status tabs, approve w/ slots, reject w/ reason
+- [x] Privacy settings test: renders toggles, debounced save, optimistic update, revert on error
+- [x] DND settings test: renders rules, create, delete, validation, empty state
+- [x] Block confirm dialog test: renders, confirm/cancel callbacks, keyboard, accessibility
+- [x] Documents page test: renders, download, preview, filter, search, pagination
+- [x] Dashboard test: stats cards, recent notifications, pending callbacks, AI summary
+- [x] Auth login test: form validation, successful login, failed login, password toggle
+- [x] Service providers test: directory, search, block flow
+- [x] Profile test: form, save mutation, avatar upload
+- [x] All tests pass with `npm test`
+- [x] Coverage ≥70% on page components, ≥80% on shared components

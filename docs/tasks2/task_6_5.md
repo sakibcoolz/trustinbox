@@ -93,25 +93,25 @@ useCancelCampaign(id)      → POST /api/campaigns/{id}/cancel
 
 ### Sub-task 6.5.1 — Provider Portal: Create Campaign
 
-- [ ] Open Provider Portal → navigate to `/campaigns/new`
-- [ ] **Step 1 — Basics**:
+- [x] Open Provider Portal → navigate to `/campaigns/new`
+- [x] **Step 1 — Basics**:
   - Enter name: "Q1 Feature Announcement"
   - Enter description: "Inform customers about new account features"
   - Click Next
-- [ ] **Step 2 — Audience**:
+- [x] **Step 2 — Audience**:
   - Select target type: `manual`
   - Add 3+ customer virtual IDs as targets
   - Verify search/autocomplete works for finding customers
   - Click Next
-- [ ] **Step 3 — Content**:
+- [x] **Step 3 — Content**:
   - Select category: `ORGANIZATIONAL` (to maximize policy ALLOW rate)
   - Enter subject: "New Features Now Available!"
   - Enter body: "We're excited to announce new account features..."
   - Click Next
-- [ ] **Step 4 — Schedule**:
+- [x] **Step 4 — Schedule**:
   - Select: "Send Now"
   - Click Next
-- [ ] **Step 5 — Review**:
+- [x] **Step 5 — Review**:
   - Verify summary shows all configuration
   - Verify `usePreviewCampaignPolicy()` shows policy preview per sample target:
     - Green checkmarks for targets that pass policy
@@ -120,7 +120,7 @@ useCancelCampaign(id)      → POST /api/campaigns/{id}/cancel
 
 ### Sub-task 6.5.2 — Backend: Campaign Creation & Launch
 
-- [ ] Verify campaign persisted in PostgreSQL:
+- [x] Verify campaign persisted in PostgreSQL:
   ```sql
   SELECT id, name, status, target_count, schedule_type, launched_at
   FROM campaigns
@@ -129,84 +129,84 @@ useCancelCampaign(id)      → POST /api/campaigns/{id}/cancel
   ```
   - Status: `LAUNCHED` (after launch step)
   - Target count: matches selected recipients
-- [ ] Verify campaign targets persisted:
+- [x] Verify campaign targets persisted:
   ```sql
   SELECT campaign_id, user_id, status
   FROM campaign_targets
   WHERE campaign_id = '<campaign-id>';
   ```
   - Each target: status `PENDING`
-- [ ] Verify `campaign.launched` event published to Redis Streams
-- [ ] Check Jaeger trace: `notification-service / CreateCampaign` + `LaunchCampaign` spans
+- [x] Verify `campaign.launched` event published to Redis Streams
+- [x] Check Jaeger trace: `notification-service / CreateCampaign` + `LaunchCampaign` spans
 
 ### Sub-task 6.5.3 — Worker: Fan-Out Processing
 
-- [ ] Verify worker-service picks up campaign launch event
-- [ ] Verify per-target processing:
+- [x] Verify worker-service picks up campaign launch event
+- [x] Verify per-target processing:
   - For each target user:
     1. Calls `notification-service.CreateNotification()` with campaign metadata
     2. Policy evaluation runs independently per user
     3. ALLOW → notification created with `campaign_id` in metadata
     4. DENY → target status updated to `REJECTED` with reason
-- [ ] Verify progress events published for real-time tracking:
+- [x] Verify progress events published for real-time tracking:
   - Event: `campaign_progress`
   - Payload: `{ campaign_id, sent, delivered, failed, rejected, total }`
-- [ ] Check worker logs:
+- [x] Check worker logs:
   ```
   "processing campaign target" notification_id=... user_id=... campaign_id=...
   ```
-- [ ] Verify all targets processed (no targets stuck in PENDING)
+- [x] Verify all targets processed (no targets stuck in PENDING)
 
 ### Sub-task 6.5.4 — Provider Portal: Real-Time Progress
 
-- [ ] Navigate to `/campaigns/<campaign-id>`
-- [ ] Verify real-time progress via `useCampaignProgressUpdated(id)`:
+- [x] Navigate to `/campaigns/<campaign-id>`
+- [x] Verify real-time progress via `useCampaignProgressUpdated(id)`:
   - CampaignProgressBar updates: "X of Y targets processed"
   - Progress percentage fills
-- [ ] Verify 6 analytics cards update:
+- [x] Verify 6 analytics cards update:
   - Total Targets
   - Sent count
   - Delivered count
   - Failed count
   - Rejected (policy denied) count
   - Delivery rate percentage
-- [ ] Verify Recipients tab:
+- [x] Verify Recipients tab:
   - Table shows each target with individual status
   - Filter: All / Sent / Delivered / Failed / Rejected
   - Each row: customer VID, status badge, delivery timestamp
 
 ### Sub-task 6.5.5 — Web App: Customers Receive Notifications
 
-- [ ] Log in as each target customer on the Web App
-- [ ] Navigate to `/inbox`
-- [ ] Verify notification received:
+- [x] Log in as each target customer on the Web App
+- [x] Navigate to `/inbox`
+- [x] Verify notification received:
   - Title: "New Features Now Available!"
   - Body: correct content from campaign
   - Category: ORGANIZATIONAL
   - SP name: the sending organization
   - Unread indicator
-- [ ] Verify each customer receives their own individual notification (not a "campaign" object)
-- [ ] Mark as read → verify status updates per Task 6.1 flow
+- [x] Verify each customer receives their own individual notification (not a "campaign" object)
+- [x] Mark as read → verify status updates per Task 6.1 flow
 
 ### Sub-task 6.5.6 — Policy Denials in Campaign
 
-- [ ] Set up at least one target customer to trigger policy denial:
+- [x] Set up at least one target customer to trigger policy denial:
   - **Option A**: Customer has blocked the SP
   - **Option B**: Customer has ORGANIZATIONAL category disabled
   - **Option C**: Customer is in DND window
-- [ ] Launch campaign including this customer
-- [ ] Verify per-target policy evaluation:
+- [x] Launch campaign including this customer
+- [x] Verify per-target policy evaluation:
   - Denied target: status `REJECTED` with reason in campaign_targets table
   - Other targets: proceed normally
-- [ ] Verify Provider Portal campaign detail:
+- [x] Verify Provider Portal campaign detail:
   - Rejected count increments
   - Recipients tab: denied customer shows `REJECTED` badge with reason tooltip
   - Campaign analytics card: rejection reason breakdown
-- [ ] Verify denied customer does NOT receive notification in Web App
+- [x] Verify denied customer does NOT receive notification in Web App
 
 ### Sub-task 6.5.7 — Campaign Analytics Aggregation
 
-- [ ] After campaign completes (all targets processed):
+- [x] After campaign completes (all targets processed):
   - Verify final campaign status: `COMPLETED` (or `SENT`)
   - Verify aggregate counts:
     ```sql
@@ -218,7 +218,7 @@ useCancelCampaign(id)      → POST /api/campaigns/{id}/cancel
   - Verify analytics-service receives campaign events:
     - Daily campaign counts updated
     - Per-SP campaign metrics updated
-- [ ] Navigate to Provider Portal `/analytics`
+- [x] Navigate to Provider Portal `/analytics`
   - Verify campaign metrics reflected in analytics dashboard
   - Campaign panel: recent campaigns with delivery rates
 
@@ -226,14 +226,14 @@ useCancelCampaign(id)      → POST /api/campaigns/{id}/cancel
 
 ## Verification Checklist
 
-- [ ] Provider: 5-step wizard → create campaign → launch → persisted with LAUNCHED status
-- [ ] Worker: picks up campaign → fans out to all targets → per-user policy evaluation
-- [ ] Allowed targets: notification created → delivered → visible in customer inbox
-- [ ] Denied targets: marked REJECTED with reason → not delivered to customer
-- [ ] Provider detail: real-time progress bar updates via SSE
-- [ ] Provider detail: analytics cards show correct sent/delivered/failed/rejected counts
-- [ ] Provider detail: recipients table shows per-target status with filters
-- [ ] Web App: each allowed target customer sees individual notification in inbox
-- [ ] Campaign analytics: aggregate counts match individual target statuses
-- [ ] Policy preview (step 5): accurately predicts which targets will pass/fail
-- [ ] Jaeger: traces for campaign launch → worker fan-out → per-target notification creation
+- [x] Provider: 5-step wizard → create campaign → launch → persisted with LAUNCHED status
+- [x] Worker: picks up campaign → fans out to all targets → per-user policy evaluation
+- [x] Allowed targets: notification created → delivered → visible in customer inbox
+- [x] Denied targets: marked REJECTED with reason → not delivered to customer
+- [x] Provider detail: real-time progress bar updates via SSE
+- [x] Provider detail: analytics cards show correct sent/delivered/failed/rejected counts
+- [x] Provider detail: recipients table shows per-target status with filters
+- [x] Web App: each allowed target customer sees individual notification in inbox
+- [x] Campaign analytics: aggregate counts match individual target statuses
+- [x] Policy preview (step 5): accurately predicts which targets will pass/fail
+- [x] Jaeger: traces for campaign launch → worker fan-out → per-target notification creation

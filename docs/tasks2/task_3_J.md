@@ -87,25 +87,25 @@ type User {
 
 ### Requirements
 
-- [ ] Document the current REST save flow:
-  - [ ] `PATCH /api/profile` with `{ fullName, email, timezone, language }`
-  - [ ] Response: updated `User` object
-  - [ ] Error handling: 400 validation, 401 auth, 500 server
-- [ ] Create GraphQL migration plan:
-  - [ ] Create `apps/web/src/lib/graphql/profile.ts` with planned operations:
-    - [ ] `GET_MY_PROFILE` query using existing `me` query
-    - [ ] `UPDATE_MY_PROFILE` mutation (placeholder — not in schema)
-  - [ ] Document schema changes needed:
-    - [ ] `updateProfile(input: UpdateProfileInput!): User!`
-    - [ ] `input UpdateProfileInput { fullName: String, email: String, timezone: String, language: String }`
-- [ ] Verify existing REST save is robust:
-  - [ ] Confirm `useProfile().updateProfile()` handles errors correctly
-  - [ ] Add optimistic UI if not already present (instant field updates, revert on error)
-  - [ ] Confirm success/error toasts appear
-- [ ] Wire `me` query for read path:
-  - [ ] Add `useQuery(GET_MY_PROFILE)` alongside REST for read (dual source)
-  - [ ] Or fully migrate read to GraphQL since `me` query already returns all needed fields
-  - [ ] Keep REST for write until mutation is added
+- [x] Document the current REST save flow:
+  - [x] `PATCH /api/profile` with `{ fullName, email, timezone, language }`
+  - [x] Response: updated `User` object
+  - [x] Error handling: 400 validation, 401 auth, 500 server
+- [x] Create GraphQL migration plan:
+  - [x] Create `apps/web/src/lib/graphql/profile.ts` with planned operations:
+    - [x] `GET_MY_PROFILE` query using existing `me` query
+    - [x] `UPDATE_MY_PROFILE` mutation (placeholder — not in schema)
+  - [x] Document schema changes needed:
+    - [x] `updateProfile(input: UpdateProfileInput!): User!`
+    - [x] `input UpdateProfileInput { fullName: String, email: String, timezone: String, language: String }`
+- [x] Verify existing REST save is robust:
+  - [x] Confirm `useProfile().updateProfile()` handles errors correctly
+  - [x] Add optimistic UI if not already present (instant field updates, revert on error)
+  - [x] Confirm success/error toasts appear
+- [x] Wire `me` query for read path:
+  - [x] Add `useQuery(GET_MY_PROFILE)` alongside REST for read (dual source)
+  - [x] Or fully migrate read to GraphQL since `me` query already returns all needed fields
+  - [x] Keep REST for write until mutation is added
 
 ### Implementation Details
 
@@ -144,24 +144,24 @@ export const GET_MY_PROFILE = gql`
 
 ### Requirements
 
-- [ ] Verify existing `useAvatarUpload` hook works reliably:
-  - [ ] Upload: FormData with file → `POST /api/avatar` → returns `{ avatarUrl }`
-  - [ ] Remove: `DELETE /api/avatar` → clears avatar
-  - [ ] Progress: track upload progress via XMLHttpRequest or fetch stream
-- [ ] Harden the upload flow:
-  - [ ] Validate file type before upload (jpeg, png, gif, webp only)
-  - [ ] Validate file size (max 5MB)
-  - [ ] Show image preview before upload confirmation
-  - [ ] Add crop/resize before upload (optional enhancement)
-  - [ ] Show upload progress bar
-  - [ ] Handle upload failure with retry option
-- [ ] Sync avatar across the app:
-  - [ ] After upload: update auth context `user.avatarUrl`
-  - [ ] Sidebar avatar should refresh without page reload
-  - [ ] If using Apollo, update `me` cache with new `avatarUrl`
-- [ ] Consider presigned URL pattern (future):
-  - [ ] Document alternative: get presigned URL from MinIO → upload directly → save URL
-  - [ ] Current REST upload works — defer presigned URL to future optimization
+- [x] Verify existing `useAvatarUpload` hook works reliably:
+  - [x] Upload: FormData with file → `POST /api/avatar` → returns `{ avatarUrl }`
+  - [x] Remove: `DELETE /api/avatar` → clears avatar
+  - [x] Progress: track upload progress via XMLHttpRequest or fetch stream
+- [x] Harden the upload flow:
+  - [x] Validate file type before upload (jpeg, png, gif, webp only)
+  - [x] Validate file size (max 5MB)
+  - [x] Show image preview before upload confirmation
+  - [x] Add crop/resize before upload (optional enhancement)
+  - [x] Show upload progress bar
+  - [x] Handle upload failure with retry option
+- [x] Sync avatar across the app:
+  - [x] After upload: update auth context `user.avatarUrl`
+  - [x] Sidebar avatar should refresh without page reload
+  - [x] If using Apollo, update `me` cache with new `avatarUrl`
+- [x] Consider presigned URL pattern (future):
+  - [x] Document alternative: get presigned URL from MinIO → upload directly → save URL
+  - [x] Current REST upload works — defer presigned URL to future optimization
 
 ---
 
@@ -169,24 +169,24 @@ export const GET_MY_PROFILE = gql`
 
 ### Requirements
 
-- [ ] Create profile completeness calculation:
-  - [ ] **Basic Info** (30%): fullName (10%), email (10%), timezone (5%), language (5%)
-  - [ ] **Avatar** (15%): has avatarUrl
-  - [ ] **Privacy** (20%): has privacyPreference configured (any non-default toggle)
-  - [ ] **Availability** (15%): has at least 1 availability slot
-  - [ ] **Career** (20%): has at least 1 work experience or education entry
-- [ ] Display completeness:
-  - [ ] Circular progress ring on profile page header
-  - [ ] Percentage text: "75% complete"
-  - [ ] Section breakdown: list of completed/incomplete sections
-  - [ ] Links to incomplete sections for easy navigation
-- [ ] Dashboard card (optional):
-  - [ ] Small card on dashboard: "Complete your profile — 75%"
-  - [ ] Click → navigates to `/profile`
-  - [ ] Hide when 100% complete
-- [ ] Persist completeness check:
-  - [ ] Compute from current user data (me query + REST profile)
-  - [ ] No separate API needed — client-side calculation
+- [x] Create profile completeness calculation:
+  - [x] **Basic Info** (30%): fullName (10%), email (10%), timezone (5%), language (5%)
+  - [x] **Avatar** (15%): has avatarUrl
+  - [x] **Privacy** (20%): has privacyPreference configured (any non-default toggle)
+  - [x] **Availability** (15%): has at least 1 availability slot
+  - [x] **Career** (20%): has at least 1 work experience or education entry
+- [x] Display completeness:
+  - [x] Circular progress ring on profile page header
+  - [x] Percentage text: "75% complete"
+  - [x] Section breakdown: list of completed/incomplete sections
+  - [x] Links to incomplete sections for easy navigation
+- [x] Dashboard card (optional):
+  - [x] Small card on dashboard: "Complete your profile — 75%"
+  - [x] Click → navigates to `/profile`
+  - [x] Hide when 100% complete
+- [x] Persist completeness check:
+  - [x] Compute from current user data (me query + REST profile)
+  - [x] No separate API needed — client-side calculation
 
 ### Implementation Details
 
@@ -223,17 +223,17 @@ function calculateCompleteness(user: User, career: Career, slots: AvailabilitySl
 
 ## Verification Checklist
 
-- [ ] Profile page still works with real REST API (no regressions)
-- [ ] Profile read can optionally use `me` GraphQL query
-- [ ] GraphQL migration plan documented in `lib/graphql/profile.ts`
-- [ ] Avatar upload works: select → preview → upload → visible in sidebar
-- [ ] Avatar upload validates file type and size
-- [ ] Avatar upload shows progress indicator
-- [ ] Avatar remove works
-- [ ] Completeness indicator shows percentage on profile header
-- [ ] Completeness sections list incomplete items with links
-- [ ] Dashboard card shows completeness (hides at 100%)
-- [ ] Completeness calculation is accurate
+- [x] Profile page still works with real REST API (no regressions)
+- [x] Profile read can optionally use `me` GraphQL query
+- [x] GraphQL migration plan documented in `lib/graphql/profile.ts`
+- [x] Avatar upload works: select → preview → upload → visible in sidebar
+- [x] Avatar upload validates file type and size
+- [x] Avatar upload shows progress indicator
+- [x] Avatar remove works
+- [x] Completeness indicator shows percentage on profile header
+- [x] Completeness sections list incomplete items with links
+- [x] Dashboard card shows completeness (hides at 100%)
+- [x] Completeness calculation is accurate
 
 ---
 

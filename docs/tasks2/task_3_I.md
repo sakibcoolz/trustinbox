@@ -76,27 +76,27 @@ The friends page (603 lines) is already **fully wired** to real REST APIs with S
 
 ### Requirements
 
-- [ ] Add proper loading skeletons:
-  - [ ] Replace "Loading..." text with card-shaped skeleton placeholders
-  - [ ] Friend card skeleton: circular avatar + two text lines + status dot
-  - [ ] Show 5 skeleton cards during initial load
-- [ ] Add error handling:
-  - [ ] Wrap each `fetch()` call with proper try/catch
-  - [ ] Show error card with retry button on fetch failure
-  - [ ] Handle 401 errors: redirect to login
-  - [ ] Handle network errors: show "offline" indicator
-- [ ] Add optimistic updates:
-  - [ ] Accept request → immediately move to friends list
-  - [ ] Reject request → immediately remove from requests list
-  - [ ] Remove friend → immediately remove from list
-  - [ ] Revert on API error
-- [ ] Add empty states with illustrations:
-  - [ ] Friends tab: "No friends yet — search for people to connect with"
-  - [ ] Requests tab: "No pending requests"
-  - [ ] Search tab: "Search for people by username"
-- [ ] Add pagination or infinite scroll for large friend lists:
-  - [ ] Show first 50 friends, "Load More" button
-  - [ ] Track `hasMore` from API response
+- [x] Add proper loading skeletons:
+  - [x] Replace "Loading..." text with card-shaped skeleton placeholders
+  - [x] Friend card skeleton: circular avatar + two text lines + status dot
+  - [x] Show 5 skeleton cards during initial load
+- [x] Add error handling:
+  - [x] Wrap each `fetch()` call with proper try/catch
+  - [x] Show error card with retry button on fetch failure
+  - [x] Handle 401 errors: redirect to login
+  - [x] Handle network errors: show "offline" indicator
+- [x] Add optimistic updates:
+  - [x] Accept request → immediately move to friends list
+  - [x] Reject request → immediately remove from requests list
+  - [x] Remove friend → immediately remove from list
+  - [x] Revert on API error
+- [x] Add empty states with illustrations:
+  - [x] Friends tab: "No friends yet — search for people to connect with"
+  - [x] Requests tab: "No pending requests"
+  - [x] Search tab: "Search for people by username"
+- [x] Add pagination or infinite scroll for large friend lists:
+  - [x] Show first 50 friends, "Load More" button
+  - [x] Track `hasMore` from API response
 
 ---
 
@@ -104,24 +104,24 @@ The friends page (603 lines) is already **fully wired** to real REST APIs with S
 
 ### Requirements
 
-- [ ] Create `apps/web/src/lib/graphql/friends.ts` with planned operations:
-  - [ ] `GET_MY_FRIENDS` query (placeholder — not in schema yet)
-  - [ ] `GET_FRIEND_REQUESTS` query (placeholder)
-  - [ ] `SEND_FRIEND_REQUEST` mutation (placeholder)
-  - [ ] `ACCEPT_FRIEND_REQUEST` mutation (placeholder)
-  - [ ] `REJECT_FRIEND_REQUEST` mutation (placeholder)
-  - [ ] `REMOVE_FRIEND` mutation (placeholder)
-  - [ ] Each with `// TODO: Uncomment when schema adds friend operations` comment
-- [ ] Document the migration strategy:
-  - [ ] Current: REST `fetch()` in component → direct
-  - [ ] Target: Apollo `useQuery`/`useMutation` → Apollo cache
-  - [ ] Migration steps: 1) Add schema types, 2) Add gateway resolvers, 3) Create hooks, 4) Replace fetch calls
-- [ ] Ensure REST handlers have consistent error response format:
-  - [ ] Verify all `/api/friends/*` routes return `{ error: string }` on failure
-  - [ ] Verify status codes: 200 OK, 400 Bad Request, 401 Unauthorized, 404 Not Found, 409 Conflict
-- [ ] Add TypeScript interfaces for friend API responses:
-  - [ ] `Friend`, `FriendRequest`, `UserSearchResult` types in `lib/types.ts`
-  - [ ] Type the currently untyped `fetch` responses
+- [x] Create `apps/web/src/lib/graphql/friends.ts` with planned operations:
+  - [x] `GET_MY_FRIENDS` query (placeholder — not in schema yet)
+  - [x] `GET_FRIEND_REQUESTS` query (placeholder)
+  - [x] `SEND_FRIEND_REQUEST` mutation (placeholder)
+  - [x] `ACCEPT_FRIEND_REQUEST` mutation (placeholder)
+  - [x] `REJECT_FRIEND_REQUEST` mutation (placeholder)
+  - [x] `REMOVE_FRIEND` mutation (placeholder)
+  - [x] Each with `// TODO: Uncomment when schema adds friend operations` comment
+- [x] Document the migration strategy:
+  - [x] Current: REST `fetch()` in component → direct
+  - [x] Target: Apollo `useQuery`/`useMutation` → Apollo cache
+  - [x] Migration steps: 1) Add schema types, 2) Add gateway resolvers, 3) Create hooks, 4) Replace fetch calls
+- [x] Ensure REST handlers have consistent error response format:
+  - [x] Verify all `/api/friends/*` routes return `{ error: string }` on failure
+  - [x] Verify status codes: 200 OK, 400 Bad Request, 401 Unauthorized, 404 Not Found, 409 Conflict
+- [x] Add TypeScript interfaces for friend API responses:
+  - [x] `Friend`, `FriendRequest`, `UserSearchResult` types in `lib/types.ts`
+  - [x] Type the currently untyped `fetch` responses
 
 ---
 
@@ -129,41 +129,41 @@ The friends page (603 lines) is already **fully wired** to real REST APIs with S
 
 ### Requirements
 
-- [ ] Remove the `c/` prefix requirement:
-  - [ ] Current: user must type `c/username` to search
-  - [ ] Target: type just the username, auto-prepend `c/` internally
-  - [ ] Or: search by name/email if API supports it
-- [ ] Improve search debounce:
-  - [ ] Current debounce: verify timing (should be 300ms)
-  - [ ] Minimum query length: 2 characters before triggering search
-  - [ ] Show "Type at least 2 characters" hint
-- [ ] Search results improvements:
-  - [ ] Show avatar, full name, username, online status
-  - [ ] Show mutual friends count (if API supports)
-  - [ ] Show "Already friends" badge for existing friends
-  - [ ] Show "Request sent" badge for pending outgoing requests
-  - [ ] Show "Request pending" badge for pending incoming requests
-  - [ ] Disable "Add Friend" button for already-connected users
-- [ ] Recent searches:
-  - [ ] Store last 5 searches in localStorage
-  - [ ] Show as chips below search input
-  - [ ] Click chip → prefill search
+- [x] Remove the `c/` prefix requirement:
+  - [x] Current: user must type `c/username` to search
+  - [x] Target: type just the username, auto-prepend `c/` internally
+  - [x] Or: search by name/email if API supports it
+- [x] Improve search debounce:
+  - [x] Current debounce: verify timing (should be 300ms)
+  - [x] Minimum query length: 2 characters before triggering search
+  - [x] Show "Type at least 2 characters" hint
+- [x] Search results improvements:
+  - [x] Show avatar, full name, username, online status
+  - [x] Show mutual friends count (if API supports)
+  - [x] Show "Already friends" badge for existing friends
+  - [x] Show "Request sent" badge for pending outgoing requests
+  - [x] Show "Request pending" badge for pending incoming requests
+  - [x] Disable "Add Friend" button for already-connected users
+- [x] Recent searches:
+  - [x] Store last 5 searches in localStorage
+  - [x] Show as chips below search input
+  - [x] Click chip → prefill search
 
 ---
 
 ## Verification Checklist
 
-- [ ] Friends page still works with real REST API (no regressions)
-- [ ] Loading skeletons show during initial fetch
-- [ ] Error states show with retry buttons
-- [ ] Optimistic updates work for accept/reject/remove
-- [ ] Empty states show appropriate messages
-- [ ] User search works without `c/` prefix
-- [ ] Search results show connection status badges
-- [ ] GraphQL migration file created with planned operations
-- [ ] TypeScript interfaces added for friend API responses
-- [ ] SSE real-time updates still work (friend events)
-- [ ] Pagination/load-more works for large friend lists
+- [x] Friends page still works with real REST API (no regressions)
+- [x] Loading skeletons show during initial fetch
+- [x] Error states show with retry buttons
+- [x] Optimistic updates work for accept/reject/remove
+- [x] Empty states show appropriate messages
+- [x] User search works without `c/` prefix
+- [x] Search results show connection status badges
+- [x] GraphQL migration file created with planned operations
+- [x] TypeScript interfaces added for friend API responses
+- [x] SSE real-time updates still work (friend events)
+- [x] Pagination/load-more works for large friend lists
 
 ---
 

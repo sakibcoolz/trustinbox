@@ -2,6 +2,7 @@ import '@/app/globals.css';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { LayoutShell } from '@/components/LayoutShell';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import { ToastProvider } from '@/components/Toast';
 import { LiveRegionProvider } from '@/components/LiveRegion';
 
@@ -30,11 +31,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`dark ${inter.variable} ${jetbrainsMono.variable}`}>
       <body className={`${inter.className} bg-bg-primary text-text-primary min-h-screen`} suppressHydrationWarning>
           <AuthProvider>
-            <ToastProvider>
-              <LiveRegionProvider>
-                <LayoutShell>{children}</LayoutShell>
-              </LiveRegionProvider>
-            </ToastProvider>
+            <NotificationProvider>
+              <ToastProvider>
+                <LiveRegionProvider>
+                  <LayoutShell>{children}</LayoutShell>
+                </LiveRegionProvider>
+              </ToastProvider>
+            </NotificationProvider>
           </AuthProvider>
       </body>
     </html>

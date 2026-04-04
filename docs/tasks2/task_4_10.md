@@ -111,49 +111,49 @@ Replace the inconsistent, minimal empty state patterns scattered across all list
 ## Requirements
 
 ### 4.10.1 — Create Shared EmptyState Component
-- [ ] Create `apps/web/src/components/ui/EmptyState.tsx`:
-  - [ ] Props: `icon`, `title`, `description`, `action` (optional CTA), `size` (sm, md, lg)
-  - [ ] Consistent layout: centered icon → title → description → optional CTA button
-  - [ ] Icon: Lucide React component passed as prop (not inline SVGs)
-  - [ ] Icon wrapper: rounded background with accent color at 10% opacity
-  - [ ] Size variants:
+- [x] Create `apps/web/src/components/ui/EmptyState.tsx`:
+  - [x] Props: `icon`, `title`, `description`, `action` (optional CTA), `size` (sm, md, lg)
+  - [x] Consistent layout: centered icon → title → description → optional CTA button
+  - [x] Icon: Lucide React component passed as prop (not inline SVGs)
+  - [x] Icon wrapper: rounded background with accent color at 10% opacity
+  - [x] Size variants:
     - `sm`: icon w-10 h-10, `py-8` padding (for inline/compact areas)
     - `md`: icon w-12 h-12, `py-12` padding (for list panels)
     - `lg`: icon w-16 h-16, `py-16` padding (for detail panels and full-page)
-  - [ ] Named export: `export function EmptyState({ ... })`
+  - [x] Named export: `export function EmptyState({ ... })`
 
 ### 4.10.2 — Enhance Inbox Empty States
-- [ ] Replace inline empty state in `inbox/page.tsx`:
-  - [ ] List empty: Lucide `Inbox` icon, title "No notifications yet", description "Service providers you interact with will send you updates here.", CTA: "Browse providers" → `/service-providers`
-  - [ ] Detail placeholder: Lucide `Inbox` icon (lg), title "Select a notification", description "Choose a notification from the list to view its details"
+- [x] Replace inline empty state in `inbox/page.tsx`:
+  - [x] List empty: Lucide `Inbox` icon, title "No notifications yet", description "Service providers you interact with will send you updates here.", CTA: "Browse providers" → `/service-providers`
+  - [x] Detail placeholder: Lucide `Inbox` icon (lg), title "Select a notification", description "Choose a notification from the list to view its details"
 
 ### 4.10.3 — Enhance Callbacks Empty States
-- [ ] Replace inline empty state in `callbacks/page.tsx`:
-  - [ ] List empty: Lucide `PhoneIncoming` icon, title "No callback requests", description "When a service provider wants to call you, it'll appear here. You stay in control of who can reach you.", CTA: "Manage availability" → `/settings/availability`
-  - [ ] Detail placeholder: Lucide `PhoneIncoming` icon (lg), title "Select a callback", description "Choose a callback request from the list to view details and respond"
+- [x] Replace inline empty state in `callbacks/page.tsx`:
+  - [x] List empty: Lucide `PhoneIncoming` icon, title "No callback requests", description "When a service provider wants to call you, it'll appear here. You stay in control of who can reach you.", CTA: "Manage availability" → `/settings/availability`
+  - [x] Detail placeholder: Lucide `PhoneIncoming` icon (lg), title "Select a callback", description "Choose a callback request from the list to view details and respond"
 
 ### 4.10.4 — Enhance Documents Empty States
-- [ ] Replace inline empty state in `documents/page.tsx`:
-  - [ ] List empty: Lucide `FileText` icon, title "No shared documents", description "Documents shared by service providers will appear here. They'll be securely accessible through presigned links."
-  - [ ] Detail placeholder: Lucide `FileText` icon (lg), title "Select a document", description "Choose a document from the list to preview or download it"
+- [x] Replace inline empty state in `documents/page.tsx`:
+  - [x] List empty: Lucide `FileText` icon, title "No shared documents", description "Documents shared by service providers will appear here. They'll be securely accessible through presigned links."
+  - [x] Detail placeholder: Lucide `FileText` icon (lg), title "Select a document", description "Choose a document from the list to preview or download it"
 
 ### 4.10.5 — Enhance Service Providers Empty States
-- [ ] Replace inline empty state in `service-providers/page.tsx`:
-  - [ ] List empty: Lucide `Building2` icon, title "No service provider connections", description "Browse the directory to discover verified service providers and control how they contact you.", CTA: "Browse directory" (scroll to directory or reset search filter)
-  - [ ] Detail placeholder: Lucide `Building2` icon (lg), title "Select a provider", description "Choose a service provider to view their details and communication preferences"
+- [x] Replace inline empty state in `service-providers/page.tsx`:
+  - [x] List empty: Lucide `Building2` icon, title "No service provider connections", description "Browse the directory to discover verified service providers and control how they contact you.", CTA: "Browse directory" (scroll to directory or reset search filter)
+  - [x] Detail placeholder: Lucide `Building2` icon (lg), title "Select a provider", description "Choose a service provider to view their details and communication preferences"
 
 ### 4.10.6 — Enhance Friends Empty States
-- [ ] Replace inline empty states in `friends/page.tsx`:
-  - [ ] Friends tab empty: Lucide `Users` icon, title "No friends found", description "Connect with people to start messaging securely.", CTA: "Find people" → switches to Find tab
-  - [ ] Requests tab empty: Lucide `UserPlus` icon, title "No pending requests", description "Friend requests you receive will appear here."
-  - [ ] Find tab empty: Lucide `Search` icon, title matching search, description "Try a different name or username"
-  - [ ] (Optional) Add detail panel placeholder: Lucide `Users` icon (lg), title "Select a friend", description "Choose a friend to view their profile"
+- [x] Replace inline empty states in `friends/page.tsx`:
+  - [x] Friends tab empty: Lucide `Users` icon, title "No friends found", description "Connect with people to start messaging securely.", CTA: "Find people" → switches to Find tab
+  - [x] Requests tab empty: Lucide `UserPlus` icon, title "No pending requests", description "Friend requests you receive will appear here."
+  - [x] Find tab empty: Lucide `Search` icon, title matching search, description "Try a different name or username"
+  - [x] (Optional) Add detail panel placeholder: Lucide `Users` icon (lg), title "Select a friend", description "Choose a friend to view their profile"
 
 ### 4.10.7 — Enhance Conversation Empty States
-- [ ] Replace inline empty state in `conversation-list.tsx`:
-  - [ ] List empty: Lucide `MessageCircle` icon, title "No conversations yet", description "Start chatting with your friends! Select a contact to begin."
-- [ ] Normalize detail placeholder in `chat-area.tsx`:
-  - [ ] Use `EmptyState` component with Lucide `MessageCircle` icon (lg), title "TrustInbox Messages", description "Select a conversation to start chatting"
+- [x] Replace inline empty state in `conversation-list.tsx`:
+  - [x] List empty: Lucide `MessageCircle` icon, title "No conversations yet", description "Start chatting with your friends! Select a contact to begin."
+- [x] Normalize detail placeholder in `chat-area.tsx`:
+  - [x] Use `EmptyState` component with Lucide `MessageCircle` icon (lg), title "TrustInbox Messages", description "Select a conversation to start chatting"
 
 ---
 
@@ -304,22 +304,22 @@ import { EmptyState } from '@/components/ui/EmptyState';
 
 ## Verification
 
-- [ ] `EmptyState` component renders correctly with all size variants (sm, md, lg)
-- [ ] Lucide icons render at appropriate sizes matching the wrapper
-- [ ] Inbox: empty list shows icon + title + description + "Browse providers" CTA
-- [ ] Inbox: detail panel shows larger icon + "Select a notification" message
-- [ ] Callbacks: empty list shows phone icon + title + description + "Manage availability" CTA
-- [ ] Callbacks: detail panel shows larger icon + selection prompt
-- [ ] Documents: empty list shows document icon + title + description (no CTA)
-- [ ] Documents: detail panel shows larger icon + selection prompt
-- [ ] Service Providers: empty list now shows icon + title + description + "Browse directory" CTA (was text-only)
-- [ ] Service Providers: detail panel shows building icon + selection prompt
-- [ ] Friends: all three tab empty states use EmptyState component with appropriate icons
-- [ ] Friends: "Find people" CTA on friends tab switches to Find tab
-- [ ] Conversations: list empty state uses Lucide icon instead of inline SVG
-- [ ] Conversations: detail placeholder is normalized with consistent sizing
-- [ ] No inline `<svg>` elements remain in empty state blocks (all replaced with Lucide)
-- [ ] CTA buttons are clickable and navigate to correct routes
-- [ ] Empty states look correct on mobile (max-w-xs description doesn't overflow)
-- [ ] Dark mode: all colors use semantic tokens (text-text-muted, bg-bg-tertiary, etc.)
-- [ ] Visual consistency: all empty states follow the same structural pattern
+- [x] `EmptyState` component renders correctly with all size variants (sm, md, lg)
+- [x] Lucide icons render at appropriate sizes matching the wrapper
+- [x] Inbox: empty list shows icon + title + description + "Browse providers" CTA
+- [x] Inbox: detail panel shows larger icon + "Select a notification" message
+- [x] Callbacks: empty list shows phone icon + title + description + "Manage availability" CTA
+- [x] Callbacks: detail panel shows larger icon + selection prompt
+- [x] Documents: empty list shows document icon + title + description (no CTA)
+- [x] Documents: detail panel shows larger icon + selection prompt
+- [x] Service Providers: empty list now shows icon + title + description + "Browse directory" CTA (was text-only)
+- [x] Service Providers: detail panel shows building icon + selection prompt
+- [x] Friends: all three tab empty states use EmptyState component with appropriate icons
+- [x] Friends: "Find people" CTA on friends tab switches to Find tab
+- [x] Conversations: list empty state uses Lucide icon instead of inline SVG
+- [x] Conversations: detail placeholder is normalized with consistent sizing
+- [x] No inline `<svg>` elements remain in empty state blocks (all replaced with Lucide)
+- [x] CTA buttons are clickable and navigate to correct routes
+- [x] Empty states look correct on mobile (max-w-xs description doesn't overflow)
+- [x] Dark mode: all colors use semantic tokens (text-text-muted, bg-bg-tertiary, etc.)
+- [x] Visual consistency: all empty states follow the same structural pattern

@@ -1,39 +1,40 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { ArrowLeft, Building2, Save, AlertTriangle, Eye, Check } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { ArrowLeft, Building2, Save, AlertTriangle, Eye, Check, Loader2, Landmark, Heart, Home, Plane, Truck, ShoppingCart, GraduationCap, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import {
   useIndustryProfiles,
   useIndustryProfile,
+  useOrganizationProfile,
+  useApplyIndustryProfile,
+  useSaveCommunicationOverrides,
   safeParseJson,
   type IndustryProfile,
 } from '@/lib/graphql/settings';
 
-interface ComplianceHint {
-  name: string;
-  description: string;
-  required: boolean;
+// ─── Industry Icons ──────────────────────────────────────────────────────
+
+const INDUSTRY_ICONS: Record<string, React.ReactNode> = {
+  banking: <Landmark size={20} />,
+  healthcare: <Heart size={20} />,
+  real_estate: <Home size={20} />,
+  hospitality: <Plane size={20} />,
+  logistics: <Truck size={20} />,
+  retail: <ShoppingCart size={20} />,
+  education: <GraduationCap size={20} />,
+};
+
+function getIndustryIcon(key: string) {
+  return INDUSTRY_ICONS[key] || <Wrench size={20} />;
 }
 
-interface DocumentType {
-  name: string;
-  description: string;
-  required: boolean;
-}
-
-interface CallbackWorkflow {
-  name: string;
-  description: string;
-}
-
-interface BotTemplate {
-  name: string;
-  description: string;
-  purpose: string;
-}
+interface ComplianceHint { name: string; description: string; required: boolean; }
+interface DocumentType { name: string; description: string; required: boolean; }
+interface CallbackWorkflow { name: string; description: string; }
+interface BotTemplate { name: string; description: string; purpose: string; }
 
 // Communication overrides (editable)
 interface CommOverrides {
@@ -54,21 +55,92 @@ const DEFAULT_COMM: CommOverrides = {
   preferredChannels: ['Email', 'Push'],
 };
 
+// ─── Apply Confirmation Dialog ──────────────────────────────────────────
+
+function ApplyConfirmDialog({
+  open, onClose, onConfirm, fromIndustry, toIndustry, loading,
+}: {
+  open: boolean; onClose: () => void; onConfirm: () => void;
+  fromIndustry: string; toIndustry: string; loading: boolean;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="bg-bg-card border border-border-primary rounded-xl p-6 max-w-md w-full mx-4 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-status-warning/10 flex items-center justify-center">
+            <AlertTriangle size={20} className="text-status-warning" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold">Switch Industry Profile?</h3>
+            <p className="text-xs text-text-muted mt-0.5">This will update your organization settings</p>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm text-text-secondary">What will change:</p>
+          <ul className="text-xs text-text-muted space-y-1 list-disc pl-4">
+            <li>Default notification categories will be updated</li>
+            <li>Compliance requirements will change to match new industry</li>
+            <li>Document type requirements will be updated</li>
+          </ul>
+          <p className="text-sm text-text-secondary mt-2">What will be preserved:</p>
+          <ul className="text-xs text-text-muted space-y-1 list-disc pl-4">
+            <li>Team members and their roles</li>
+            <li>Existing data and conversations</li>
+            <li>Custom branding settings</li>
+          </ul>
+        </div>
+        {fromIndustry && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-xs">
+            <span className="text-text-muted">From:</span> <span className="text-text-secondary font-medium">{fromIndustry}</span>
+            <span className="text-text-muted mx-1">→</span>
+            <span className="text-text-muted">To:</span> <span className="text-accent-blue font-medium">{toIndustry}</span>
+          </div>
+        )}
+        <div className="flex justify-end gap-2 pt-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-text-muted hover:text-text-secondary transition-colors">Cancel</button>
+          <button onClick={onConfirm} disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-lg text-sm font-medium hover:bg-accent-blue/90 transition-colors disabled:opacity-50">
+            {loading ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+            Apply Profile
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ───────────────────────────────────────────────────────────
+
 export default function IndustrySettingsPage() {
   const { activeServiceProvider } = useAuth();
   const toast = useToast();
   const spId = activeServiceProvider?.id || '';
 
-  const { data: profilesData, loading: profilesLoading } = useIndustryProfiles(true);
+  const { data: profilesData, loading: profilesLoading, error: profilesError, refetch: refetchProfiles } = useIndustryProfiles(true);
   const profiles = profilesData?.industryProfiles?.nodes || [];
 
   const [selectedKey, setSelectedKey] = useState('');
   const [currentKey, setCurrentKey] = useState('');
   const [commOverrides, setCommOverrides] = useState<CommOverrides>(DEFAULT_COMM);
-  const [saving, setSaving] = useState(false);
+  const [savedOverrides, setSavedOverrides] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  // Load current industry from org profile
+  const { data: orgData } = useOrganizationProfile(spId);
+  useEffect(() => {
+    if (orgData?.serviceProvider?.industry) {
+      const key = orgData.serviceProvider.industry;
+      setCurrentKey(key);
+      if (!selectedKey) setSelectedKey(key);
+    }
+  }, [orgData, selectedKey]);
 
   const { data: profileData, loading: profileLoading } = useIndustryProfile(selectedKey);
   const activeProfile = profileData?.industryProfile;
+
+  const { applyProfile, loading: applying } = useApplyIndustryProfile(spId);
+  const { saveOverrides, loading: savingOverrides } = useSaveCommunicationOverrides(spId);
 
   // Parsed JSON fields
   const complianceHints = useMemo(() => safeParseJson<ComplianceHint[]>(activeProfile?.complianceHintsJson, []), [activeProfile]);
@@ -77,6 +149,7 @@ export default function IndustrySettingsPage() {
   const botTemplates = useMemo(() => safeParseJson<BotTemplate[]>(activeProfile?.botPromptPackJson, []), [activeProfile]);
 
   const isSwitching = selectedKey !== currentKey && currentKey !== '';
+  const overridesDirty = JSON.stringify(commOverrides) !== savedOverrides;
 
   function updateComm(field: keyof CommOverrides, value: unknown) {
     setCommOverrides((prev) => ({ ...prev, [field]: value }));
@@ -91,21 +164,55 @@ export default function IndustrySettingsPage() {
     }));
   }
 
-  function handleApply() {
-    setSaving(true);
-    setCurrentKey(selectedKey);
-    toast.success(`Industry profile "${activeProfile?.displayName}" applied`);
-    setTimeout(() => setSaving(false), 500);
+  async function handleApplyConfirm() {
+    try {
+      await applyProfile(selectedKey);
+      setCurrentKey(selectedKey);
+      toast.success(`Industry profile "${activeProfile?.displayName}" applied`);
+      setShowConfirm(false);
+    } catch {
+      toast.error('Failed to apply industry profile');
+    }
   }
 
-  function handleSave() {
-    toast.success('Communication overrides saved');
+  async function handleSave() {
+    try {
+      await saveOverrides({
+        maxDailyNotifications: parseInt(commOverrides.maxDailyNotifications) || 5,
+        quietHoursStart: commOverrides.quietHoursStart,
+        quietHoursEnd: commOverrides.quietHoursEnd,
+        callbackWindowStart: commOverrides.callbackWindowStart,
+        callbackWindowEnd: commOverrides.callbackWindowEnd,
+        preferredChannels: commOverrides.preferredChannels,
+      });
+      setSavedOverrides(JSON.stringify(commOverrides));
+      toast.success('Communication overrides saved');
+    } catch {
+      toast.error('Failed to save overrides');
+    }
   }
 
   if (profilesLoading) {
     return (
-      <div className="p-8 flex items-center justify-center">
-        <p className="text-text-muted text-sm">Loading industry profiles…</p>
+      <div className="p-8 space-y-6 max-w-5xl">
+        <div className="flex items-center gap-3">
+          <div className="h-6 w-6 bg-border-primary rounded animate-pulse" />
+          <div className="h-6 w-48 bg-border-primary rounded animate-pulse" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="h-24 bg-bg-card border border-border-primary rounded-xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (profilesError) {
+    return (
+      <div className="p-8 text-center space-y-3">
+        <p className="text-sm text-status-error">Failed to load industry profiles</p>
+        <button onClick={() => refetchProfiles()} className="text-xs text-accent-blue hover:underline">Retry</button>
       </div>
     );
   }
@@ -122,17 +229,61 @@ export default function IndustrySettingsPage() {
             <p className="text-text-secondary text-sm mt-0.5">Configure industry-specific settings and compliance</p>
           </div>
         </div>
-        <button onClick={handleSave}
-          className="flex items-center gap-2 px-4 py-2.5 bg-accent-blue text-white rounded-lg text-sm font-medium hover:bg-accent-blue/90 transition-colors">
-          <Save size={16} /> Save Overrides
+        <button onClick={handleSave} disabled={savingOverrides || !overridesDirty}
+          className="flex items-center gap-2 px-4 py-2.5 bg-accent-blue text-white rounded-lg text-sm font-medium hover:bg-accent-blue/90 transition-colors disabled:opacity-50">
+          {savingOverrides ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+          Save Overrides
         </button>
       </div>
 
-      {/* Industry Selector (15.5) */}
+      {/* Industry Classification + Grid */}
       <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-4">
-        <h3 className="text-sm font-semibold flex items-center gap-2"><Building2 size={16} /> Industry Classification</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold flex items-center gap-2"><Building2 size={16} /> Industry Classification</h3>
+          {currentKey && (
+            <span className="text-xs text-text-muted">Current: <span className="text-accent-blue font-medium">{profiles.find((p) => p.industryKey === currentKey)?.displayName || currentKey}</span></span>
+          )}
+        </div>
+
+        {/* Grid view */}
+        {profiles.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {profiles.map((p) => {
+              const isSelected = selectedKey === p.industryKey;
+              const isCurrent = currentKey === p.industryKey;
+              return (
+                <button key={p.industryKey} onClick={() => setSelectedKey(p.industryKey)}
+                  className={`relative p-4 rounded-xl border text-left transition-all ${
+                    isSelected ? 'border-accent-blue bg-accent-blue/5 ring-1 ring-accent-blue/20' :
+                    'border-border-secondary hover:border-border-active hover:bg-bg-hover'
+                  }`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                      isSelected ? 'bg-accent-blue/10 text-accent-blue' : 'bg-bg-input text-text-muted'
+                    }`}>
+                      {getIndustryIcon(p.industryKey)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{p.displayName}</p>
+                      <p className="text-xs text-text-muted mt-0.5">{p.defaultCategories.length} categories</p>
+                    </div>
+                  </div>
+                  {isCurrent && (
+                    <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-status-success/10 text-status-success">Active</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-text-muted">
+            <Building2 size={32} className="mx-auto mb-2 opacity-30" />
+            <p className="text-sm">No industry profiles available</p>
+          </div>
+        )}
+
         <div>
-          <label className="block text-xs text-text-muted mb-1.5">Select Industry Profile</label>
+          <label className="block text-xs text-text-muted mb-1.5">Or select from dropdown</label>
           <select
             value={selectedKey}
             onChange={(e) => setSelectedKey(e.target.value)}
@@ -271,6 +422,24 @@ export default function IndustrySettingsPage() {
               </div>
             )}
 
+            {/* Callback Workflows (read-only) */}
+            {callbackWorkflows.length > 0 && (
+              <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Callback Workflows</h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent-blue/10 text-accent-blue font-medium">Industry default</span>
+                </div>
+                <div className="space-y-2">
+                  {callbackWorkflows.map((wf, i) => (
+                    <div key={i} className="px-3 py-2.5 bg-bg-input border border-border-secondary rounded-lg">
+                      <p className="text-sm font-medium">{wf.name}</p>
+                      <p className="text-xs text-text-muted">{wf.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Bot Templates (read-only) */}
             {botTemplates.length > 0 && (
               <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-3">
@@ -326,11 +495,12 @@ export default function IndustrySettingsPage() {
               </div>
 
               <button
-                onClick={handleApply}
-                disabled={saving || !selectedKey}
+                onClick={() => isSwitching ? setShowConfirm(true) : handleApplyConfirm()}
+                disabled={applying || !selectedKey || (selectedKey === currentKey)}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-blue text-white rounded-lg text-sm font-medium hover:bg-accent-blue/90 transition-colors disabled:opacity-50"
               >
-                <Check size={16} /> {saving ? 'Applying…' : 'Apply Profile'}
+                {applying ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                {selectedKey === currentKey ? 'Currently Active' : 'Apply Profile'}
               </button>
             </div>
           </div>
@@ -348,6 +518,16 @@ export default function IndustrySettingsPage() {
           <p className="text-sm">Choose an industry profile above to view and configure industry-specific settings.</p>
         </div>
       )}
+
+      {/* Apply Confirmation Dialog */}
+      <ApplyConfirmDialog
+        open={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={handleApplyConfirm}
+        fromIndustry={profiles.find((p) => p.industryKey === currentKey)?.displayName || currentKey}
+        toIndustry={activeProfile?.displayName || selectedKey}
+        loading={applying}
+      />
     </div>
   );
 }

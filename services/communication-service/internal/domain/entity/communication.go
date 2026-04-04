@@ -53,6 +53,8 @@ type DocumentShare struct {
 	UserID            string
 	ServiceProviderID string
 	ShareContext      string // NOTIFICATION, CHAT, CALLBACK, DIRECT
+	FileName          string
+	FileType          string
 	CreatedAt         time.Time
 	OpenedAt          *time.Time
 }

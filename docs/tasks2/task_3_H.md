@@ -92,24 +92,24 @@ Since no `myBlockedProviders` query exists:
 
 ### Requirements
 
-- [ ] Determine data source strategy:
-  - [ ] **Preferred**: Add `myBlockedProviders` query to gateway schema (requires Phase 1 gateway extension)
-  - [ ] **Fallback**: REST endpoint `GET /api/blocked-providers` → document-service or user-service
-  - [ ] **Interim**: If neither available, keep mock data with TODO and wire unblock mutation only
-- [ ] Create `apps/web/src/lib/graphql/blocked.ts`:
-  - [ ] `GET_BLOCKED_PROVIDERS` query (if schema extended) or REST fetch function
-  - [ ] `UNBLOCK_SP` mutation — reuse from `service-providers.ts` or define here
-  - [ ] `BLOCK_SP` mutation — reuse from `service-providers.ts` or define here
-- [ ] Create `apps/web/src/hooks/useBlockedProviders.ts` hook:
-  - [ ] Return `{ blocked, loading, error, refetch, unblock }`
-  - [ ] If using GraphQL: `useQuery(GET_BLOCKED_PROVIDERS)`
-  - [ ] If using REST: `useEffect` + `fetch`
-- [ ] Update `blocked/page.tsx`:
-  - [ ] Remove `mockBlocked` array
-  - [ ] Use `useBlockedProviders()` hook
-  - [ ] Add loading skeleton
-  - [ ] Add error state with retry
-  - [ ] Handle missing fields gracefully (`blockedAt`, `reason` may not exist — show "—" or hide)
+- [x] Determine data source strategy:
+  - [x] **Preferred**: Add `myBlockedProviders` query to gateway schema (requires Phase 1 gateway extension)
+  - [x] **Fallback**: REST endpoint `GET /api/blocked-providers` → document-service or user-service
+  - [x] **Interim**: If neither available, keep mock data with TODO and wire unblock mutation only
+- [x] Create `apps/web/src/lib/graphql/blocked.ts`:
+  - [x] `GET_BLOCKED_PROVIDERS` query (if schema extended) or REST fetch function
+  - [x] `UNBLOCK_SP` mutation — reuse from `service-providers.ts` or define here
+  - [x] `BLOCK_SP` mutation — reuse from `service-providers.ts` or define here
+- [x] Create `apps/web/src/hooks/useBlockedProviders.ts` hook:
+  - [x] Return `{ blocked, loading, error, refetch, unblock }`
+  - [x] If using GraphQL: `useQuery(GET_BLOCKED_PROVIDERS)`
+  - [x] If using REST: `useEffect` + `fetch`
+- [x] Update `blocked/page.tsx`:
+  - [x] Remove `mockBlocked` array
+  - [x] Use `useBlockedProviders()` hook
+  - [x] Add loading skeleton
+  - [x] Add error state with retry
+  - [x] Handle missing fields gracefully (`blockedAt`, `reason` may not exist — show "—" or hide)
 
 ### Implementation Details
 
@@ -175,19 +175,19 @@ export function useBlockedProviders() {
 
 ### Requirements
 
-- [ ] Replace fake `setTimeout` unblock with real mutation:
-  - [ ] Call `unblockServiceProvider(serviceProviderId)` mutation
-  - [ ] Add confirmation dialog before unblocking:
-    - [ ] "Unblock {SP name}?"
-    - [ ] "This organization will be able to send you notifications and callback requests again."
-    - [ ] Confirm / Cancel buttons
-  - [ ] Optimistic removal from blocked list
-  - [ ] On success: show "Unblocked" toast
-  - [ ] On error: revert removal, show error toast
-- [ ] Keep loading state on individual unblock buttons:
-  - [ ] Track which SP is being unblocked via `unblocking` state
-  - [ ] Show "Unblocking…" text while mutation in-flight
-- [ ] After unblock: SP should reappear in "My Providers" list (refetch `myServiceProviders`)
+- [x] Replace fake `setTimeout` unblock with real mutation:
+  - [x] Call `unblockServiceProvider(serviceProviderId)` mutation
+  - [x] Add confirmation dialog before unblocking:
+    - [x] "Unblock {SP name}?"
+    - [x] "This organization will be able to send you notifications and callback requests again."
+    - [x] Confirm / Cancel buttons
+  - [x] Optimistic removal from blocked list
+  - [x] On success: show "Unblocked" toast
+  - [x] On error: revert removal, show error toast
+- [x] Keep loading state on individual unblock buttons:
+  - [x] Track which SP is being unblocked via `unblocking` state
+  - [x] Show "Unblocking…" text while mutation in-flight
+- [x] After unblock: SP should reappear in "My Providers" list (refetch `myServiceProviders`)
 
 ---
 
@@ -195,28 +195,28 @@ export function useBlockedProviders() {
 
 ### Requirements
 
-- [ ] Create `apps/web/src/components/block-confirmation-dialog.tsx`:
-  - [ ] Reusable modal/dialog component
-  - [ ] Props: `spName`, `spId`, `isOpen`, `onClose`, `onConfirm`
-  - [ ] Content: warning icon, SP name, consequences list, confirm/cancel buttons
-  - [ ] Consequences text:
-    - [ ] "You will no longer receive notifications from {name}"
-    - [ ] "Pending callback requests will be automatically rejected"
-    - [ ] "Active conversations will be archived"
-  - [ ] Confirm button: red "Block" with loading state
-  - [ ] Cancel button: ghost style
-- [ ] Wire the dialog to `blockServiceProvider` mutation:
-  - [ ] On confirm: call mutation → optimistic add to blocked list → close dialog
-  - [ ] On error: show error toast
-- [ ] Use this dialog in multiple places:
-  - [ ] Service providers page (Task 3C.12)
-  - [ ] SP detail page (Task 3C.13)
-  - [ ] Notification detail drawer — "Block Sender" (Task 3A.4)
-  - [ ] Callback page — "Block Provider" action (Task 3B.8)
-- [ ] Accessibility:
-  - [ ] Focus trap inside dialog
-  - [ ] Escape key to close
-  - [ ] `aria-modal`, `role="dialog"`
+- [x] Create `apps/web/src/components/block-confirmation-dialog.tsx`:
+  - [x] Reusable modal/dialog component
+  - [x] Props: `spName`, `spId`, `isOpen`, `onClose`, `onConfirm`
+  - [x] Content: warning icon, SP name, consequences list, confirm/cancel buttons
+  - [x] Consequences text:
+    - [x] "You will no longer receive notifications from {name}"
+    - [x] "Pending callback requests will be automatically rejected"
+    - [x] "Active conversations will be archived"
+  - [x] Confirm button: red "Block" with loading state
+  - [x] Cancel button: ghost style
+- [x] Wire the dialog to `blockServiceProvider` mutation:
+  - [x] On confirm: call mutation → optimistic add to blocked list → close dialog
+  - [x] On error: show error toast
+- [x] Use this dialog in multiple places:
+  - [x] Service providers page (Task 3C.12)
+  - [x] SP detail page (Task 3C.13)
+  - [x] Notification detail drawer — "Block Sender" (Task 3A.4)
+  - [x] Callback page — "Block Provider" action (Task 3B.8)
+- [x] Accessibility:
+  - [x] Focus trap inside dialog
+  - [x] Escape key to close
+  - [x] `aria-modal`, `role="dialog"`
 
 ### Implementation Details
 
@@ -279,18 +279,18 @@ export function BlockConfirmationDialog({ spName, spId, isOpen, onClose, onBlock
 
 ## Verification Checklist
 
-- [ ] Blocked page loads real data (or shows clear TODO state if query unavailable)
-- [ ] Loading skeleton displays during fetch
-- [ ] Blocked org cards show name, industry, and available metadata
-- [ ] Unblock shows confirmation dialog
-- [ ] Unblock calls real mutation → removes from list → shows toast
-- [ ] Unblock loading state shows "Unblocking…" on button
-- [ ] Block confirmation dialog is reusable (exported component)
-- [ ] Block dialog shows consequences list
-- [ ] Block dialog has proper accessibility (focus trap, escape, aria)
-- [ ] Block mutation works from dialog
-- [ ] Empty state shows when no blocked organizations
-- [ ] Error states with retry/toast
+- [x] Blocked page loads real data (or shows clear TODO state if query unavailable)
+- [x] Loading skeleton displays during fetch
+- [x] Blocked org cards show name, industry, and available metadata
+- [x] Unblock shows confirmation dialog
+- [x] Unblock calls real mutation → removes from list → shows toast
+- [x] Unblock loading state shows "Unblocking…" on button
+- [x] Block confirmation dialog is reusable (exported component)
+- [x] Block dialog shows consequences list
+- [x] Block dialog has proper accessibility (focus trap, escape, aria)
+- [x] Block mutation works from dialog
+- [x] Empty state shows when no blocked organizations
+- [x] Error states with retry/toast
 
 ---
 

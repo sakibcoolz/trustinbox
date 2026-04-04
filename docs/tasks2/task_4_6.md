@@ -71,36 +71,36 @@ function playMessageSound(): void {
 ## Requirements
 
 ### 4.6.1 — Create Sound Utility
-- [ ] Create `apps/web/src/lib/sounds.ts`:
-  - [ ] `playNotificationSound()` — notification alert tone (different from chat message)
-  - [ ] Use Web Audio API (same pattern as chat-context `playMessageSound`)
-  - [ ] Notification tone: higher pitch, two-note chime (e.g., C5→E5 ascending)
-  - [ ] Chat tone stays as-is (descending pitch in chat-context)
-  - [ ] `isSoundEnabled()` — check localStorage preference
-  - [ ] `setSoundEnabled(enabled: boolean)` — persist to localStorage
-  - [ ] Handle browser autoplay policy gracefully (only play after user interaction)
+- [x] Create `apps/web/src/lib/sounds.ts`:
+  - [x] `playNotificationSound()` — notification alert tone (different from chat message)
+  - [x] Use Web Audio API (same pattern as chat-context `playMessageSound`)
+  - [x] Notification tone: higher pitch, two-note chime (e.g., C5→E5 ascending)
+  - [x] Chat tone stays as-is (descending pitch in chat-context)
+  - [x] `isSoundEnabled()` — check localStorage preference
+  - [x] `setSoundEnabled(enabled: boolean)` — persist to localStorage
+  - [x] Handle browser autoplay policy gracefully (only play after user interaction)
 
 ### 4.6.2 — Wire Sound to SSE Notification Events
-- [ ] Update `apps/web/src/lib/notification-context.tsx`:
-  - [ ] Import `playNotificationSound` and `isSoundEnabled` from `@/lib/sounds`
-  - [ ] On `notification` SSE event → check if sound is enabled → play notification sound
-  - [ ] Only play when tab is active (`!document.hidden`) — when tab is hidden, push notification handles it (Task 4.1)
-  - [ ] Don't play sound if the user is currently on the inbox page (they're already seeing notifications)
-  - [ ] Debounce sound: don't play more than once per 3 seconds (avoid rapid-fire sounds)
+- [x] Update `apps/web/src/lib/notification-context.tsx`:
+  - [x] Import `playNotificationSound` and `isSoundEnabled` from `@/lib/sounds`
+  - [x] On `notification` SSE event → check if sound is enabled → play notification sound
+  - [x] Only play when tab is active (`!document.hidden`) — when tab is hidden, push notification handles it (Task 4.1)
+  - [x] Don't play sound if the user is currently on the inbox page (they're already seeing notifications)
+  - [x] Debounce sound: don't play more than once per 3 seconds (avoid rapid-fire sounds)
 
 ### 4.6.3 — Add Sound Toggle in Settings
-- [ ] Update `apps/web/src/app/(dashboard)/settings/preferences/page.tsx`:
-  - [ ] Add "Notification Sounds" toggle in notification preferences section
-  - [ ] Default: enabled (`true`)
-  - [ ] Toggle saves to localStorage: `trustinbox:notification-sound` key
-  - [ ] Show description: "Play a sound when new notifications arrive"
-  - [ ] Visual feedback: brief sound preview when toggling ON
+- [x] Update `apps/web/src/app/(dashboard)/settings/preferences/page.tsx`:
+  - [x] Add "Notification Sounds" toggle in notification preferences section
+  - [x] Default: enabled (`true`)
+  - [x] Toggle saves to localStorage: `trustinbox:notification-sound` key
+  - [x] Show description: "Play a sound when new notifications arrive"
+  - [x] Visual feedback: brief sound preview when toggling ON
 
 ### 4.6.4 — Respect Browser Autoplay Policy
-- [ ] First call to `playNotificationSound()` may be blocked by browser
-- [ ] After any user interaction (click, keypress) → AudioContext is unlocked
-- [ ] Never throw or show error if sound fails to play — silently ignore
-- [ ] Use AudioContext resume if suspended: `ctx.resume()`
+- [x] First call to `playNotificationSound()` may be blocked by browser
+- [x] After any user interaction (click, keypress) → AudioContext is unlocked
+- [x] Never throw or show error if sound fails to play — silently ignore
+- [x] Use AudioContext resume if suspended: `ctx.resume()`
 
 ---
 
@@ -243,16 +243,16 @@ function SoundToggle() {
 
 ## Verification
 
-- [ ] New notification arrives via SSE → audible chime plays (when tab is active)
-- [ ] Sound does NOT play when tab is hidden (`document.hidden`)
-- [ ] Sound does NOT play more than once per 3 seconds (debounce)
-- [ ] Notification tone is distinct from chat message tone (ascending vs descending)
-- [ ] Settings → Preferences → "Notification Sounds" toggle works
-- [ ] Toggling ON plays a preview of the sound
-- [ ] Toggling OFF → no sound on subsequent notifications
-- [ ] Sound preference persists across page refreshes (localStorage)
-- [ ] Default state is enabled (sound on)
-- [ ] No errors thrown if AudioContext is unavailable (graceful fallback)
-- [ ] Respects browser autoplay policy — sound works after any user interaction
-- [ ] Chat message sound (`playMessageSound`) still works independently
-- [ ] No external audio files required (pure Web Audio API)
+- [x] New notification arrives via SSE → audible chime plays (when tab is active)
+- [x] Sound does NOT play when tab is hidden (`document.hidden`)
+- [x] Sound does NOT play more than once per 3 seconds (debounce)
+- [x] Notification tone is distinct from chat message tone (ascending vs descending)
+- [x] Settings → Preferences → "Notification Sounds" toggle works
+- [x] Toggling ON plays a preview of the sound
+- [x] Toggling OFF → no sound on subsequent notifications
+- [x] Sound preference persists across page refreshes (localStorage)
+- [x] Default state is enabled (sound on)
+- [x] No errors thrown if AudioContext is unavailable (graceful fallback)
+- [x] Respects browser autoplay policy — sound works after any user interaction
+- [x] Chat message sound (`playMessageSound`) still works independently
+- [x] No external audio files required (pure Web Audio API)

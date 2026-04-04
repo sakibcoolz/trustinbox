@@ -111,14 +111,14 @@ if isDNDActive(dndRules, time.Now(), req.Category, req.ServiceProviderID) {
 
 ### Sub-task 6.7.1 — Web App: Create Global DND Rule
 
-- [ ] Log in as a customer on the Web App
-- [ ] Navigate to `/settings/dnd`
-- [ ] Create a GLOBAL DND rule:
+- [x] Log in as a customer on the Web App
+- [x] Navigate to `/settings/dnd`
+- [x] Create a GLOBAL DND rule:
   - Scope: "All Communications" (GLOBAL)
   - Start time: current time (to make DND active NOW)
   - End time: 2 hours from now
   - Days: all days (or today's day)
-- [ ] Verify rule persisted:
+- [x] Verify rule persisted:
   ```sql
   SELECT id, user_id, scope_type, scope_ref_id, start_time, end_time, days_of_week
   FROM dnd_rules
@@ -128,131 +128,131 @@ if isDNDActive(dndRules, time.Now(), req.Category, req.ServiceProviderID) {
   - scope_type: `GLOBAL`
   - scope_ref_id: empty/null
   - start_time/end_time: match input
-- [ ] Verify rule appears in DND rules list with correct details
+- [x] Verify rule appears in DND rules list with correct details
 
 ### Sub-task 6.7.2 — Policy: Notification Denied During DND
 
-- [ ] With the GLOBAL DND rule active (created in 6.7.1):
-- [ ] From Provider Portal, send notification to the customer:
+- [x] With the GLOBAL DND rule active (created in 6.7.1):
+- [x] From Provider Portal, send notification to the customer:
   - Navigate to `/notifications/compose`
   - Select the DND-protected customer
   - Fill in any category notification
   - Submit
-- [ ] Verify policy evaluation returns DENIED:
+- [x] Verify policy evaluation returns DENIED:
   - DecisionCode: `DND_ACTIVE`
   - Reason: "Communication blocked: Do Not Disturb is active"
   - Step: #5 (DND_CHECK)
-- [ ] Verify notification NOT delivered to customer
-- [ ] Verify Provider Portal shows rejection with DND reason
-- [ ] Check Jaeger trace:
+- [x] Verify notification NOT delivered to customer
+- [x] Verify Provider Portal shows rejection with DND reason
+- [x] Check Jaeger trace:
   - `policy-service / Evaluate` span
   - Attribute: `trustinbox.policy_decision = DENY_DND_ACTIVE`
 
 ### Sub-task 6.7.3 — Policy: Callback Denied During DND
 
-- [ ] With GLOBAL DND still active:
-- [ ] From Provider Portal, request callback with the DND-protected customer:
+- [x] With GLOBAL DND still active:
+- [x] From Provider Portal, request callback with the DND-protected customer:
   - Navigate to `/callbacks/new`
   - Select the same customer
   - Submit callback request
-- [ ] Verify policy denies with `DecisionDenyDNDActive`
-- [ ] Verify callback NOT created
-- [ ] Confirm: DND blocks both notifications and callbacks
+- [x] Verify policy denies with `DecisionDenyDNDActive`
+- [x] Verify callback NOT created
+- [x] Confirm: DND blocks both notifications and callbacks
 
 ### Sub-task 6.7.4 — Communication Resumes Outside DND Window
 
-- [ ] Wait for DND window to expire (or update the rule to a past time window):
+- [x] Wait for DND window to expire (or update the rule to a past time window):
   ```sql
   UPDATE dnd_rules SET end_time = '<past-time>'
   WHERE user_id = '<user-id>' AND scope_type = 'GLOBAL';
   ```
-- [ ] From Provider Portal, send the same notification again
-- [ ] Verify policy evaluation now ALLOWS the communication:
+- [x] From Provider Portal, send the same notification again
+- [x] Verify policy evaluation now ALLOWS the communication:
   - Passes step #5 (DND_CHECK) — `isDNDActive()` returns false
   - Continues through remaining steps
   - Final decision: `ALLOW_STANDARD`
-- [ ] Verify notification delivered to customer
-- [ ] Log in as customer on Web App → `/inbox` → notification appears
+- [x] Verify notification delivered to customer
+- [x] Log in as customer on Web App → `/inbox` → notification appears
 
 ### Sub-task 6.7.5 — Organization-Scoped DND Rule
 
-- [ ] Create an ORGANIZATION-scoped DND rule:
+- [x] Create an ORGANIZATION-scoped DND rule:
   - Scope: "Specific Organization"
   - Organization: Select "Acme Financial Services" (specific SP)
   - Start time: current time (active NOW)
   - End time: 2 hours from now
   - Days: all days
-- [ ] Verify rule persisted with:
+- [x] Verify rule persisted with:
   - scope_type: `ORGANIZATION`
   - scope_ref_id: SP ID of "Acme Financial Services"
-- [ ] **Test scoped blocking**:
+- [x] **Test scoped blocking**:
   - Acme Financial → send notification → DENIED (DND active for this SP)
   - Other SP → send notification → ALLOWED (DND not active for this SP)
-- [ ] Verify `isDNDActive()` correctly matches:
+- [x] Verify `isDNDActive()` correctly matches:
   - Rule scope_ref_id == request.ServiceProviderID → DND active
   - Rule scope_ref_id != request.ServiceProviderID → DND not active
 
 ### Sub-task 6.7.6 — Category-Scoped DND Rule
 
-- [ ] Create a CATEGORY-scoped DND rule:
+- [x] Create a CATEGORY-scoped DND rule:
   - Scope: "Specific Category"
   - Category: "ADVERTISEMENT"
   - Start time: current time (active NOW)
   - End time: 2 hours from now
-- [ ] Verify rule persisted with:
+- [x] Verify rule persisted with:
   - scope_type: `CATEGORY`
   - scope_ref_id: `ADVERTISEMENT`
-- [ ] **Test category blocking**:
+- [x] **Test category blocking**:
   - SP sends ADVERTISEMENT notification → DENIED
   - SP sends ORGANIZATIONAL notification → ALLOWED
   - SP sends PERSONAL notification → ALLOWED
-- [ ] Verify `isDNDActive()` matches on category field
+- [x] Verify `isDNDActive()` matches on category field
 
 ### Sub-task 6.7.7 — Day-of-Week Rules
 
-- [ ] Create a DND rule with specific days:
+- [x] Create a DND rule with specific days:
   - Scope: GLOBAL
   - Start time: "00:00"
   - End time: "23:59"
   - Days: only weekdays (MONDAY through FRIDAY)
-- [ ] **If today is a weekday**:
+- [x] **If today is a weekday**:
   - Send notification → DENIED
-- [ ] **If today is a weekend** (or test by verifying rule logic):
+- [x] **If today is a weekend** (or test by verifying rule logic):
   - Send notification → ALLOWED
-- [ ] Delete the test rule after verification
+- [x] Delete the test rule after verification
 
 ### Sub-task 6.7.8 — Multiple Rules & Delete
 
-- [ ] Create multiple overlapping DND rules:
+- [x] Create multiple overlapping DND rules:
   - Rule 1: GLOBAL, nights (22:00-07:00)
   - Rule 2: ORGANIZATION-scoped, all day for SP-A
   - Rule 3: CATEGORY-scoped, all day for ADVERTISEMENT
-- [ ] Verify any matching rule triggers DND:
+- [x] Verify any matching rule triggers DND:
   - During night → all communications blocked (Rule 1)
   - Outside night, SP-A → blocked (Rule 2)
   - Outside night, ADVERTISEMENT from SP-B → blocked (Rule 3)
   - Outside night, ORGANIZATIONAL from SP-B → ALLOWED (no rule matches)
-- [ ] Delete Rule 2 (ORGANIZATION-scoped):
+- [x] Delete Rule 2 (ORGANIZATION-scoped):
   ```sql
   DELETE FROM dnd_rules WHERE id = '<rule-2-id>';
   ```
   - Or via Web App: click "Delete" on the rule
-- [ ] Verify SP-A communication now allowed (outside night hours)
-- [ ] Verify remaining rules still enforced
+- [x] Verify SP-A communication now allowed (outside night hours)
+- [x] Verify remaining rules still enforced
 
 ---
 
 ## Verification Checklist
 
-- [ ] Web App: create GLOBAL DND rule → persisted in dnd_rules table
-- [ ] Policy: notification during active DND → `DecisionDenyDNDActive`
-- [ ] Policy: callback during active DND → `DecisionDenyDNDActive`
-- [ ] Provider Portal: sees DND rejection reason
-- [ ] Communication resumes after DND window expires
-- [ ] ORGANIZATION-scoped DND: only blocks the specific SP, others unaffected
-- [ ] CATEGORY-scoped DND: only blocks specific category, other categories unaffected
-- [ ] Day-of-week filtering: DND only active on specified days
-- [ ] Multiple rules: any matching rule triggers DND
-- [ ] Rule deletion: removes enforcement for that rule only
-- [ ] Web App: customer does NOT receive communications during active DND
-- [ ] Jaeger: traces show DND decision code with rule details
+- [x] Web App: create GLOBAL DND rule → persisted in dnd_rules table
+- [x] Policy: notification during active DND → `DecisionDenyDNDActive`
+- [x] Policy: callback during active DND → `DecisionDenyDNDActive`
+- [x] Provider Portal: sees DND rejection reason
+- [x] Communication resumes after DND window expires
+- [x] ORGANIZATION-scoped DND: only blocks the specific SP, others unaffected
+- [x] CATEGORY-scoped DND: only blocks specific category, other categories unaffected
+- [x] Day-of-week filtering: DND only active on specified days
+- [x] Multiple rules: any matching rule triggers DND
+- [x] Rule deletion: removes enforcement for that rule only
+- [x] Web App: customer does NOT receive communications during active DND
+- [x] Jaeger: traces show DND decision code with rule details

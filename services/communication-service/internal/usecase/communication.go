@@ -23,6 +23,7 @@ type CommunicationUseCase struct {
 	convRepo     repository.ConversationRepository
 	msgRepo      repository.MessageRepository
 	spamRepo     repository.SpamReportRepository
+	docShareRepo repository.DocumentShareRepository
 	policy       PolicyChecker
 	publisher    events.Publisher
 	log          *zap.Logger
@@ -33,6 +34,7 @@ func NewCommunicationUseCase(
 	convRepo repository.ConversationRepository,
 	msgRepo repository.MessageRepository,
 	spamRepo repository.SpamReportRepository,
+	docShareRepo repository.DocumentShareRepository,
 	policy PolicyChecker,
 	publisher events.Publisher,
 	log *zap.Logger,
@@ -42,6 +44,7 @@ func NewCommunicationUseCase(
 		convRepo:     convRepo,
 		msgRepo:      msgRepo,
 		spamRepo:     spamRepo,
+		docShareRepo: docShareRepo,
 		policy:       policy,
 		publisher:    publisher,
 		log:          log,
@@ -83,6 +86,20 @@ func (uc *CommunicationUseCase) CreateCallbackRequest(ctx context.Context, req *
 		"status":              req.Status,
 	})
 
+	return req, nil
+}
+
+// GetCallbackRequest retrieves a single callback request by ID.
+func (uc *CommunicationUseCase) GetCallbackRequest(ctx context.Context, id string) (*entity.CallbackRequest, error) {
+	ctx, span := tracing.StartSpan(ctx, "communication-service", "GetCallbackRequest",
+		attribute.String("callback_request_id", id),
+	)
+	defer span.End()
+
+	req, err := uc.callbackRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, bzerr.NotFound("callback_request", id)
+	}
 	return req, nil
 }
 
@@ -215,4 +232,9 @@ func (uc *CommunicationUseCase) ListCallbackRequests(ctx context.Context, userID
 // ListConversations lists conversations for a user.
 func (uc *CommunicationUseCase) ListConversations(ctx context.Context, userID string, limit, offset int) ([]entity.Conversation, int, error) {
 	return uc.convRepo.ListByUser(ctx, userID, limit, offset)
+}
+
+// ListDocumentShares lists document shares for a user.
+func (uc *CommunicationUseCase) ListDocumentShares(ctx context.Context, userID string, limit, offset int) ([]entity.DocumentShare, int, error) {
+	return uc.docShareRepo.ListByUser(ctx, userID, limit, offset)
 }

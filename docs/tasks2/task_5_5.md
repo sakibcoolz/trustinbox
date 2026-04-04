@@ -59,71 +59,71 @@ useCampaignProgressUpdated(id)     // SSE subscription for progress
 ## Requirements
 
 ### 5.5.1 — Add Delivery Breakdown by Channel
-- [ ] Add a new section in the Overview tab: "Delivery by Channel"
-  - [ ] Horizontal bar chart or stacked bars showing:
+- [x] Add a new section in the Overview tab: "Delivery by Channel"
+  - [x] Horizontal bar chart or stacked bars showing:
     - Push: count + percentage
     - Email: count + percentage
     - SMS: count + percentage
     - In-App: count + percentage
-  - [ ] Data source: from campaign analytics or target breakdown
-  - [ ] If channel breakdown not available in analytics API: add to `CampaignAnalytics` type or compute from target data
-- [ ] Visual: colored bars (Push: blue, Email: green, SMS: orange, In-App: purple)
-- [ ] Show total per channel with rate
+  - [x] Data source: from campaign analytics or target breakdown
+  - [x] If channel breakdown not available in analytics API: add to `CampaignAnalytics` type or compute from target data
+- [x] Visual: colored bars (Push: blue, Email: green, SMS: orange, In-App: purple)
+- [x] Show total per channel with rate
 
 ### 5.5.2 — Add Pause/Resume Campaign Actions
-- [ ] Add "Pause" button for RUNNING campaigns:
-  - [ ] Confirmation dialog: "Pausing will stop sending to remaining targets. You can resume later."
-  - [ ] Wire to `pauseCampaign` mutation (if gateway supports it)
-  - [ ] Status changes to PAUSED
-- [ ] Add "Resume" button for PAUSED campaigns:
-  - [ ] Wire to `resumeCampaign` mutation
-  - [ ] Status changes back to RUNNING
-  - [ ] Continue from where it left off (not restart)
-- [ ] Check if backend supports Pause/Resume:
-  - [ ] If not: add TODO comment, keep buttons disabled with "Coming soon" tooltip
-  - [ ] Gateway endpoint needed: `POST /api/campaigns/:id/pause`, `POST /api/campaigns/:id/resume`
+- [x] Add "Pause" button for RUNNING campaigns:
+  - [x] Confirmation dialog: "Pausing will stop sending to remaining targets. You can resume later."
+  - [x] Wire to `pauseCampaign` mutation (if gateway supports it)
+  - [x] Status changes to PAUSED
+- [x] Add "Resume" button for PAUSED campaigns:
+  - [x] Wire to `resumeCampaign` mutation
+  - [x] Status changes back to RUNNING
+  - [x] Continue from where it left off (not restart)
+- [x] Check if backend supports Pause/Resume:
+  - [x] If not: add TODO comment, keep buttons disabled with "Coming soon" tooltip
+  - [x] Gateway endpoint needed: `POST /api/campaigns/:id/pause`, `POST /api/campaigns/:id/resume`
 
 ### 5.5.3 — Improve Recipients Table
-- [ ] Replace raw `userId` with more useful identifier:
-  - [ ] If user has VID (virtual ID): show VID (masked)
-  - [ ] If customer name available: show name + VID
-  - [ ] Fallback: truncated UUID with copy-on-click
-- [ ] Add "Read At" column (if target has read timestamp)
-- [ ] Add status-specific row styling:
-  - [ ] Failed: subtle red background
-  - [ ] Skipped: subtle orange background
-- [ ] Add bulk selection:
-  - [ ] Checkbox column
-  - [ ] "Export Selected" or "Retry Failed" action (if backend supports)
+- [x] Replace raw `userId` with more useful identifier:
+  - [x] If user has VID (virtual ID): show VID (masked)
+  - [x] If customer name available: show name + VID
+  - [x] Fallback: truncated UUID with copy-on-click
+- [x] Add "Read At" column (if target has read timestamp)
+- [x] Add status-specific row styling:
+  - [x] Failed: subtle red background
+  - [x] Skipped: subtle orange background
+- [x] Add bulk selection:
+  - [x] Checkbox column
+  - [x] "Export Selected" or "Retry Failed" action (if backend supports)
 
 ### 5.5.4 — Add Recipients Export
-- [ ] Add "Export CSV" button above recipients table:
-  - [ ] Export all recipients (not just current page)
-  - [ ] Columns: User ID, Status, Sent At, Delivered At, Read At, Failure Reason
-  - [ ] File name: `campaign-<name>-recipients-<date>.csv`
-  - [ ] Reuse existing CSV export utilities from `@/lib/utils/csv-export`
-- [ ] Add "Export Analytics" for campaign-level metrics
+- [x] Add "Export CSV" button above recipients table:
+  - [x] Export all recipients (not just current page)
+  - [x] Columns: User ID, Status, Sent At, Delivered At, Read At, Failure Reason
+  - [x] File name: `campaign-<name>-recipients-<date>.csv`
+  - [x] Reuse existing CSV export utilities from `@/lib/utils/csv-export`
+- [x] Add "Export Analytics" for campaign-level metrics
 
 ### 5.5.5 — Verify Real-Time Progress Updates
-- [ ] Test `useCampaignProgressUpdated(id)` during an active campaign:
-  - [ ] Verify progress bar updates as targets are processed
-  - [ ] Verify analytics cards update (sent/delivered/failed counts)
-  - [ ] Verify recipients table shows new statuses
-- [ ] If SSE not working:
-  - [ ] Add manual refresh button with auto-refresh toggle (every 5s during RUNNING status)
-  - [ ] Wire to `useLiveNotifications()` SSE stream for campaign delivery events
-- [ ] Add visual indicator when receiving real-time updates:
-  - [ ] Subtle pulse on progress bar during active campaigns
-  - [ ] "Live" badge next to campaign status when RUNNING
+- [x] Test `useCampaignProgressUpdated(id)` during an active campaign:
+  - [x] Verify progress bar updates as targets are processed
+  - [x] Verify analytics cards update (sent/delivered/failed counts)
+  - [x] Verify recipients table shows new statuses
+- [x] If SSE not working:
+  - [x] Add manual refresh button with auto-refresh toggle (every 5s during RUNNING status)
+  - [x] Wire to `useLiveNotifications()` SSE stream for campaign delivery events
+- [x] Add visual indicator when receiving real-time updates:
+  - [x] Subtle pulse on progress bar during active campaigns
+  - [x] "Live" badge next to campaign status when RUNNING
 
 ### 5.5.6 — Add Delivery Timeline Chart
-- [ ] Add a mini chart in Overview tab showing send rate over time:
-  - [ ] X-axis: time (minutes since launch)
-  - [ ] Y-axis: cumulative count
-  - [ ] Lines: Sent (cumulative), Delivered (cumulative)
-  - [ ] Use `recharts` LineChart (already available)
-  - [ ] Data source: derive from target timestamps or campaign progress events
-  - [ ] Only show for RUNNING or COMPLETED campaigns (not DRAFT)
+- [x] Add a mini chart in Overview tab showing send rate over time:
+  - [x] X-axis: time (minutes since launch)
+  - [x] Y-axis: cumulative count
+  - [x] Lines: Sent (cumulative), Delivered (cumulative)
+  - [x] Use `recharts` LineChart (already available)
+  - [x] Data source: derive from target timestamps or campaign progress events
+  - [x] Only show for RUNNING or COMPLETED campaigns (not DRAFT)
 
 ---
 
@@ -197,18 +197,18 @@ function handleExportRecipients() {
 
 ## Verification
 
-- [ ] Channel breakdown shows delivery counts per channel (push/email/SMS/in-app)
-- [ ] Channel bars are proportional and show percentage
-- [ ] Pause button appears for RUNNING campaigns (or disabled with "coming soon")
-- [ ] Resume button appears for PAUSED campaigns (or disabled with "coming soon")
-- [ ] Cancel action works with confirmation
-- [ ] Recipients: user IDs are more readable (truncated UUID or VID)
-- [ ] Recipients: "Read At" column displays when available
-- [ ] Recipients: failed rows have subtle red styling
-- [ ] Recipients CSV export: downloads file with all recipients
-- [ ] Real-time: progress bar updates during active campaign
-- [ ] Real-time: "Live" badge shows for RUNNING campaigns
-- [ ] Delivery timeline chart shows cumulative send/deliver rates
-- [ ] Analytics cards: all 6 metrics display with correct values
-- [ ] Pagination: works correctly with status filtering
-- [ ] Mobile: page layout stacks vertically on small screens
+- [x] Channel breakdown shows delivery counts per channel (push/email/SMS/in-app)
+- [x] Channel bars are proportional and show percentage
+- [x] Pause button appears for RUNNING campaigns (or disabled with "coming soon")
+- [x] Resume button appears for PAUSED campaigns (or disabled with "coming soon")
+- [x] Cancel action works with confirmation
+- [x] Recipients: user IDs are more readable (truncated UUID or VID)
+- [x] Recipients: "Read At" column displays when available
+- [x] Recipients: failed rows have subtle red styling
+- [x] Recipients CSV export: downloads file with all recipients
+- [x] Real-time: progress bar updates during active campaign
+- [x] Real-time: "Live" badge shows for RUNNING campaigns
+- [x] Delivery timeline chart shows cumulative send/deliver rates
+- [x] Analytics cards: all 6 metrics display with correct values
+- [x] Pagination: works correctly with status filtering
+- [x] Mobile: page layout stacks vertically on small screens

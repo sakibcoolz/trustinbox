@@ -50,80 +50,80 @@ Create a multi-step onboarding wizard that guides new users through initial setu
 ## Requirements
 
 ### 4.9.1 — Create Onboarding Wizard Shell
-- [ ] Create `apps/web/src/components/onboarding/OnboardingWizard.tsx`:
-  - [ ] Full-screen overlay on top of the dashboard (z-50)
-  - [ ] Step progress indicator (dots or numbered bar)
-  - [ ] Back / Next / Skip navigation buttons
-  - [ ] Step content area with smooth transitions
-  - [ ] "Don't show again" or "Skip all" option
-  - [ ] On completion → set `localStorage.setItem('trustinbox:onboarding-complete', 'true')`
-  - [ ] Fade-in animation on mount, fade-out on completion
+- [x] Create `apps/web/src/components/onboarding/OnboardingWizard.tsx`:
+  - [x] Full-screen overlay on top of the dashboard (z-50)
+  - [x] Step progress indicator (dots or numbered bar)
+  - [x] Back / Next / Skip navigation buttons
+  - [x] Step content area with smooth transitions
+  - [x] "Don't show again" or "Skip all" option
+  - [x] On completion → set `localStorage.setItem('trustinbox:onboarding-complete', 'true')`
+  - [x] Fade-in animation on mount, fade-out on completion
 
 ### 4.9.2 — Step 1: Welcome
-- [ ] Create `apps/web/src/components/onboarding/steps/WelcomeStep.tsx`:
-  - [ ] TrustInbox logo and brand name
-  - [ ] Welcome message: "Welcome to TrustInbox"
-  - [ ] Brief overview: "Take control of your communications. TrustInbox puts you in charge of when and how service providers can contact you."
-  - [ ] Feature highlights (3 cards or icons):
+- [x] Create `apps/web/src/components/onboarding/steps/WelcomeStep.tsx`:
+  - [x] TrustInbox logo and brand name
+  - [x] Welcome message: "Welcome to TrustInbox"
+  - [x] Brief overview: "Take control of your communications. TrustInbox puts you in charge of when and how service providers can contact you."
+  - [x] Feature highlights (3 cards or icons):
     - Privacy-first: Control who can reach you
     - Smart filtering: Organize by category
     - Callback scheduling: Accept calls on your terms
-  - [ ] "Get Started" button → next step
+  - [x] "Get Started" button → next step
 
 ### 4.9.3 — Step 2: Privacy Preferences
-- [ ] Create `apps/web/src/components/onboarding/steps/PrivacyStep.tsx`:
-  - [ ] Header: "Set Your Privacy Preferences"
-  - [ ] Description: "Choose which types of communications you want to receive"
-  - [ ] Three category toggles:
+- [x] Create `apps/web/src/components/onboarding/steps/PrivacyStep.tsx`:
+  - [x] Header: "Set Your Privacy Preferences"
+  - [x] Description: "Choose which types of communications you want to receive"
+  - [x] Three category toggles:
     - Personal: messages from friends and contacts (default: ON)
     - Service Provider: updates from organizations you work with (default: ON)
     - Advertisements: promotional content from service providers (default: OFF)
-  - [ ] Save preferences via `updateMyPrivacyPreferences` mutation (or batch on wizard completion)
-  - [ ] Skip option: uses defaults
+  - [x] Save preferences via `updateMyPrivacyPreferences` mutation (or batch on wizard completion)
+  - [x] Skip option: uses defaults
 
 ### 4.9.4 — Step 3: Do Not Disturb
-- [ ] Create `apps/web/src/components/onboarding/steps/DNDStep.tsx`:
-  - [ ] Header: "Set Quiet Hours"
-  - [ ] Description: "Block notifications during specific times"
-  - [ ] Quick preset buttons:
+- [x] Create `apps/web/src/components/onboarding/steps/DNDStep.tsx`:
+  - [x] Header: "Set Quiet Hours"
+  - [x] Description: "Block notifications during specific times"
+  - [x] Quick preset buttons:
     - "Overnight (10 PM – 8 AM)" → pre-fills time range
     - "Weekday Evenings (6 PM – 9 AM)" → pre-fills time range
     - "Custom" → shows time picker
-  - [ ] Day selector: checkboxes for Mon–Sun
-  - [ ] Time range: start time → end time
-  - [ ] Create DND rule via `createDNDRule` mutation (or batch on wizard completion)
-  - [ ] Skip option: no DND rule created
+  - [x] Day selector: checkboxes for Mon–Sun
+  - [x] Time range: start time → end time
+  - [x] Create DND rule via `createDNDRule` mutation (or batch on wizard completion)
+  - [x] Skip option: no DND rule created
 
 ### 4.9.5 — Step 4: Availability
-- [ ] Create `apps/web/src/components/onboarding/steps/AvailabilityStep.tsx`:
-  - [ ] Header: "Set Your Availability"
-  - [ ] Description: "Let service providers know when you're available for callbacks"
-  - [ ] Quick preset buttons:
+- [x] Create `apps/web/src/components/onboarding/steps/AvailabilityStep.tsx`:
+  - [x] Header: "Set Your Availability"
+  - [x] Description: "Let service providers know when you're available for callbacks"
+  - [x] Quick preset buttons:
     - "Weekday Business Hours (9 AM – 5 PM)" → pre-fills
     - "Flexible (10 AM – 8 PM)" → pre-fills
     - "Custom" → shows time/day picker
-  - [ ] Type selector: Callback, Meeting
-  - [ ] Day selector: checkboxes for Mon–Sun
-  - [ ] Time range: start time → end time
-  - [ ] Create availability slot via `createAvailabilitySlot` mutation (or batch on wizard completion)
-  - [ ] Skip option: no slot created
+  - [x] Type selector: Callback, Meeting
+  - [x] Day selector: checkboxes for Mon–Sun
+  - [x] Time range: start time → end time
+  - [x] Create availability slot via `createAvailabilitySlot` mutation (or batch on wizard completion)
+  - [x] Skip option: no slot created
 
 ### 4.9.6 — Step 5: Complete
-- [ ] Create `apps/web/src/components/onboarding/steps/CompleteStep.tsx`:
-  - [ ] Header: "You're All Set!"
-  - [ ] Summary of what was configured:
+- [x] Create `apps/web/src/components/onboarding/steps/CompleteStep.tsx`:
+  - [x] Header: "You're All Set!"
+  - [x] Summary of what was configured:
     - Privacy: "Category preferences updated" or "Using defaults"
     - DND: "Overnight quiet hours enabled" or "No rules set"
     - Availability: "Business hours availability set" or "No slots set"
-  - [ ] "Go to Dashboard" button → closes wizard
-  - [ ] Confetti or checkmark animation (subtle)
+  - [x] "Go to Dashboard" button → closes wizard
+  - [x] Confetti or checkmark animation (subtle)
 
 ### 4.9.7 — Wire Wizard to Dashboard Layout
-- [ ] Update `apps/web/src/app/(dashboard)/layout.tsx`:
-  - [ ] Check `localStorage.getItem('trustinbox:onboarding-complete')`
-  - [ ] If NOT complete → render `<OnboardingWizard />` overlay on top of dashboard
-  - [ ] On wizard completion → set flag, hide wizard, show dashboard
-  - [ ] Use `useState` + `useEffect` to avoid SSR mismatch
+- [x] Update `apps/web/src/app/(dashboard)/layout.tsx`:
+  - [x] Check `localStorage.getItem('trustinbox:onboarding-complete')`
+  - [x] If NOT complete → render `<OnboardingWizard />` overlay on top of dashboard
+  - [x] On wizard completion → set flag, hide wizard, show dashboard
+  - [x] Use `useState` + `useEffect` to avoid SSR mismatch
 
 ---
 
@@ -325,17 +325,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 ## Verification
 
-- [ ] First-time login → onboarding wizard appears as full-screen overlay
-- [ ] Progress dots reflect current step
-- [ ] Step 1 (Welcome): shows logo, features, "Get Started" button
-- [ ] Step 2 (Privacy): category toggles work, "Next" saves preferences, "Skip" moves on
-- [ ] Step 3 (DND): preset buttons pre-fill time/day, "Next" creates rule, "Skip" moves on
-- [ ] Step 4 (Availability): preset buttons pre-fill, "Next" creates slot, "Skip" moves on
-- [ ] Step 5 (Complete): shows configuration summary, "Go to Dashboard" closes wizard
-- [ ] "Skip setup" on any step → closes wizard, marks complete
-- [ ] Back button navigates to previous step
-- [ ] `localStorage.getItem('trustinbox:onboarding-complete')` is `'true'` after completion
-- [ ] Subsequent logins → wizard does NOT appear
-- [ ] If saved preferences/rules actually exist in backend after wizard completion
-- [ ] Wizard looks good on mobile (full-width card, smaller padding)
-- [ ] No flash of dashboard content before wizard appears (useEffect + conditional render)
+- [x] First-time login → onboarding wizard appears as full-screen overlay
+- [x] Progress dots reflect current step
+- [x] Step 1 (Welcome): shows logo, features, "Get Started" button
+- [x] Step 2 (Privacy): category toggles work, "Next" saves preferences, "Skip" moves on
+- [x] Step 3 (DND): preset buttons pre-fill time/day, "Next" creates rule, "Skip" moves on
+- [x] Step 4 (Availability): preset buttons pre-fill, "Next" creates slot, "Skip" moves on
+- [x] Step 5 (Complete): shows configuration summary, "Go to Dashboard" closes wizard
+- [x] "Skip setup" on any step → closes wizard, marks complete
+- [x] Back button navigates to previous step
+- [x] `localStorage.getItem('trustinbox:onboarding-complete')` is `'true'` after completion
+- [x] Subsequent logins → wizard does NOT appear
+- [x] If saved preferences/rules actually exist in backend after wizard completion
+- [x] Wizard looks good on mobile (full-width card, smaller padding)
+- [x] No flash of dashboard content before wizard appears (useEffect + conditional render)

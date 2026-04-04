@@ -130,25 +130,25 @@ callbackRequests(status: CallbackRequestStatus, limit: Int, offset: Int): Callba
 
 ### Requirements
 
-- [ ] Create `apps/web/src/lib/graphql/dashboard.ts`:
-  - [ ] `GET_DASHBOARD_SUMMARY` query — returns `DashboardSummary` fields
-- [ ] Create `apps/web/src/hooks/useDashboard.ts` hook:
-  - [ ] Use `useQuery(GET_DASHBOARD_SUMMARY)` with `pollInterval: 30000` (30s auto-refresh)
-  - [ ] Return `{ summary, loading, error, refetch }`
-- [ ] Update `page.tsx` stats grid:
-  - [ ] Replace context-derived stats with `dashboardSummary` data
-  - [ ] Stat cards:
-    - [ ] "Unread Personal" → `unreadPersonal` (accent-blue)
-    - [ ] "Unread SP" → `unreadServiceProvider` (accent-orange)
-    - [ ] "Unread Ads" → `unreadAdvertisements` (accent-purple)
-    - [ ] "Pending Callbacks" → `pendingCallbackRequests` (accent-green)
-    - [ ] "Conversations" → `totalConversations` (accent-cyan)
-  - [ ] Keep SSE `unreadCount` for real-time badge updates (merge with query data)
-- [ ] Update or replace `DashboardSummaryCards` component:
-  - [ ] Wire to query data instead of hardcoded values
-  - [ ] Or remove if main page uses its own stats grid
-- [ ] Add loading skeleton for stats grid (5 skeleton cards)
-- [ ] Add 30-second auto-refresh via Apollo `pollInterval`
+- [x] Create `apps/web/src/lib/graphql/dashboard.ts`:
+  - [x] `GET_DASHBOARD_SUMMARY` query — returns `DashboardSummary` fields
+- [x] Create `apps/web/src/hooks/useDashboard.ts` hook:
+  - [x] Use `useQuery(GET_DASHBOARD_SUMMARY)` with `pollInterval: 30000` (30s auto-refresh)
+  - [x] Return `{ summary, loading, error, refetch }`
+- [x] Update `page.tsx` stats grid:
+  - [x] Replace context-derived stats with `dashboardSummary` data
+  - [x] Stat cards:
+    - [x] "Unread Personal" → `unreadPersonal` (accent-blue)
+    - [x] "Unread SP" → `unreadServiceProvider` (accent-orange)
+    - [x] "Unread Ads" → `unreadAdvertisements` (accent-purple)
+    - [x] "Pending Callbacks" → `pendingCallbackRequests` (accent-green)
+    - [x] "Conversations" → `totalConversations` (accent-cyan)
+  - [x] Keep SSE `unreadCount` for real-time badge updates (merge with query data)
+- [x] Update or replace `DashboardSummaryCards` component:
+  - [x] Wire to query data instead of hardcoded values
+  - [x] Or remove if main page uses its own stats grid
+- [x] Add loading skeleton for stats grid (5 skeleton cards)
+- [x] Add 30-second auto-refresh via Apollo `pollInterval`
 
 ### Implementation Details
 
@@ -207,19 +207,19 @@ const stats = [
 
 ### Requirements
 
-- [ ] Update `features/dashboard/recent-notifications.tsx`:
-  - [ ] Replace empty stub with real `notifications` query
-  - [ ] Query: `GET_NOTIFICATIONS` with `{ limit: 5 }` (reuse from Task 3A)
-  - [ ] Show last 5 notifications: icon, title, SP name, time ago
-  - [ ] Click notification → navigate to `/inbox` (or open detail drawer)
-  - [ ] "View All" link → `/inbox`
-- [ ] **OR** update the inline notifications section in `page.tsx`:
-  - [ ] Currently uses `notifications.slice(0, 5)` from SSE context
-  - [ ] Enhance with GraphQL query for persistent history (SSE only has recent buffer)
-  - [ ] Show category badge (Personal/SP/Ad) on each item
-  - [ ] Show unread indicator dot
-- [ ] Auto-refresh: piggyback on dashboard poll or separate 30s poll
-- [ ] Loading skeleton: 5 notification row placeholders
+- [x] Update `features/dashboard/recent-notifications.tsx`:
+  - [x] Replace empty stub with real `notifications` query
+  - [x] Query: `GET_NOTIFICATIONS` with `{ limit: 5 }` (reuse from Task 3A)
+  - [x] Show last 5 notifications: icon, title, SP name, time ago
+  - [x] Click notification → navigate to `/inbox` (or open detail drawer)
+  - [x] "View All" link → `/inbox`
+- [x] **OR** update the inline notifications section in `page.tsx`:
+  - [x] Currently uses `notifications.slice(0, 5)` from SSE context
+  - [x] Enhance with GraphQL query for persistent history (SSE only has recent buffer)
+  - [x] Show category badge (Personal/SP/Ad) on each item
+  - [x] Show unread indicator dot
+- [x] Auto-refresh: piggyback on dashboard poll or separate 30s poll
+- [x] Loading skeleton: 5 notification row placeholders
 
 ### Implementation Details
 
@@ -275,24 +275,24 @@ export function RecentNotifications() {
 
 ### Requirements
 
-- [ ] Update `features/dashboard/pending-callbacks.tsx`:
-  - [ ] Replace empty stub with real `callbackRequests` query
-  - [ ] Query: `GET_CALLBACK_REQUESTS` with `{ status: 'PENDING', limit: 5 }` (reuse from Task 3B)
-  - [ ] Show pending callbacks: SP name, reason, time requested
-  - [ ] Inline quick actions: "Approve" / "Reject" buttons
-  - [ ] Pending count badge in header
-  - [ ] "View All" link → `/callbacks`
-- [ ] Approve inline:
-  - [ ] Click approve → show minimal slot picker (or use next available slot)
-  - [ ] Call `approveCallbackRequest` mutation
-  - [ ] Optimistic removal from widget
-- [ ] Reject inline:
-  - [ ] Click reject → call `rejectCallbackRequest` mutation with no reason
-  - [ ] Optimistic removal from widget
-- [ ] Show next upcoming approved callback:
-  - [ ] Find nearest `APPROVED` callback in the future
-  - [ ] Show countdown: "Next callback with {SP} in {time}"
-- [ ] Auto-refresh: pollInterval 30s or refetch on SSE callback event
+- [x] Update `features/dashboard/pending-callbacks.tsx`:
+  - [x] Replace empty stub with real `callbackRequests` query
+  - [x] Query: `GET_CALLBACK_REQUESTS` with `{ status: 'PENDING', limit: 5 }` (reuse from Task 3B)
+  - [x] Show pending callbacks: SP name, reason, time requested
+  - [x] Inline quick actions: "Approve" / "Reject" buttons
+  - [x] Pending count badge in header
+  - [x] "View All" link → `/callbacks`
+- [x] Approve inline:
+  - [x] Click approve → show minimal slot picker (or use next available slot)
+  - [x] Call `approveCallbackRequest` mutation
+  - [x] Optimistic removal from widget
+- [x] Reject inline:
+  - [x] Click reject → call `rejectCallbackRequest` mutation with no reason
+  - [x] Optimistic removal from widget
+- [x] Show next upcoming approved callback:
+  - [x] Find nearest `APPROVED` callback in the future
+  - [x] Show countdown: "Next callback with {SP} in {time}"
+- [x] Auto-refresh: pollInterval 30s or refetch on SSE callback event
 
 ### Implementation Details
 
@@ -361,29 +361,29 @@ export function PendingCallbacks() {
 
 ### Requirements
 
-- [ ] Replace mock data in `AISummaryWidget` with real backend calls:
-  - [ ] **Conversation Summaries tab**: call `ai-service` for conversation summarization
-    - [ ] Endpoint: `GET /api/ai/summaries?type=conversations` (or GraphQL if available)
-    - [ ] Returns: SP name, summary text, sentiment, last activity time
-    - [ ] Fallback: if AI service unavailable, show "AI summaries unavailable" with retry
-  - [ ] **Notification Digest tab**: compute from real notification data
-    - [ ] Group `notifications(limit: 50)` by category → count + highlight
-    - [ ] "Daily" / "Weekly" period filter
-    - [ ] Highlight: pick most notable notification per category
-  - [ ] **Smart Tags tab**: AI-driven categorization
-    - [ ] Endpoint: `GET /api/ai/categorize?type=notifications` (or compute client-side)
-    - [ ] Tags: Action Required, Informational, Promotions, Completed
-    - [ ] Count per tag + click to filter inbox
-- [ ] Remove all mock data arrays:
-  - [ ] Remove `mockSummaries`, `mockDigest`, `mockCategories`
-  - [ ] Replace with query/fetch results
-- [ ] Loading states per tab:
-  - [ ] Each tab loads independently
-  - [ ] Show skeleton specific to tab content
-- [ ] Error handling:
-  - [ ] AI service errors: show fallback ("AI insights temporarily unavailable")
-  - [ ] Don't break the dashboard if AI service is down
-  - [ ] Retry button per tab
+- [x] Replace mock data in `AISummaryWidget` with real backend calls:
+  - [x] **Conversation Summaries tab**: call `ai-service` for conversation summarization
+    - [x] Endpoint: `GET /api/ai/summaries?type=conversations` (or GraphQL if available)
+    - [x] Returns: SP name, summary text, sentiment, last activity time
+    - [x] Fallback: if AI service unavailable, show "AI summaries unavailable" with retry
+  - [x] **Notification Digest tab**: compute from real notification data
+    - [x] Group `notifications(limit: 50)` by category → count + highlight
+    - [x] "Daily" / "Weekly" period filter
+    - [x] Highlight: pick most notable notification per category
+  - [x] **Smart Tags tab**: AI-driven categorization
+    - [x] Endpoint: `GET /api/ai/categorize?type=notifications` (or compute client-side)
+    - [x] Tags: Action Required, Informational, Promotions, Completed
+    - [x] Count per tag + click to filter inbox
+- [x] Remove all mock data arrays:
+  - [x] Remove `mockSummaries`, `mockDigest`, `mockCategories`
+  - [x] Replace with query/fetch results
+- [x] Loading states per tab:
+  - [x] Each tab loads independently
+  - [x] Show skeleton specific to tab content
+- [x] Error handling:
+  - [x] AI service errors: show fallback ("AI insights temporarily unavailable")
+  - [x] Don't break the dashboard if AI service is down
+  - [x] Retry button per tab
 
 ### Implementation Details
 
@@ -423,21 +423,21 @@ const fetchSummaries = async () => {
 
 ## Verification Checklist
 
-- [ ] Dashboard stats grid shows real data from `dashboardSummary` query
-- [ ] Stats auto-refresh every 30 seconds
-- [ ] Stats loading skeleton shows during initial query
-- [ ] Recent notifications widget shows last 5 real notifications
-- [ ] Notification items show category icon, title, SP name, time ago
-- [ ] Click notification navigates to inbox
-- [ ] Pending callbacks widget shows real pending callbacks
-- [ ] Inline approve/reject buttons work on callback widget
-- [ ] Pending count badge shows in callbacks widget header
-- [ ] AI summary widget — Conversations tab shows real summaries (or graceful fallback)
-- [ ] AI summary widget — Digest tab computes from real notification data
-- [ ] AI summary widget — Smart Tags tab shows categorization (or placeholder)
-- [ ] All mock data removed (`mockSummaries`, `mockDigest`, `mockCategories`)
-- [ ] Dashboard doesn't break if AI service is unavailable
-- [ ] Mobile responsive layout
+- [x] Dashboard stats grid shows real data from `dashboardSummary` query
+- [x] Stats auto-refresh every 30 seconds
+- [x] Stats loading skeleton shows during initial query
+- [x] Recent notifications widget shows last 5 real notifications
+- [x] Notification items show category icon, title, SP name, time ago
+- [x] Click notification navigates to inbox
+- [x] Pending callbacks widget shows real pending callbacks
+- [x] Inline approve/reject buttons work on callback widget
+- [x] Pending count badge shows in callbacks widget header
+- [x] AI summary widget — Conversations tab shows real summaries (or graceful fallback)
+- [x] AI summary widget — Digest tab computes from real notification data
+- [x] AI summary widget — Smart Tags tab shows categorization (or placeholder)
+- [x] All mock data removed (`mockSummaries`, `mockDigest`, `mockCategories`)
+- [x] Dashboard doesn't break if AI service is unavailable
+- [x] Mobile responsive layout
 
 ---
 

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/trustinbox/graphql-bff/internal/clients"
 	botpb "github.com/trustinbox/proto/gen/bot/v1"
 	commpb "github.com/trustinbox/proto/gen/communication/v1"
@@ -203,7 +204,7 @@ func handleProviderNotifications(svc *clients.ServiceClients, db *sql.DB, log *z
 
 // ─── Callbacks /api/v1/callbacks ───────────────────────────
 
-func handleProviderCallbacks(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger) http.HandlerFunc {
+func handleProviderCallbacks(svc *clients.ServiceClients, db *sql.DB, rdb *redis.Client, log *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		spID := spIDFromCtx(r.Context())
 
@@ -219,7 +220,7 @@ func handleProviderCallbacks(svc *clients.ServiceClients, db *sql.DB, log *zap.L
 					writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
 					return
 				}
-				dbUpdateCallbackStatus(w, r, db, log, spID, id, parts[1])
+				dbUpdateCallbackStatus(w, r, db, rdb, log, spID, id, parts[1])
 				return
 			}
 			// GET /api/v1/callbacks/{id}

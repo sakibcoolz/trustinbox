@@ -1,7 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { useNotifications, Notification } from '@/lib/notification-context';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
+import { useNotifications } from '@/lib/notification-context';
+import { useNotificationsGql } from '@/hooks/useNotificationsGql';
+import { useDetailParam } from '@/hooks/useDetailParam';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Inbox, Bell } from 'lucide-react';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 const tabs = ['All', 'Personal', 'Business', 'Ads'] as const;
 
@@ -9,36 +16,141 @@ const categoryChip: Record<string, string> = {
   Personal: 'chip-blue',
   Business: 'chip-green',
   Ads: 'chip-orange',
-  FRIEND_REQUEST: 'chip-blue',
-  FRIEND_ACCEPTED: 'chip-green',
+  PERSONAL: 'chip-blue',
+  SERVICE_PROVIDER: 'chip-green',
+  ADVERTISEMENT: 'chip-orange',
 };
 
-function getCategory(n: Notification): string {
-  if (n.type === 'FRIEND_REQUEST' || n.type === 'FRIEND_ACCEPTED') return 'Personal';
+const categoryMap: Record<string, string | undefined> = {
+  All: undefined,
+  Personal: 'PERSONAL',
+  Business: 'SERVICE_PROVIDER',
+  Ads: 'ADVERTISEMENT',
+};
+
+function getCategoryLabel(category?: string): string {
+  if (category === 'PERSONAL') return 'Personal';
+  if (category === 'SERVICE_PROVIDER') return 'Business';
+  if (category === 'ADVERTISEMENT') return 'Ads';
   return 'Business';
 }
 
+const PAGE_SIZE = 20;
+
 export default function InboxPage() {
-  const { notifications, markRead } = useNotifications();
+  return (
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center"><p className="text-sm text-text-muted">Loading…</p></div>}>
+      <InboxContent />
+    </Suspense>
+  );
+}
+
+function InboxContent() {
+  // SSE context for real-time overlay and unread badge
+  const { notifications: sseNotifications } = useNotifications();
+  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>('All');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { selectedId, setSelectedId, clearSelectedId } = useDetailParam();
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
+  const [page, setPage] = useState(0);
 
-  const filtered = activeTab === 'All'
-    ? notifications
-    : notifications.filter((n) => getCategory(n) === activeTab);
+  const categoryFilter = categoryMap[activeTab];
+  const { notifications: gqlNotifications, totalCount, loading, error, refetch, markRead, archive, markAllRead } = useNotificationsGql({
+    category: categoryFilter,
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
+  });
 
-  const selected = notifications.find((n) => n.id === selectedId) || null;
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  // Refetch when SSE delivers new notifications
+  const sseLength = sseNotifications.length;
+  useEffect(() => {
+    if (sseLength > 0) {
+      refetch();
+    }
+  }, [sseLength, refetch]);
 
-  const handleSelect = (id: string) => {
+  // Use GraphQL data as primary, fall back to SSE if GraphQL hasn't loaded yet
+  const displayNotifications = gqlNotifications.length > 0 || !loading ? gqlNotifications : [];
+
+  const selected = displayNotifications.find((n: any) => n.id === selectedId) || null;
+
+  // Auto-open mobile detail when deep-linked
+  useEffect(() => {
+    if (selectedId) setMobileShowDetail(true);
+  }, [selectedId]);
+
+  const handleSelect = useCallback((id: string) => {
     setSelectedId(id);
     setMobileShowDetail(true);
-    const n = notifications.find((n) => n.id === id);
-    if (n && !n.read) {
-      markRead([id]);
+    const n = displayNotifications.find((n: any) => n.id === id);
+    if (n && n.status !== 'READ') {
+      markRead(id);
     }
-  };
+  }, [displayNotifications, markRead]);
+
+  const handleArchive = useCallback(async () => {
+    if (!selectedId) return;
+    try {
+      await archive(selectedId);
+      clearSelectedId();
+    } catch {
+      // Error handled by Apollo
+    }
+  }, [selectedId, archive, clearSelectedId]);
+
+  const handleMarkAllRead = useCallback(async () => {
+    try {
+      await markAllRead();
+    } catch {
+      // Error handled by Apollo
+    }
+  }, [markAllRead]);
+
+  const handleTabChange = useCallback((t: typeof tabs[number]) => {
+    setActiveTab(t);
+    setPage(0);
+    clearSelectedId();
+  }, [clearSelectedId]);
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  if (loading && displayNotifications.length === 0) {
+    return (
+      <>
+        <div className="flex w-full sm:w-panel h-full flex-col bg-bg-secondary border-r border-border-primary sm:shrink-0">
+          <div className="px-4 pt-4 pb-2 space-y-3">
+            <h2 className="text-lg font-semibold text-text-primary">Inbox</h2>
+          </div>
+          <div className="flex-1 px-4 space-y-1 pt-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="animate-pulse flex items-start gap-3 py-3.5">
+                <div className="w-10 h-10 rounded-xl bg-bg-tertiary shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-44 bg-bg-tertiary rounded" />
+                  <div className="h-3 w-64 bg-bg-tertiary rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="hidden sm:flex flex-1 items-center justify-center bg-bg-primary">
+          <p className="text-sm text-text-muted">Loading notifications…</p>
+        </div>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 h-full flex items-center justify-center bg-bg-primary">
+        <div className="text-center space-y-3">
+          <p className="text-sm text-accent-red">Failed to load notifications</p>
+          <button onClick={() => window.location.reload()} className="btn-primary text-sm">Retry</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -48,8 +160,9 @@ export default function InboxPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-text-primary">Inbox</h2>
-              {unreadCount > 0 && <span className="badge-count">{unreadCount}</span>}
+              {totalCount > 0 && <span className="badge-count">{totalCount}</span>}
             </div>
+            <button onClick={handleMarkAllRead} className="text-2xs text-accent-blue hover:underline">Mark all read</button>
           </div>
 
           {/* Tabs */}
@@ -57,7 +170,7 @@ export default function InboxPage() {
             {tabs.map((t) => (
               <button
                 key={t}
-                onClick={() => setActiveTab(t)}
+                onClick={() => handleTabChange(t)}
                 className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all duration-150 ${
                   activeTab === t
                     ? 'bg-accent-blue text-white'
@@ -71,17 +184,15 @@ export default function InboxPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-4">
-              <div className="w-12 h-12 rounded-2xl bg-bg-tertiary flex items-center justify-center mb-3">
-                <svg className="w-6 h-6 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-17.5 0V6.75A2.25 2.25 0 014.5 4.5h15A2.25 2.25 0 0121.75 6.75v6.75m-17.5 0v4.5A2.25 2.25 0 006.5 20h11a2.25 2.25 0 002.25-2.25v-4.5" />
-                </svg>
-              </div>
-              <p className="text-sm text-text-muted">No notifications yet</p>
-            </div>
+          {displayNotifications.length === 0 ? (
+            <EmptyState
+              icon={Inbox}
+              title="No notifications yet"
+              description="Service providers you interact with will send you updates here."
+              action={{ label: 'Browse providers', onClick: () => router.push('/service-providers') }}
+            />
           ) : (
-            filtered.map((n) => (
+            displayNotifications.map((n: any) => (
               <div
                 key={n.id}
                 onClick={() => handleSelect(n.id)}
@@ -96,14 +207,22 @@ export default function InboxPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className={`text-sm font-medium truncate ${!n.read ? 'text-text-primary' : 'text-text-secondary'}`}>{n.title}</span>
-                    <span className="text-2xs text-text-muted shrink-0 ml-2">{new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className={`text-sm font-medium truncate ${n.status !== 'READ' ? 'text-text-primary' : 'text-text-secondary'}`}>{n.title}</span>
+                    <span className="text-2xs text-text-muted shrink-0 ml-2">{n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                   </div>
-                  <p className={`text-xs mt-0.5 truncate ${!n.read ? 'text-text-secondary' : 'text-text-muted'}`}>{n.body}</p>
+                  <p className={`text-xs mt-0.5 truncate ${n.status !== 'READ' ? 'text-text-secondary' : 'text-text-muted'}`}>{n.body}</p>
                 </div>
-                {!n.read && <span className="w-2 h-2 rounded-full bg-accent-blue shrink-0 mt-2" />}
+                {n.status !== 'READ' && <span className="w-2 h-2 rounded-full bg-accent-blue shrink-0 mt-2" />}
               </div>
             ))
+          )}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border-primary">
+              <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="btn-ghost text-2xs disabled:opacity-50">← Prev</button>
+              <span className="text-2xs text-text-muted">{page + 1} / {totalPages}</span>
+              <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="btn-ghost text-2xs disabled:opacity-50">Next →</button>
+            </div>
           )}
         </div>
       </div>
@@ -128,10 +247,15 @@ export default function InboxPage() {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-text-primary">{selected.title}</h3>
-                <p className="text-2xs text-text-muted">{new Date(selected.createdAt).toLocaleString()}</p>
+                <p className="text-2xs text-text-muted">{selected.createdAt ? new Date(selected.createdAt).toLocaleString() : ''}</p>
               </div>
             </div>
-            <span className={categoryChip[selected.type] || 'chip-blue'}>{getCategory(selected)}</span>
+            <div className="flex items-center gap-2">
+              <span className={categoryChip[selected.category] || 'chip-blue'}>{getCategoryLabel(selected.category)}</span>
+              <button onClick={handleArchive} className="btn-ghost text-2xs" title="Archive">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
@@ -146,14 +270,12 @@ export default function InboxPage() {
         </div>
       ) : (
         <div className="hidden sm:flex flex-1 items-center justify-center bg-bg-primary">
-          <div className="text-center space-y-3">
-            <div className="w-16 h-16 rounded-2xl bg-bg-tertiary mx-auto flex items-center justify-center">
-              <svg className="w-8 h-8 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-17.5 0V6.75A2.25 2.25 0 014.5 4.5h15A2.25 2.25 0 0121.75 6.75v6.75m-17.5 0v4.5A2.25 2.25 0 006.5 20h11a2.25 2.25 0 002.25-2.25v-4.5" />
-              </svg>
-            </div>
-            <p className="text-sm text-text-muted">Select a notification to view details</p>
-          </div>
+          <EmptyState
+            icon={Bell}
+            title="Select a notification"
+            description="Choose a notification from the list to view its details"
+            size="lg"
+          />
         </div>
       )}
     </>

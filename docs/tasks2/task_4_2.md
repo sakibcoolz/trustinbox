@@ -96,41 +96,41 @@ const stats = [
 ## Requirements
 
 ### 4.2.1 — Create Badge Data Hook
-- [ ] Create `apps/web/src/hooks/useBadgeCounts.ts`:
-  - [ ] Combine SSE notification context (`unreadCount`)
-  - [ ] Combine chat context (`conversations` unread sum)
-  - [ ] Fetch `pendingCallbackRequests` from `dashboardSummary` query (or from callbacks hook if available)
-  - [ ] Fetch pending friend requests count (from friends API if available)
-  - [ ] Return `{ inbox: number, chats: number, calls: number, people: number }`
-  - [ ] Set up polling interval (every 60 seconds) for `dashboardSummary` to keep counts fresh
-  - [ ] Merge SSE real-time updates for inbox and chats
+- [x] Create `apps/web/src/hooks/useBadgeCounts.ts`:
+  - [x] Combine SSE notification context (`unreadCount`)
+  - [x] Combine chat context (`conversations` unread sum)
+  - [x] Fetch `pendingCallbackRequests` from `dashboardSummary` query (or from callbacks hook if available)
+  - [x] Fetch pending friend requests count (from friends API if available)
+  - [x] Return `{ inbox: number, chats: number, calls: number, people: number }`
+  - [x] Set up polling interval (every 60 seconds) for `dashboardSummary` to keep counts fresh
+  - [x] Merge SSE real-time updates for inbox and chats
 
 ### 4.2.2 — Wire Sidebar Badge Counts
-- [ ] Update `apps/web/src/components/layout/sidebar.tsx`:
-  - [ ] Replace inline `badgeCounts` useMemo with `useBadgeCounts()` hook
-  - [ ] Remove hardcoded `calls: 0` and `people: 0`
-  - [ ] Calls badge shows `pendingCallbackRequests` from dashboard summary
-  - [ ] People badge shows pending friend request count
-  - [ ] Badges update in real-time as SSE events arrive
+- [x] Update `apps/web/src/components/layout/sidebar.tsx`:
+  - [x] Replace inline `badgeCounts` useMemo with `useBadgeCounts()` hook
+  - [x] Remove hardcoded `calls: 0` and `people: 0`
+  - [x] Calls badge shows `pendingCallbackRequests` from dashboard summary
+  - [x] People badge shows pending friend request count
+  - [x] Badges update in real-time as SSE events arrive
 
 ### 4.2.3 — Wire Mobile Nav Badge Counts
-- [ ] Update `apps/web/src/components/layout/mobile-nav.tsx`:
-  - [ ] Replace inline `badgeCounts` useMemo with `useBadgeCounts()` hook
-  - [ ] Same real data as sidebar — consistent badge counts across layouts
+- [x] Update `apps/web/src/components/layout/mobile-nav.tsx`:
+  - [x] Replace inline `badgeCounts` useMemo with `useBadgeCounts()` hook
+  - [x] Same real data as sidebar — consistent badge counts across layouts
 
 ### 4.2.4 — Real-Time Badge Updates via SSE
-- [ ] Ensure SSE events trigger badge re-renders:
-  - [ ] `notification` event → inbox badge increments
-  - [ ] `chat_message` event → chats badge increments
-  - [ ] Callback status change → calls badge updates (may need new SSE event type)
-  - [ ] Friend request received → people badge updates (may need new SSE event type)
-- [ ] Badge clears when user navigates to the respective page and views items
+- [x] Ensure SSE events trigger badge re-renders:
+  - [x] `notification` event → inbox badge increments
+  - [x] `chat_message` event → chats badge increments
+  - [x] Callback status change → calls badge updates (may need new SSE event type)
+  - [x] Friend request received → people badge updates (may need new SSE event type)
+- [x] Badge clears when user navigates to the respective page and views items
 
 ### 4.2.5 — Update Dashboard Stats
-- [ ] Wire dashboard page stats to real data:
-  - [ ] Replace `Friends: 0` with actual friend count from API
-  - [ ] Add pending callbacks count stat card
-  - [ ] Use same `useBadgeCounts()` or `useDashboard()` hook for consistency
+- [x] Wire dashboard page stats to real data:
+  - [x] Replace `Friends: 0` with actual friend count from API
+  - [x] Add pending callbacks count stat card
+  - [x] Use same `useBadgeCounts()` or `useDashboard()` hook for consistency
 
 ---
 
@@ -229,13 +229,13 @@ export function MobileNav() {
 
 ## Verification
 
-- [ ] Inbox badge shows real unread notification count from SSE stream
-- [ ] Chats badge shows real unread message count from chat context
-- [ ] Calls badge shows `pendingCallbackRequests` from `dashboardSummary` query
-- [ ] Badges update in real-time when new SSE events arrive
-- [ ] Sidebar and mobile nav show identical badge counts
-- [ ] Badge disappears when count is 0 (existing logic already handles this)
-- [ ] Dashboard stats page shows consistent numbers with sidebar badges
-- [ ] `dashboardSummary` polls every 60s to keep counts fresh
-- [ ] No unnecessary re-renders — useMemo correctly memoizes badge counts
-- [ ] Badge renders correctly with `9+` overflow for counts > 9 (existing CSS handles this)
+- [x] Inbox badge shows real unread notification count from SSE stream
+- [x] Chats badge shows real unread message count from chat context
+- [x] Calls badge shows `pendingCallbackRequests` from `dashboardSummary` query
+- [x] Badges update in real-time when new SSE events arrive
+- [x] Sidebar and mobile nav show identical badge counts
+- [x] Badge disappears when count is 0 (existing logic already handles this)
+- [x] Dashboard stats page shows consistent numbers with sidebar badges
+- [x] `dashboardSummary` polls every 60s to keep counts fresh
+- [x] No unnecessary re-renders — useMemo correctly memoizes badge counts
+- [x] Badge renders correctly with `9+` overflow for counts > 9 (existing CSS handles this)

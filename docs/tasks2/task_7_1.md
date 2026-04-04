@@ -57,7 +57,7 @@ __tests__/
 
 ### Sub-task 7.1.1 — Install Test Dependencies
 
-- [ ] Add test dependencies to `apps/web/package.json`:
+- [x] Add test dependencies to `apps/web/package.json`:
   ```json
   "devDependencies": {
     "vitest": "^4.1.2",
@@ -67,7 +67,7 @@ __tests__/
     "jsdom": "^29.0.1"
   }
   ```
-- [ ] Add test scripts:
+- [x] Add test scripts:
   ```json
   "scripts": {
     "test": "vitest run",
@@ -75,12 +75,12 @@ __tests__/
     "test:coverage": "vitest run --coverage"
   }
   ```
-- [ ] Run `npm install` in `apps/web/`
-- [ ] Verify dependencies installed without conflicts
+- [x] Run `npm install` in `apps/web/`
+- [x] Verify dependencies installed without conflicts
 
 ### Sub-task 7.1.2 — Create Vitest Configuration
 
-- [ ] Create `apps/web/vitest.config.ts` mirroring provider pattern:
+- [x] Create `apps/web/vitest.config.ts` mirroring provider pattern:
   ```typescript
   import { defineConfig } from 'vitest/config';
   import path from 'path';
@@ -103,25 +103,25 @@ __tests__/
     },
   });
   ```
-- [ ] Verify `@` alias matches `tsconfig.json` paths configuration
+- [x] Verify `@` alias matches `tsconfig.json` paths configuration
 
 ### Sub-task 7.1.3 — Create Test Setup File
 
-- [ ] Create `apps/web/src/__tests__/setup.tsx`:
+- [x] Create `apps/web/src/__tests__/setup.tsx`:
   - Mock `next/navigation` (useRouter, usePathname, useSearchParams)
   - Mock `next/image`
   - Mock `IntersectionObserver`
   - Mock `window.matchMedia`
   - Mock `localStorage` (web app uses localStorage for auth)
   - Import `@testing-library/jest-dom` for DOM matchers
-- [ ] Mirror provider pattern from `apps/provider/src/__tests__/setup.tsx`
-- [ ] Add web-app-specific mocks:
+- [x] Mirror provider pattern from `apps/provider/src/__tests__/setup.tsx`
+- [x] Add web-app-specific mocks:
   - Mock `EventSource` (for SSE notifications)
   - Mock XMPP WebSocket connection
 
 ### Sub-task 7.1.4 — Create Test Helpers
 
-- [ ] Create `apps/web/src/__tests__/helpers.tsx`:
+- [x] Create `apps/web/src/__tests__/helpers.tsx`:
   - `createMockUser()` — user with id, name, email, avatar, role: CUSTOMER
   - `createMockAuthValue()` — full auth context mock with tokens, login/logout/refresh methods
   - `createMockNotification()` — notification with id, title, body, category, SP name, timestamps
@@ -131,11 +131,11 @@ __tests__/
   - `createMockDNDRule()` — DND rule with id, scopeType, startTime, endTime, daysOfWeek
   - `renderWithProviders(component, options)` — wraps in AuthProvider + NotificationProvider + ApolloProvider (MockedProvider)
   - `createApolloMock(query, variables, data)` — helper for Apollo MockedProvider mocks
-- [ ] Ensure all mock factories return properly typed objects
+- [x] Ensure all mock factories return properly typed objects
 
 ### Sub-task 7.1.5 — Test `useAuth` Hook
 
-- [ ] Create `apps/web/src/lib/__tests__/auth-context.test.ts`:
+- [x] Create `apps/web/src/lib/__tests__/auth-context.test.ts`:
   - **Login flow**:
     - Mock fetch for `/api/auth/login` returning tokens
     - Verify tokens stored in localStorage
@@ -157,12 +157,12 @@ __tests__/
     - Verify account creation → auto-login
   - **Avatar update**:
     - Call updateAvatar → verify user state updated
-- [ ] Use `renderHook` from `@testing-library/react`
-- [ ] Wrap in auth provider for context access
+- [x] Use `renderHook` from `@testing-library/react`
+- [x] Wrap in auth provider for context access
 
 ### Sub-task 7.1.6 — Test Notification Hook
 
-- [ ] Create `apps/web/src/hooks/__tests__/useNotifications.test.ts` (or test via notification-context):
+- [x] Create `apps/web/src/hooks/__tests__/useNotifications.test.ts` (or test via notification-context):
   - **Fetch notifications**:
     - Mock Apollo query for `myNotifications`
     - Verify notifications list populated
@@ -186,7 +186,7 @@ __tests__/
 
 ### Sub-task 7.1.7 — Test Callback Hook
 
-- [ ] Create `apps/web/src/hooks/__tests__/useCallbacks.test.ts`:
+- [x] Create `apps/web/src/hooks/__tests__/useCallbacks.test.ts`:
   - **Fetch callbacks**:
     - Mock Apollo query for `myCallbackRequests`
     - Verify callbacks list with status filtering (PENDING, APPROVED, REJECTED)
@@ -204,33 +204,33 @@ __tests__/
 
 ### Sub-task 7.1.8 — Test Privacy, DND, and Remaining Hooks
 
-- [ ] Create `apps/web/src/hooks/__tests__/usePrivacySettings.test.ts`:
+- [x] Create `apps/web/src/hooks/__tests__/usePrivacySettings.test.ts`:
   - Fetch current preferences → verify all toggles populated
   - Update preference toggle → verify mutation with debounce (500ms)
   - Optimistic update: toggle reflects immediately, reverts on error
   - Verify all 7 privacy fields testable: allowPersonalNotifications, allowSPNotifications, allowAdvertisements, allowCallbackRequests, allowChat, allowDocumentShares, requireCallApproval
 
-- [ ] Create `apps/web/src/hooks/__tests__/useDNDRules.test.ts`:
+- [x] Create `apps/web/src/hooks/__tests__/useDNDRules.test.ts`:
   - Fetch existing rules → verify list populated
   - Create new rule → verify mutation variables (scopeType, startTime, endTime, daysOfWeek)
   - Delete rule → verify delete mutation fired + optimistic removal
   - Validate: end time differs from start time → error if identical
 
-- [ ] Create `apps/web/src/hooks/__tests__/useAvailabilitySlots.test.ts`:
+- [x] Create `apps/web/src/hooks/__tests__/useAvailabilitySlots.test.ts`:
   - Fetch slots → verify list
   - Create slot → verify mutation
   - Delete slot → verify optimistic removal
 
-- [ ] Create `apps/web/src/hooks/__tests__/useBlockedProviders.test.ts`:
+- [x] Create `apps/web/src/hooks/__tests__/useBlockedProviders.test.ts`:
   - Fetch blocked list → verify
   - Unblock → verify mutation + optimistic removal from list
   - Block (from SP page) → verify mutation + list update
 
-- [ ] Create `apps/web/src/hooks/__tests__/useDocuments.test.ts`:
+- [x] Create `apps/web/src/hooks/__tests__/useDocuments.test.ts`:
   - Fetch documents → verify list with pagination
   - Presigned URL generation → verify query/mutation
 
-- [ ] Create `apps/web/src/hooks/__tests__/useAvatarUpload.test.ts`:
+- [x] Create `apps/web/src/hooks/__tests__/useAvatarUpload.test.ts`:
   - Upload valid file → verify status transitions: idle → uploading → success
   - Invalid file type → verify rejection with error message
   - File too large (>5MB) → verify rejection
@@ -239,13 +239,13 @@ __tests__/
 
 ### Sub-task 7.1.9 — Verify Test Suite Passes
 
-- [ ] Run: `cd apps/web && npm test`
+- [x] Run: `cd apps/web && npm test`
   - All tests pass
   - No console errors or warnings
-- [ ] Run: `cd apps/web && npm run test:coverage`
+- [x] Run: `cd apps/web && npm run test:coverage`
   - Verify coverage report generated
   - Hooks coverage: at least 80% line coverage
-- [ ] Add to Makefile: `test-web` target:
+- [x] Add to Makefile: `test-web` target:
   ```makefile
   test-web:
   	cd apps/web && npm test
@@ -255,15 +255,15 @@ __tests__/
 
 ## Verification Checklist
 
-- [ ] `apps/web/vitest.config.ts` created with jsdom environment and correct aliases
-- [ ] `apps/web/src/__tests__/setup.tsx` mocks Next.js, localStorage, EventSource, matchMedia
-- [ ] `apps/web/src/__tests__/helpers.tsx` provides mock factories + renderWithProviders
-- [ ] `auth-context.test.ts` covers login, logout, refresh, register, expired token
-- [ ] `useNotifications.test.ts` covers fetch, markRead, markAllRead, SSE events, filtering
-- [ ] `useCallbacks.test.ts` covers fetch, approve with slots, reject with reason, error handling
-- [ ] `usePrivacySettings.test.ts` covers fetch, toggle with debounce, optimistic update
-- [ ] `useDNDRules.test.ts` covers create, delete, validation
-- [ ] Remaining hooks tested: useAvailabilitySlots, useBlockedProviders, useDocuments, useAvatarUpload
-- [ ] `npm test` passes all tests in `apps/web/`
-- [ ] Coverage report shows ≥80% line coverage on hooks
-- [ ] No test dependencies conflict with existing app dependencies
+- [x] `apps/web/vitest.config.ts` created with jsdom environment and correct aliases
+- [x] `apps/web/src/__tests__/setup.tsx` mocks Next.js, localStorage, EventSource, matchMedia
+- [x] `apps/web/src/__tests__/helpers.tsx` provides mock factories + renderWithProviders
+- [x] `auth-context.test.ts` covers login, logout, refresh, register, expired token
+- [x] `useNotifications.test.ts` covers fetch, markRead, markAllRead, SSE events, filtering
+- [x] `useCallbacks.test.ts` covers fetch, approve with slots, reject with reason, error handling
+- [x] `usePrivacySettings.test.ts` covers fetch, toggle with debounce, optimistic update
+- [x] `useDNDRules.test.ts` covers create, delete, validation
+- [x] Remaining hooks tested: useAvailabilitySlots, useBlockedProviders, useDocuments, useAvatarUpload
+- [x] `npm test` passes all tests in `apps/web/`
+- [x] Coverage report shows ≥80% line coverage on hooks
+- [x] No test dependencies conflict with existing app dependencies

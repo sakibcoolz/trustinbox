@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowLeft, UserPlus, Shield, Trash2, Mail, X, RefreshCw } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ArrowLeft, UserPlus, Shield, Trash2, Mail, X, RefreshCw, Search, Loader2, RotateCcw, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
@@ -24,10 +24,19 @@ import {
 
 const roleOptions: TeamRole[] = ['SP_ADMIN', 'AGENT', 'ANALYST'];
 
+function expiryLabel(expiresAt: string): { text: string; className: string } {
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  if (diff <= 0) return { text: 'Expired', className: 'text-status-error' };
+  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  if (days <= 2) return { text: `Expires in ${days}d`, className: 'text-status-warning' };
+  return { text: `Expires in ${days}d`, className: 'text-text-muted' };
+}
+
 export default function TeamSettingsPage() {
-  const { activeServiceProvider } = useAuth();
+  const { activeServiceProvider, user } = useAuth();
   const toast = useToast();
   const spId = activeServiceProvider?.id || '';
+  const currentUserId = user?.id || '';
 
   const { data: membersData, loading: membersLoading, refetch: refetchMembers } = useTeamMembers(spId);
   const { data: invitationsData, loading: invLoading, refetch: refetchInvitations } = usePendingInvitations(spId);
@@ -47,8 +56,29 @@ export default function TeamSettingsPage() {
   const [inviteRole, setInviteRole] = useState<TeamRole>('AGENT');
   const [error, setError] = useState('');
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<TeamRole | ''>('');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const loading = membersLoading || invLoading;
+
+  const adminCount = members.filter((m) => m.role === 'SP_ADMIN').length;
+
+  const filteredMembers = useMemo(() => {
+    let list = members;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((m) =>
+        (m.fullName || '').toLowerCase().includes(q) ||
+        (m.email || '').toLowerCase().includes(q) ||
+        (m.username || '').toLowerCase().includes(q)
+      );
+    }
+    if (roleFilter) {
+      list = list.filter((m) => m.role === roleFilter);
+    }
+    return list;
+  }, [members, searchQuery, roleFilter]);
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -59,6 +89,7 @@ export default function TeamSettingsPage() {
       setInviteEmail('');
       setShowInvite(false);
       toast.success('Invitation sent');
+      refetchInvitations();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send invitation');
     }
@@ -66,32 +97,59 @@ export default function TeamSettingsPage() {
 
   async function handleRoleChange(userId: string, newRole: string) {
     setError('');
+    setActionLoading(`role-${userId}`);
     try {
       await changeRole(userId, newRole as TeamRole);
       toast.success('Role updated');
+      refetchMembers();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to change role');
+    } finally {
+      setActionLoading(null);
     }
   }
 
   async function handleRemove(userId: string) {
     setError('');
+    setActionLoading(`remove-${userId}`);
     try {
       await removeMember(userId);
       setConfirmRemove(null);
       toast.success('Member removed');
+      refetchMembers();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove member');
+    } finally {
+      setActionLoading(null);
     }
   }
 
   async function handleRevokeInvitation(invitationId: string) {
     setError('');
+    setActionLoading(`revoke-${invitationId}`);
     try {
       await revokeInvitation(invitationId);
       toast.success('Invitation revoked');
+      refetchInvitations();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to revoke invitation');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleResendInvitation(inv: { id: string; email: string; role: TeamRole }) {
+    setError('');
+    setActionLoading(`resend-${inv.id}`);
+    try {
+      await revokeInvitation(inv.id);
+      await inviteTeamMember(inv.email, inv.role);
+      toast.success(`Invitation resent to ${inv.email}`);
+      refetchInvitations();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resend invitation');
+    } finally {
+      setActionLoading(null);
     }
   }
 
@@ -101,7 +159,6 @@ export default function TeamSettingsPage() {
   }
 
   const totalMembers = members.length;
-  const adminCount = members.filter((m) => m.role === 'SP_ADMIN').length;
   const agentCount = members.filter((m) => m.role === 'AGENT').length;
   const pendingCount = invitations.length;
 
@@ -114,7 +171,7 @@ export default function TeamSettingsPage() {
             <ArrowLeft size={18} className="text-text-muted" />
           </Link>
           <div>
-            <h1 className="text-2xl font-semibold">Team Management</h1>
+            <h1 className="text-2xl font-semibold">Team Management {totalMembers > 0 && <span className="text-text-muted text-lg font-normal">({totalMembers})</span>}</h1>
             <p className="text-text-secondary text-sm mt-0.5">Manage agents and team members</p>
           </div>
         </div>
@@ -187,13 +244,28 @@ export default function TeamSettingsPage() {
 
       {/* Members Table */}
       <div className="bg-bg-card border border-border-primary rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border-primary">
-          <h3 className="text-sm font-semibold">Active Members</h3>
+        <div className="px-4 py-3 border-b border-border-primary flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold shrink-0">Active Members</h3>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search members…"
+                className="w-48 pl-8 pr-3 py-1.5 bg-bg-input border border-border-secondary rounded-lg text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-active" />
+            </div>
+            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as TeamRole | '')}
+              className="px-2 py-1.5 bg-bg-input border border-border-secondary rounded-lg text-xs text-text-primary focus:outline-none focus:border-border-active">
+              <option value="">All Roles</option>
+              {roleOptions.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+            </select>
+          </div>
         </div>
         {loading ? (
           <div className="p-8 text-center text-text-muted text-sm">Loading team members…</div>
-        ) : members.length === 0 ? (
-          <div className="p-8 text-center text-text-muted text-sm">No team members yet</div>
+        ) : filteredMembers.length === 0 ? (
+          <div className="p-8 text-center text-text-muted text-sm">
+            {searchQuery || roleFilter ? 'No members match your filters' : 'No team members yet. Invite your first team member.'}
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
@@ -206,7 +278,13 @@ export default function TeamSettingsPage() {
               </tr>
             </thead>
             <tbody>
-              {members.map((m) => (
+              {filteredMembers.map((m) => {
+                const isSelf = m.userId === currentUserId;
+                const isLastAdmin = m.role === 'SP_ADMIN' && adminCount <= 1;
+                const roleDisabled = isSelf || isLastAdmin;
+                const removeDisabled = isSelf || isLastAdmin;
+
+                return (
                 <tr key={m.id} className="border-b border-border-primary last:border-0 hover:bg-bg-hover transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -214,17 +292,22 @@ export default function TeamSettingsPage() {
                         {(m.fullName || m.username).substring(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-text-primary font-medium">{m.fullName || m.username}</p>
+                        <p className="text-text-primary font-medium">{m.fullName || m.username}{isSelf && <span className="text-xs text-text-muted ml-1">(you)</span>}</p>
                         <p className="text-xs text-text-muted">{m.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <select value={m.role}
-                      onChange={(e) => handleRoleChange(m.userId, e.target.value)}
-                      className="px-2 py-0.5 bg-transparent border border-border-secondary rounded text-xs font-medium focus:outline-none focus:border-border-active">
-                      {roleOptions.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-                    </select>
+                    <div className="relative">
+                      <select value={m.role}
+                        onChange={(e) => handleRoleChange(m.userId, e.target.value)}
+                        disabled={roleDisabled || actionLoading === `role-${m.userId}`}
+                        title={isSelf ? 'Cannot change own role' : isLastAdmin ? 'Last admin cannot be demoted' : ''}
+                        className="px-2 py-0.5 bg-transparent border border-border-secondary rounded text-xs font-medium focus:outline-none focus:border-border-active disabled:opacity-50 disabled:cursor-not-allowed">
+                        {roleOptions.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                      </select>
+                      {actionLoading === `role-${m.userId}` && <Loader2 size={12} className="absolute right-0 top-1/2 -translate-y-1/2 animate-spin text-text-muted" />}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -242,9 +325,9 @@ export default function TeamSettingsPage() {
                     {confirmRemove === m.userId ? (
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-status-error">Confirm?</span>
-                        <button onClick={() => handleRemove(m.userId)}
-                          className="px-2 py-1 bg-status-error/10 text-status-error rounded text-xs font-medium hover:bg-status-error/20">
-                          Remove
+                        <button onClick={() => handleRemove(m.userId)} disabled={actionLoading === `remove-${m.userId}`}
+                          className="px-2 py-1 bg-status-error/10 text-status-error rounded text-xs font-medium hover:bg-status-error/20 disabled:opacity-50">
+                          {actionLoading === `remove-${m.userId}` ? <Loader2 size={12} className="animate-spin" /> : 'Remove'}
                         </button>
                         <button onClick={() => setConfirmRemove(null)}
                           className="px-2 py-1 text-text-muted rounded text-xs hover:bg-bg-hover">
@@ -253,29 +336,32 @@ export default function TeamSettingsPage() {
                       </div>
                     ) : (
                       <div className="flex gap-1">
-                        <button title="Change role" className="p-1.5 rounded hover:bg-bg-hover transition-colors text-text-muted">
-                          <Shield size={14} />
-                        </button>
-                        <button title="Remove member" onClick={() => setConfirmRemove(m.userId)}
-                          className="p-1.5 rounded hover:bg-bg-hover transition-colors text-status-error">
+                        <button
+                          title={removeDisabled ? (isSelf ? 'Cannot remove yourself' : 'Last admin cannot be removed') : 'Remove member'}
+                          onClick={() => !removeDisabled && setConfirmRemove(m.userId)}
+                          disabled={removeDisabled}
+                          className="p-1.5 rounded hover:bg-bg-hover transition-colors text-status-error disabled:opacity-30 disabled:cursor-not-allowed">
                           <Trash2 size={14} />
                         </button>
                       </div>
                     )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
       </div>
 
       {/* Pending Invitations */}
-      {invitations.length > 0 && (
-        <div className="bg-bg-card border border-border-primary rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border-primary">
-            <h3 className="text-sm font-semibold">Pending Invitations</h3>
-          </div>
+      <div className="bg-bg-card border border-border-primary rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border-primary">
+          <h3 className="text-sm font-semibold">Pending Invitations {pendingCount > 0 && <span className="text-text-muted font-normal">({pendingCount})</span>}</h3>
+        </div>
+        {invitations.length === 0 ? (
+          <div className="p-6 text-center text-text-muted text-sm">No pending invitations</div>
+        ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border-primary text-xs text-text-muted">
@@ -287,7 +373,9 @@ export default function TeamSettingsPage() {
               </tr>
             </thead>
             <tbody>
-              {invitations.map((inv) => (
+              {invitations.map((inv) => {
+                const expiry = inv.expiresAt ? expiryLabel(inv.expiresAt) : null;
+                return (
                 <tr key={inv.id} className="border-b border-border-primary last:border-0 hover:bg-bg-hover transition-colors">
                   <td className="px-4 py-3 text-text-primary">{inv.email}</td>
                   <td className="px-4 py-3">
@@ -300,21 +388,31 @@ export default function TeamSettingsPage() {
                       {inv.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-text-muted text-xs">
-                    {inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : '—'}
+                  <td className="px-4 py-3 text-xs">
+                    {expiry ? <span className={expiry.className}>{expiry.text}</span> : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <button onClick={() => handleRevokeInvitation(inv.id)}
-                      className="px-2 py-1 text-xs text-status-error hover:bg-status-error/10 rounded transition-colors">
-                      Revoke
-                    </button>
+                    <div className="flex gap-1">
+                      <button onClick={() => handleResendInvitation(inv)}
+                        disabled={actionLoading === `resend-${inv.id}`}
+                        className="px-2 py-1 text-xs text-accent-blue hover:bg-accent-blue/10 rounded transition-colors disabled:opacity-50"
+                        title="Resend invitation">
+                        {actionLoading === `resend-${inv.id}` ? <Loader2 size={12} className="animate-spin" /> : <><RotateCcw size={12} className="inline mr-1" />Resend</>}
+                      </button>
+                      <button onClick={() => handleRevokeInvitation(inv.id)}
+                        disabled={actionLoading === `revoke-${inv.id}`}
+                        className="px-2 py-1 text-xs text-status-error hover:bg-status-error/10 rounded transition-colors disabled:opacity-50">
+                        {actionLoading === `revoke-${inv.id}` ? <Loader2 size={12} className="animate-spin" /> : 'Revoke'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Team Activity Log (15.9) */}
       <div className="bg-bg-card border border-border-primary rounded-xl overflow-hidden">

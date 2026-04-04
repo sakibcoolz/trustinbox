@@ -77,6 +77,7 @@ export interface ConversationStats {
   closed: number;
   archived: number;
   unreadTotal: number;
+  unassigned?: number;
 }
 
 export interface TeamMember {
@@ -92,6 +93,7 @@ export interface ConversationListOptions {
   status?: string;
   search?: string;
   unreadOnly?: boolean;
+  assigneeId?: string;
   orderBy?: { field: string; direction: string };
   limit?: number;
   offset?: number;
@@ -141,6 +143,7 @@ export function useConversations(options: ConversationListOptions) {
   if (options.status) params.set('status', options.status);
   if (options.search) params.set('search', options.search);
   if (options.unreadOnly) params.set('unreadOnly', 'true');
+  if (options.assigneeId) params.set('assigneeId', options.assigneeId);
   params.set('orderByField', options.orderBy?.field ?? 'updatedAt');
   params.set('orderByDirection', options.orderBy?.direction ?? 'DESC');
   params.set('limit', String(options.limit ?? 20));
@@ -239,6 +242,22 @@ export function useArchiveConversation() {
     loading,
     error,
   };
+}
+
+export function useTransferConversation() {
+  const { run, loading, error } = useMutationHelper();
+  return {
+    transfer: (conversationId: string, agentId: string, note?: string) =>
+      run(`/api/gateway/v1/conversations/${conversationId}/transfer`, 'POST', { agentId, note }),
+    loading,
+    error,
+  };
+}
+
+export function getWorkloadColor(count: number): string {
+  if (count <= 3) return 'bg-status-success';
+  if (count <= 7) return 'bg-status-warning';
+  return 'bg-status-error';
 }
 
 // Subscription stubs — will be replaced with SSE in Phase 4

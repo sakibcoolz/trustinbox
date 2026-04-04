@@ -59,6 +59,7 @@ type PrivacyPreference {
   allowChat: Boolean!
   allowDocumentShares: Boolean!
   requireCallApproval: Boolean!
+  notificationSoundEnabled: Boolean!
 }
 
 type DNDRule {
@@ -243,6 +244,7 @@ input UpdatePrivacyPreferenceInput {
   allowChat: Boolean
   allowDocumentShares: Boolean
   requireCallApproval: Boolean
+  notificationSoundEnabled: Boolean
 }
 
 input CreateDNDRuleInput {
