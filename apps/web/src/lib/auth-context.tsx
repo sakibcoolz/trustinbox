@@ -25,6 +25,8 @@ interface AuthContextType {
   logout: () => void;
   /** Optimistically update the avatar URL in state + localStorage after upload/remove. */
   updateAvatar: (url: string | null) => void;
+  /** Refresh the access token (and XMPP credentials). Returns true on success. */
+  refreshAccessToken: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -216,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token, refreshAccessToken, scheduleRefresh, logout]);
 
   return (
-    <AuthContext.Provider value={{ user, token, xmppToken, xmppJid, isLoading, login, register, logout, updateAvatar }}>
+    <AuthContext.Provider value={{ user, token, xmppToken, xmppJid, isLoading, login, register, logout, updateAvatar, refreshAccessToken }}>
       {children}
     </AuthContext.Provider>
   );

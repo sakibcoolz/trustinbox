@@ -22,6 +22,8 @@ import (
 	"github.com/trustinbox/cornerstone/auth/jwt"
 	"github.com/trustinbox/cornerstone/config"
 	logger "github.com/trustinbox/cornerstone/logging"
+	"github.com/trustinbox/graphql-bff/graph/generated"
+	"github.com/trustinbox/graphql-bff/graph/resolver"
 	"github.com/trustinbox/graphql-bff/internal/clients"
 	authpb "github.com/trustinbox/proto/gen/auth/v1"
 	notifpb "github.com/trustinbox/proto/gen/notification/v1"
@@ -30,6 +32,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	gqlhandler "github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 	_ "github.com/lib/pq"
 )
 
@@ -290,11 +294,19 @@ func main() {
 	mux.HandleFunc("/api/team/invitations/accept", handleAcceptInvitation(svc, tokenSvc, log))
 	mux.HandleFunc("/api/team/members/role", handleChangeTeamMemberRole(svc, tokenSvc, log))
 
-	// GraphQL placeholder (will be replaced with gqlgen)
-	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"message":"GraphQL endpoint. Auth endpoints available at /api/auth/*"}`))
-	})
+	// ─── GraphQL (gqlgen) ─────────────────────────────────────
+	gqlSrv := gqlhandler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+		Resolvers: &resolver.Resolver{
+			Clients: svc,
+			Log:     log,
+		},
+	}))
+	mux.Handle("/graphql", gqlSrv)
+
+	// GraphQL Playground (development only)
+	if cfg.LogLevel == "debug" {
+		mux.Handle("/playground", playground.Handler("GraphQL Playground", "/graphql"))
+	}
 
 	// ─── Provider API (v1) — API-key authenticated, rate-limited ─────
 	rl := newRateLimiter(500.0/60.0, 50) // 500 req/min sustained, burst of 50

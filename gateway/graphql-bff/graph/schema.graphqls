@@ -181,9 +181,59 @@ type PolicyCheckResult {
   appliedRules: [String!]!
 }
 
+# ─── Customer Portal Types ─────────────────────────────
+
+type UserProfile {
+  id: ID!
+  username: String!
+  fullName: String!
+  email: String
+  avatarUrl: String
+  timezone: String!
+  language: String!
+}
+
+type CustomerDashboardSummary {
+  unreadNotifications: Int!
+  pendingCallbacks: Int!
+  activeConversations: Int!
+  sharedDocuments: Int!
+  blockedProviders: Int!
+  dndActive: Boolean!
+}
+
+type BlockedProviderConnection {
+  nodes: [BlockedProvider!]!
+  totalCount: Int!
+}
+
+type BlockedProvider {
+  serviceProvider: ServiceProvider!
+  blockedAt: Time!
+  reason: String
+}
+
+type DocumentConnection {
+  nodes: [DocumentShare!]!
+  totalCount: Int!
+}
+
+type ServiceProviderConnection {
+  nodes: [ServiceProvider!]!
+  totalCount: Int!
+}
+
 # ============================================================
 # INPUTS
 # ============================================================
+
+input UpdateProfileInput {
+  firstName: String
+  lastName: String
+  avatarUrl: String
+  timezone: String
+  language: String
+}
 
 input UpdatePrivacyPreferenceInput {
   allowPersonalNotifications: Boolean
@@ -1003,7 +1053,61 @@ type Query {
     offset: Int
   ): InvitationConnection!
 
-  myServiceProviders: [ServiceProvider!]!
+  myServiceProviders(
+    limit: Int
+    offset: Int
+    search: String
+  ): ServiceProviderConnection!
+
+  # ─── Customer Portal Queries ────────────────────────────
+
+  myProfile: UserProfile!
+
+  myNotifications(
+    limit: Int
+    offset: Int
+    category: NotificationCategory
+    status: String
+  ): NotificationConnection!
+
+  myCallbackRequests(
+    limit: Int
+    offset: Int
+    status: CallbackRequestStatus
+  ): CallbackRequestConnection!
+
+  myConversations(
+    limit: Int
+    offset: Int
+    status: ConversationStatus
+  ): ConversationConnection!
+
+  myDocuments(
+    limit: Int
+    offset: Int
+    serviceProviderId: ID
+    classification: String
+  ): DocumentConnection!
+
+  myPrivacyPreferences: PrivacyPreference!
+
+  myDNDRules: [DNDRule!]!
+
+  myAvailabilitySlots: [AvailabilitySlot!]!
+
+  myBlockedProviders(
+    limit: Int
+    offset: Int
+  ): BlockedProviderConnection!
+
+  myDashboardSummary: CustomerDashboardSummary!
+
+  serviceProviderDirectory(
+    limit: Int
+    offset: Int
+    search: String
+    industry: String
+  ): ServiceProviderConnection!
 }
 
 # ============================================================
@@ -1027,13 +1131,19 @@ type Mutation {
   sendMessage(input: SendMessageInput!): Message!
 
   # Service Provider actions
-  blockServiceProvider(serviceProviderId: ID!): Boolean!
+  blockServiceProvider(serviceProviderId: ID!, reason: String): Boolean!
   unblockServiceProvider(serviceProviderId: ID!): Boolean!
   reportSpam(input: ReportSpamInput!): Boolean!
 
   # Notifications (read)
   markNotificationAsRead(id: ID!): Boolean!
   archiveNotification(id: ID!): Boolean!
+
+  # ─── Customer Portal Mutations ──────────────────────────
+
+  updateMyProfile(input: UpdateProfileInput!): UserProfile!
+  updateMyAvatar(url: String!): UserProfile!
+  markAllNotificationsRead: Boolean!
 
   # Service Provider portal mutations
   sendNotification(input: SendNotificationInput!): Notification!

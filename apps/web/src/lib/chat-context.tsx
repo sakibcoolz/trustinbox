@@ -141,7 +141,7 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-  const { user, token, xmppToken, xmppJid, isLoading: isAuthLoading } = useAuth();
+  const { user, token, xmppToken, xmppJid, isLoading: isAuthLoading, refreshAccessToken } = useAuth();
   const { onChatMessage, onPresenceUpdate } = useNotifications();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -1127,17 +1127,20 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     xmppClient.onStatusChange(onStatus);
     xmppClient.onDeliveryReceipt(onReceipt);
 
-    xmppClient.connect(xmppJid, xmppToken).catch(err => {
+    xmppClient.connect(xmppJid, xmppToken).catch(async (err) => {
       console.error('[chat] xmpp connect failed', err);
       // If ejabberd rejects our credentials the XMPP token is expired/invalid.
-      // Clear only the XMPP token – the user's REST session is still valid.
-      // They will get a fresh XMPP token automatically on next login.
-      // Do NOT call logout() here: that would boot them out of the whole app
-      // just because the 24-hour XMPP JWT expired.
+      // Attempt a token refresh to get fresh XMPP credentials — the refresh
+      // endpoint returns a new xmppToken which updates auth-context state,
+      // re-triggering this effect with valid credentials.
       const msg = String(err?.message ?? err);
       if (msg.includes('not-authorized') || msg.includes('not authorized')) {
-        localStorage.removeItem('xmppToken');
-        localStorage.removeItem('xmppJid');
+        const ok = await refreshAccessToken();
+        if (!ok) {
+          // Refresh also failed — clear stale tokens; user must re-login.
+          localStorage.removeItem('xmppToken');
+          localStorage.removeItem('xmppJid');
+        }
       }
     });
 
@@ -1149,7 +1152,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       xmppClient.offDeliveryReceipt(onReceipt);
       xmppClient.disconnect();
     };
-  }, [xmppJid, xmppToken, handleNewXMPPMessage, handleXMPPPresence, handleXMPPTyping, handleDeliveryReceipt]);
+  }, [xmppJid, xmppToken, refreshAccessToken, handleNewXMPPMessage, handleXMPPPresence, handleXMPPTyping, handleDeliveryReceipt]);
 
   return (
     <ChatContext.Provider value={{

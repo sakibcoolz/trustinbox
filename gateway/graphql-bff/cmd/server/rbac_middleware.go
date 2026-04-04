@@ -228,7 +228,6 @@ func isPublicRoute(path string) bool {
 		"/api/ws",
 		"/api/xmpp-ws",
 		"/internal/",
-		"/graphql",
 	}
 	for _, p := range publicPrefixes {
 		if strings.HasPrefix(path, p) {
