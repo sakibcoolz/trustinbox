@@ -997,16 +997,17 @@ func (r *queryResolver) PendingInvitations(ctx context.Context, serviceProviderI
 }
 
 // MyServiceProviders is the resolver for the myServiceProviders field.
-func (r *queryResolver) MyServiceProviders(ctx context.Context, limit *int, offset *int, search *string) (*model.ServiceProviderConnection, error) {
+func (r *queryResolver) MyServiceProviders(ctx context.Context, limit *int, offset *int, search *string, serviceMode *string) (*model.ServiceProviderConnection, error) {
 	userID, err := requireAnyAuthenticatedRole(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	resp, err := r.Clients.Organization.ListServiceProviders(ctx, &orgpb.ListServiceProvidersRequest{
-		Search: strOrEmpty(search),
-		Limit:  intOrDefault(limit, 20),
-		Offset: intOrDefault(offset, 0),
+		Search:      strOrEmpty(search),
+		ServiceMode: strOrEmpty(serviceMode),
+		Limit:       intOrDefault(limit, 20),
+		Offset:      intOrDefault(offset, 0),
 	})
 	if err != nil {
 		r.Log.Error("failed to list user service providers", zap.Error(err), zap.String("user_id", userID))
@@ -1283,7 +1284,7 @@ func (r *queryResolver) MyDashboardSummary(ctx context.Context) (*model.Customer
 }
 
 // ServiceProviderDirectory is the resolver for the serviceProviderDirectory field.
-func (r *queryResolver) ServiceProviderDirectory(ctx context.Context, limit *int, offset *int, search *string, industry *string) (*model.ServiceProviderConnection, error) {
+func (r *queryResolver) ServiceProviderDirectory(ctx context.Context, limit *int, offset *int, search *string, industry *string, serviceMode *string) (*model.ServiceProviderConnection, error) {
 	_, err := requireAnyAuthenticatedRole(ctx)
 	if err != nil {
 		return nil, err
@@ -1292,6 +1293,7 @@ func (r *queryResolver) ServiceProviderDirectory(ctx context.Context, limit *int
 	req := &orgpb.ListServiceProvidersRequest{
 		Search:             strOrEmpty(search),
 		VerificationStatus: "VERIFIED",
+		ServiceMode:        strOrEmpty(serviceMode),
 		Limit:              intOrDefault(limit, 20),
 		Offset:             intOrDefault(offset, 0),
 	}

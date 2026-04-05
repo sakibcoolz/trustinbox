@@ -73,8 +73,8 @@ func (uc *SPUseCase) GetServiceProvider(ctx context.Context, id string) (*entity
 	return sp, nil
 }
 
-func (uc *SPUseCase) ListServiceProviders(ctx context.Context, search, verificationStatus string, limit, offset int) ([]entity.ServiceProvider, int, error) {
-	return uc.spRepo.List(ctx, search, verificationStatus, limit, offset)
+func (uc *SPUseCase) ListServiceProviders(ctx context.Context, search, verificationStatus, serviceMode string, limit, offset int) ([]entity.ServiceProvider, int, error) {
+	return uc.spRepo.List(ctx, search, verificationStatus, serviceMode, limit, offset)
 }
 
 func (uc *SPUseCase) VerifyServiceProvider(ctx context.Context, spID, decision, reason, adminUserID string) error {
@@ -102,6 +102,43 @@ func (uc *SPUseCase) VerifyServiceProvider(ctx context.Context, spID, decision, 
 	})
 
 	return nil
+}
+
+func (uc *SPUseCase) UpdateServiceProvider(ctx context.Context, sp *entity.ServiceProvider) (*entity.ServiceProvider, error) {
+	ctx, span := tracing.StartSpan(ctx, "organization-service", "UpdateServiceProvider",
+		attribute.String("sp_id", sp.ID),
+	)
+	defer span.End()
+
+	existing, err := uc.spRepo.GetByID(ctx, sp.ID)
+	if err != nil {
+		return nil, bzerr.NotFound("service_provider", sp.ID)
+	}
+
+	if sp.Name != "" {
+		existing.Name = sp.Name
+	}
+	if sp.LegalName != "" {
+		existing.LegalName = sp.LegalName
+	}
+	if sp.Industry != "" {
+		existing.Industry = sp.Industry
+	}
+	if sp.Description != "" {
+		existing.Description = sp.Description
+	}
+	if sp.Website != "" {
+		existing.Website = sp.Website
+	}
+	if sp.ServiceMode != "" {
+		existing.ServiceMode = sp.ServiceMode
+	}
+
+	if err := uc.spRepo.Update(ctx, existing); err != nil {
+		return nil, bzerr.Internal("failed to update service provider", err)
+	}
+
+	return existing, nil
 }
 
 func (uc *SPUseCase) SuspendServiceProvider(ctx context.Context, spID, reason, adminUserID string) error {

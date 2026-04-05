@@ -335,6 +335,7 @@ func main() {
 	providerMux.HandleFunc("/api/v1/analytics/", handleProviderAnalytics(svc, db, log))
 	providerMux.HandleFunc("/api/v1/customers", handleProviderCustomers(db, log))
 	providerMux.HandleFunc("/api/v1/customers/", handleProviderCustomers(db, log))
+	providerMux.HandleFunc("/api/v1/service-providers/", handleProviderServiceProviders(svc, db, log))
 	providerMux.HandleFunc("/api/v1/policy/check", handleProviderPolicyCheck(db, log))
 
 	providerHandler := apiKeyAuth(db, tokenSvc, log, rateLimitMiddleware(rl, log, providerMux))

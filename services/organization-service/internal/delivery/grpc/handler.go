@@ -31,6 +31,7 @@ func (h *ServiceProviderHandler) CreateServiceProvider(ctx context.Context, req 
 		Industry:    req.Industry,
 		Description: req.Description,
 		Website:     req.Website,
+		ServiceMode: req.ServiceMode,
 	}, req.AdminUserId)
 	if err != nil {
 		return nil, mapError(err)
@@ -44,6 +45,7 @@ func (h *ServiceProviderHandler) CreateServiceProvider(ctx context.Context, req 
 		VerificationStatus: sp.VerificationStatus,
 		Status:             sp.Status,
 		Website:            sp.Website,
+		ServiceMode:        sp.ServiceMode,
 	}, nil
 }
 
@@ -61,11 +63,12 @@ func (h *ServiceProviderHandler) GetServiceProvider(ctx context.Context, req *pb
 		VerificationStatus: sp.VerificationStatus,
 		Status:             sp.Status,
 		Website:            sp.Website,
+		ServiceMode:        sp.ServiceMode,
 	}, nil
 }
 
 func (h *ServiceProviderHandler) ListServiceProviders(ctx context.Context, req *pb.ListServiceProvidersRequest) (*pb.ListServiceProvidersResponse, error) {
-	sps, total, err := h.uc.ListServiceProviders(ctx, req.Search, req.VerificationStatus, int(req.Limit), int(req.Offset))
+	sps, total, err := h.uc.ListServiceProviders(ctx, req.Search, req.VerificationStatus, req.ServiceMode, int(req.Limit), int(req.Offset))
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -80,6 +83,7 @@ func (h *ServiceProviderHandler) ListServiceProviders(ctx context.Context, req *
 			VerificationStatus: sp.VerificationStatus,
 			Status:             sp.Status,
 			Website:            sp.Website,
+			ServiceMode:        sp.ServiceMode,
 		}
 	}
 	return &pb.ListServiceProvidersResponse{
@@ -89,7 +93,29 @@ func (h *ServiceProviderHandler) ListServiceProviders(ctx context.Context, req *
 }
 
 func (h *ServiceProviderHandler) UpdateServiceProvider(ctx context.Context, req *pb.UpdateServiceProviderRequest) (*pb.ServiceProvider, error) {
-	return nil, status.Errorf(codes.Unimplemented, "not implemented")
+	sp, err := h.uc.UpdateServiceProvider(ctx, &entity.ServiceProvider{
+		ID:          req.ServiceProviderId,
+		Name:        req.Name,
+		LegalName:   req.LegalName,
+		Industry:    req.Industry,
+		Description: req.Description,
+		Website:     req.Website,
+		ServiceMode: req.ServiceMode,
+	})
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &pb.ServiceProvider{
+		Id:                 sp.ID,
+		Name:               sp.Name,
+		LegalName:          sp.LegalName,
+		Industry:           sp.Industry,
+		Description:        sp.Description,
+		VerificationStatus: sp.VerificationStatus,
+		Status:             sp.Status,
+		Website:            sp.Website,
+		ServiceMode:        sp.ServiceMode,
+	}, nil
 }
 
 func (h *ServiceProviderHandler) VerifyServiceProvider(ctx context.Context, req *pb.VerifyServiceProviderRequest) (*pb.VerifyServiceProviderResponse, error) {

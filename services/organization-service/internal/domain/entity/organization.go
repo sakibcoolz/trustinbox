@@ -11,6 +11,7 @@ type ServiceProvider struct {
 	VerificationStatus string // PENDING, VERIFIED, REJECTED, SUSPENDED
 	Status             string // ACTIVE, SUSPENDED, DEACTIVATED
 	Website            string
+	ServiceMode        string // NEARBY, ONLINE
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 }

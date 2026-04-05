@@ -62,6 +62,7 @@ export interface OrganizationProfile {
   website?: string;
   verificationStatus: string;
   status: string;
+  serviceMode: string;
   contactEmail?: string;
   supportPhone?: string;
   address?: string;

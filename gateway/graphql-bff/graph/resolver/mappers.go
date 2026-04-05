@@ -256,6 +256,7 @@ func mapServiceProviderFromProto(sp *orgpb.ServiceProvider) *model.ServiceProvid
 		VerificationStatus: sp.VerificationStatus,
 		Status:             sp.Status,
 		Website:            ptrString(sp.Website),
+		ServiceMode:        sp.ServiceMode,
 	}
 }
 

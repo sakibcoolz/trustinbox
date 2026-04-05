@@ -1186,3 +1186,113 @@ func handleProviderPolicyCheck(db *sql.DB, log *zap.Logger) http.HandlerFunc {
 		})
 	}
 }
+
+// ─── Service Providers /api/v1/service-providers ───────────
+
+func handleProviderServiceProviders(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		spID := spIDFromCtx(r.Context())
+
+		rest := strings.TrimPrefix(r.URL.Path, "/api/v1/service-providers")
+		rest = strings.TrimPrefix(rest, "/")
+		if rest == "" {
+			writeJSON(w, http.StatusBadRequest, errorResponse{Error: "service provider ID required"})
+			return
+		}
+		id := rest
+
+		switch r.Method {
+		case http.MethodGet:
+			// Fetch full SP profile from DB
+			var sp struct {
+				ID                 string  `json:"id"`
+				Name               string  `json:"name"`
+				Slug               string  `json:"slug"`
+				LegalName          *string `json:"legalName"`
+				Industry           string  `json:"industry"`
+				Description        *string `json:"description"`
+				VerificationStatus string  `json:"verificationStatus"`
+				Status             string  `json:"status"`
+				Website            *string `json:"website"`
+				ServiceMode        string  `json:"serviceMode"`
+			}
+			var legalName, description, website sql.NullString
+			err := db.QueryRowContext(r.Context(),
+				`SELECT id, name, COALESCE(slug, id::text), legal_name, industry, description,
+				        verification_status, status, website, service_mode
+				 FROM service_providers WHERE id = $1`, id,
+			).Scan(&sp.ID, &sp.Name, &sp.Slug, &legalName, &sp.Industry, &description,
+				&sp.VerificationStatus, &sp.Status, &website, &sp.ServiceMode)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					writeJSON(w, http.StatusNotFound, errorResponse{Error: "service provider not found"})
+					return
+				}
+				log.Error("get service provider", zap.Error(err))
+				writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+				return
+			}
+			if legalName.Valid {
+				sp.LegalName = &legalName.String
+			}
+			if description.Valid {
+				sp.Description = &description.String
+			}
+			if website.Valid {
+				sp.Website = &website.String
+			}
+			writeJSON(w, http.StatusOK, sp)
+
+		case http.MethodPut:
+			if id != spID {
+				writeJSON(w, http.StatusForbidden, errorResponse{Error: "cannot update another service provider"})
+				return
+			}
+			var body struct {
+				Name        *string `json:"name"`
+				Description *string `json:"description"`
+				WebsiteUrl  *string `json:"websiteUrl"`
+				ServiceMode *string `json:"serviceMode"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+				return
+			}
+			// Build dynamic UPDATE
+			sets := []string{}
+			args := []interface{}{}
+			idx := 1
+			add := func(col string, val *string) {
+				if val != nil {
+					sets = append(sets, fmt.Sprintf("%s = $%d", col, idx))
+					args = append(args, *val)
+					idx++
+				}
+			}
+			add("name", body.Name)
+			add("description", body.Description)
+			add("website", body.WebsiteUrl)
+			add("service_mode", body.ServiceMode)
+
+			if len(sets) == 0 {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "no fields to update"})
+				return
+			}
+
+			sets = append(sets, "updated_at = NOW()")
+			query := fmt.Sprintf("UPDATE service_providers SET %s WHERE id = $%d",
+				strings.Join(sets, ", "), idx)
+			args = append(args, spID)
+
+			if _, err := db.ExecContext(r.Context(), query, args...); err != nil {
+				log.Error("update service provider", zap.Error(err))
+				writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
+				return
+			}
+			writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+
+		default:
+			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+		}
+	}
+}

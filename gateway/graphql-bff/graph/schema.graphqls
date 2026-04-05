@@ -91,6 +91,7 @@ type ServiceProvider {
   verificationStatus: String!
   status: String!
   website: String
+  serviceMode: String!
 }
 
 type Notification {
@@ -1059,6 +1060,7 @@ type Query {
     limit: Int
     offset: Int
     search: String
+    serviceMode: String
   ): ServiceProviderConnection!
 
   # ─── Customer Portal Queries ────────────────────────────
@@ -1109,6 +1111,7 @@ type Query {
     offset: Int
     search: String
     industry: String
+    serviceMode: String
   ): ServiceProviderConnection!
 }
 

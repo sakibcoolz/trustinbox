@@ -36,6 +36,7 @@ message CreateServiceProviderRequest {
   string description = 4;
   string website = 5;
   string admin_user_id = 6;
+  string service_mode = 7;
 }
 
 message GetServiceProviderRequest {
@@ -47,6 +48,7 @@ message ListServiceProvidersRequest {
   string verification_status = 2;
   int32 limit = 3;
   int32 offset = 4;
+  string service_mode = 5;
 }
 
 message ListServiceProvidersResponse {
@@ -61,6 +63,7 @@ message UpdateServiceProviderRequest {
   string industry = 4;
   string description = 5;
   string website = 6;
+  string service_mode = 7;
 }
 
 message ServiceProvider {
@@ -74,6 +77,7 @@ message ServiceProvider {
   string website = 8;
   google.protobuf.Timestamp created_at = 9;
   google.protobuf.Timestamp updated_at = 10;
+  string service_mode = 11;       // NEARBY, ONLINE
 }
 
 message VerifyServiceProviderRequest {

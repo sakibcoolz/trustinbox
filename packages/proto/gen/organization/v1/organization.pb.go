@@ -30,6 +30,7 @@ type CreateServiceProviderRequest struct {
 	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	Website       string                 `protobuf:"bytes,5,opt,name=website,proto3" json:"website,omitempty"`
 	AdminUserId   string                 `protobuf:"bytes,6,opt,name=admin_user_id,json=adminUserId,proto3" json:"admin_user_id,omitempty"`
+	ServiceMode   string                 `protobuf:"bytes,7,opt,name=service_mode,json=serviceMode,proto3" json:"service_mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -106,6 +107,13 @@ func (x *CreateServiceProviderRequest) GetAdminUserId() string {
 	return ""
 }
 
+func (x *CreateServiceProviderRequest) GetServiceMode() string {
+	if x != nil {
+		return x.ServiceMode
+	}
+	return ""
+}
+
 type GetServiceProviderRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	ServiceProviderId string                 `protobuf:"bytes,1,opt,name=service_provider_id,json=serviceProviderId,proto3" json:"service_provider_id,omitempty"`
@@ -156,6 +164,7 @@ type ListServiceProvidersRequest struct {
 	VerificationStatus string                 `protobuf:"bytes,2,opt,name=verification_status,json=verificationStatus,proto3" json:"verification_status,omitempty"`
 	Limit              int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
 	Offset             int32                  `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
+	ServiceMode        string                 `protobuf:"bytes,5,opt,name=service_mode,json=serviceMode,proto3" json:"service_mode,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -218,6 +227,13 @@ func (x *ListServiceProvidersRequest) GetOffset() int32 {
 	return 0
 }
 
+func (x *ListServiceProvidersRequest) GetServiceMode() string {
+	if x != nil {
+		return x.ServiceMode
+	}
+	return ""
+}
+
 type ListServiceProvidersResponse struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	ServiceProviders []*ServiceProvider     `protobuf:"bytes,1,rep,name=service_providers,json=serviceProviders,proto3" json:"service_providers,omitempty"`
@@ -278,6 +294,7 @@ type UpdateServiceProviderRequest struct {
 	Industry          string                 `protobuf:"bytes,4,opt,name=industry,proto3" json:"industry,omitempty"`
 	Description       string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
 	Website           string                 `protobuf:"bytes,6,opt,name=website,proto3" json:"website,omitempty"`
+	ServiceMode       string                 `protobuf:"bytes,7,opt,name=service_mode,json=serviceMode,proto3" json:"service_mode,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -354,6 +371,13 @@ func (x *UpdateServiceProviderRequest) GetWebsite() string {
 	return ""
 }
 
+func (x *UpdateServiceProviderRequest) GetServiceMode() string {
+	if x != nil {
+		return x.ServiceMode
+	}
+	return ""
+}
+
 type ServiceProvider struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Id                 string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -366,6 +390,7 @@ type ServiceProvider struct {
 	Website            string                 `protobuf:"bytes,8,opt,name=website,proto3" json:"website,omitempty"`
 	CreatedAt          *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt          *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	ServiceMode        string                 `protobuf:"bytes,11,opt,name=service_mode,json=serviceMode,proto3" json:"service_mode,omitempty"` // NEARBY, ONLINE
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -468,6 +493,13 @@ func (x *ServiceProvider) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *ServiceProvider) GetServiceMode() string {
+	if x != nil {
+		return x.ServiceMode
+	}
+	return ""
 }
 
 type VerifyServiceProviderRequest struct {
@@ -1842,7 +1874,7 @@ var File_organization_v1_organization_proto protoreflect.FileDescriptor
 
 const file_organization_v1_organization_proto_rawDesc = "" +
 	"\n" +
-	"\"organization/v1/organization.proto\x12\x0forganization.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcd\x01\n" +
+	"\"organization/v1/organization.proto\x12\x0forganization.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf0\x01\n" +
 	"\x1cCreateServiceProviderRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
@@ -1850,17 +1882,19 @@ const file_organization_v1_organization_proto_rawDesc = "" +
 	"\bindustry\x18\x03 \x01(\tR\bindustry\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x18\n" +
 	"\awebsite\x18\x05 \x01(\tR\awebsite\x12\"\n" +
-	"\radmin_user_id\x18\x06 \x01(\tR\vadminUserId\"K\n" +
+	"\radmin_user_id\x18\x06 \x01(\tR\vadminUserId\x12!\n" +
+	"\fservice_mode\x18\a \x01(\tR\vserviceMode\"K\n" +
 	"\x19GetServiceProviderRequest\x12.\n" +
-	"\x13service_provider_id\x18\x01 \x01(\tR\x11serviceProviderId\"\x94\x01\n" +
+	"\x13service_provider_id\x18\x01 \x01(\tR\x11serviceProviderId\"\xb7\x01\n" +
 	"\x1bListServiceProvidersRequest\x12\x16\n" +
 	"\x06search\x18\x01 \x01(\tR\x06search\x12/\n" +
 	"\x13verification_status\x18\x02 \x01(\tR\x12verificationStatus\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x16\n" +
-	"\x06offset\x18\x04 \x01(\x05R\x06offset\"\x83\x01\n" +
+	"\x06offset\x18\x04 \x01(\x05R\x06offset\x12!\n" +
+	"\fservice_mode\x18\x05 \x01(\tR\vserviceMode\"\x83\x01\n" +
 	"\x1cListServiceProvidersResponse\x12M\n" +
 	"\x11service_providers\x18\x01 \x03(\v2 .organization.v1.ServiceProviderR\x10serviceProviders\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"\xd9\x01\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\xfc\x01\n" +
 	"\x1cUpdateServiceProviderRequest\x12.\n" +
 	"\x13service_provider_id\x18\x01 \x01(\tR\x11serviceProviderId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -1868,7 +1902,8 @@ const file_organization_v1_organization_proto_rawDesc = "" +
 	"legal_name\x18\x03 \x01(\tR\tlegalName\x12\x1a\n" +
 	"\bindustry\x18\x04 \x01(\tR\bindustry\x12 \n" +
 	"\vdescription\x18\x05 \x01(\tR\vdescription\x12\x18\n" +
-	"\awebsite\x18\x06 \x01(\tR\awebsite\"\xeb\x02\n" +
+	"\awebsite\x18\x06 \x01(\tR\awebsite\x12!\n" +
+	"\fservice_mode\x18\a \x01(\tR\vserviceMode\"\x8e\x03\n" +
 	"\x0fServiceProvider\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -1883,7 +1918,8 @@ const file_organization_v1_organization_proto_rawDesc = "" +
 	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xa6\x01\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12!\n" +
+	"\fservice_mode\x18\v \x01(\tR\vserviceMode\"\xa6\x01\n" +
 	"\x1cVerifyServiceProviderRequest\x12.\n" +
 	"\x13service_provider_id\x18\x01 \x01(\tR\x11serviceProviderId\x12\x1a\n" +
 	"\bdecision\x18\x02 \x01(\tR\bdecision\x12\x16\n" +

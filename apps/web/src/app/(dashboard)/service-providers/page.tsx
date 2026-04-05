@@ -24,12 +24,13 @@ export default function ServiceProvidersPage() {
 
 function ServiceProvidersContent() {
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<'NEARBY' | 'ONLINE'>('NEARBY');
   const { selectedId, setSelectedId, clearSelectedId } = useDetailParam();
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
   const [detailTab, setDetailTab] = useState<'profile' | 'history'>('profile');
   const [blockingId, setBlockingId] = useState<string | null>(null);
 
-  const { providers, loading, error, block, unblock } = useServiceProviders({ search: search || undefined });
+  const { providers, loading, error, block, unblock } = useServiceProviders({ search: search || undefined, serviceMode: activeTab });
   const { blockedProviders } = useBlockedProviders();
 
   const blockedIds = useMemo(() => new Set(
@@ -109,6 +110,20 @@ function ServiceProvidersContent() {
       <div className={`${mobileShowDetail ? 'hidden sm:flex' : 'flex'} w-full sm:w-panel h-full flex-col bg-bg-secondary border-r border-border-primary sm:shrink-0`}>
         <div className="px-4 pt-4 pb-2 space-y-3">
           <h2 className="text-lg font-semibold text-text-primary">Service Providers</h2>
+          <div className="flex gap-1 bg-bg-tertiary rounded-lg p-0.5">
+            <button
+              onClick={() => setActiveTab('NEARBY')}
+              className={`flex-1 text-xs font-medium py-1.5 px-3 rounded-md transition-colors ${activeTab === 'NEARBY' ? 'bg-bg-card text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              Nearby Services
+            </button>
+            <button
+              onClick={() => setActiveTab('ONLINE')}
+              className={`flex-1 text-xs font-medium py-1.5 px-3 rounded-md transition-colors ${activeTab === 'ONLINE' ? 'bg-bg-card text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              Online Services
+            </button>
+          </div>
           <div className="relative">
             <svg className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -203,6 +218,10 @@ function ServiceProvidersContent() {
                     <div>
                       <p className="text-2xs text-text-muted uppercase tracking-wider font-medium">Industry</p>
                       <p className="text-sm text-text-primary mt-1">{selected.industry ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-2xs text-text-muted uppercase tracking-wider font-medium">Service Type</p>
+                      <p className="mt-1"><span className={`chip text-2xs ${selected.serviceMode === 'ONLINE' ? 'chip-blue' : 'chip-green'}`}>{selected.serviceMode === 'ONLINE' ? 'Online' : 'Nearby'}</span></p>
                     </div>
                     <div>
                       <p className="text-2xs text-text-muted uppercase tracking-wider font-medium">Verification</p>
