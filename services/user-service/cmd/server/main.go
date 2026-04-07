@@ -62,8 +62,9 @@ func main() {
 	dndRepo := postgres.NewDNDRuleRepository(db)
 	availRepo := postgres.NewAvailabilitySlotRepository(db)
 	blockRepo := postgres.NewBlockedServiceProviderRepository(db)
+	addressRepo := postgres.NewUserAddressRepository(db)
 
-	userUC := usecase.NewUserUseCase(profileRepo, privacyRepo, dndRepo, availRepo, blockRepo, log)
+	userUC := usecase.NewUserUseCase(profileRepo, privacyRepo, dndRepo, availRepo, blockRepo, addressRepo, log)
 	handler := grpcdelivery.NewUserHandler(userUC)
 
 	srv := grpc.NewServer()

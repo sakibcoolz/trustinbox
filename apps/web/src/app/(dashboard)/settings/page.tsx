@@ -4,6 +4,7 @@ const sections = [
   { href: '/settings/privacy', label: 'Privacy', desc: 'Control what service providers can see and do.', icon: '🔒', color: 'bg-accent-blue/10 text-accent-blue' },
   { href: '/settings/dnd', label: 'Do Not Disturb', desc: 'Set quiet hours and DND schedules.', icon: '🌙', color: 'bg-accent-purple/10 text-accent-purple' },
   { href: '/settings/availability', label: 'Availability', desc: 'Define when service providers can reach you.', icon: '🕐', color: 'bg-accent-green/10 text-accent-green' },
+  { href: '/settings/addresses', label: 'My Addresses', desc: 'Manage your addresses and set your current location.', icon: '📍', color: 'bg-accent-cyan/10 text-accent-cyan' },
   { href: '/settings/preferences', label: 'Category Preferences', desc: 'Control Personal, Service Provider, and Ad notifications.', icon: '⚙️', color: 'bg-accent-orange/10 text-accent-orange' },
   { href: '/settings/blocked', label: 'Blocked Organizations', desc: 'Manage organizations you\'ve blocked from contacting you.', icon: '🚫', color: 'bg-accent-red/10 text-accent-red' },
 ];

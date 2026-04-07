@@ -9,7 +9,7 @@ import (
 type ServiceProviderRepository interface {
 	Create(ctx context.Context, sp *entity.ServiceProvider) error
 	GetByID(ctx context.Context, id string) (*entity.ServiceProvider, error)
-	List(ctx context.Context, search string, verificationStatus string, serviceMode string, limit, offset int) ([]entity.ServiceProvider, int, error)
+	List(ctx context.Context, search string, verificationStatus string, limit, offset int) ([]entity.ServiceProvider, int, error)
 	Update(ctx context.Context, sp *entity.ServiceProvider) error
 	UpdateVerificationStatus(ctx context.Context, id, status string) error
 	UpdateStatus(ctx context.Context, id, status string) error

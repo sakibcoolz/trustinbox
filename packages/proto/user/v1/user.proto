@@ -21,6 +21,14 @@ service UserService {
   rpc BlockServiceProvider(BlockServiceProviderRequest) returns (BlockServiceProviderResponse);
   rpc UnblockServiceProvider(UnblockServiceProviderRequest) returns (UnblockServiceProviderResponse);
   rpc ListBlockedServiceProviders(ListBlockedServiceProvidersRequest) returns (ListBlockedServiceProvidersResponse);
+
+  // Addresses
+  rpc CreateAddress(CreateAddressRequest) returns (UserAddress);
+  rpc UpdateAddress(UpdateAddressRequest) returns (UserAddress);
+  rpc DeleteAddress(DeleteAddressRequest) returns (DeleteAddressResponse);
+  rpc ListAddresses(ListAddressesRequest) returns (ListAddressesResponse);
+  rpc SetCurrentAddress(SetCurrentAddressRequest) returns (SetCurrentAddressResponse);
+  rpc GetCurrentAddress(GetCurrentAddressRequest) returns (UserAddress);
 }
 
 message GetUserProfileRequest {
@@ -185,4 +193,82 @@ message ListBlockedServiceProvidersRequest {
 
 message ListBlockedServiceProvidersResponse {
   repeated string service_provider_ids = 1;
+}
+
+// ─── Address Messages ──────────────────────────────────────────────────────
+
+message UserAddress {
+  string id = 1;
+  string user_id = 2;
+  string label = 3;           // Home, Work, Other
+  string address_line1 = 4;
+  string address_line2 = 5;
+  string city = 6;
+  string state = 7;
+  string postal_code = 8;
+  string country = 9;
+  double latitude = 10;
+  double longitude = 11;
+  bool is_current = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+}
+
+message CreateAddressRequest {
+  string user_id = 1;
+  string label = 2;
+  string address_line1 = 3;
+  string address_line2 = 4;
+  string city = 5;
+  string state = 6;
+  string postal_code = 7;
+  string country = 8;
+  double latitude = 9;
+  double longitude = 10;
+  bool is_current = 11;
+}
+
+message UpdateAddressRequest {
+  string id = 1;
+  string user_id = 2;
+  string label = 3;
+  string address_line1 = 4;
+  string address_line2 = 5;
+  string city = 6;
+  string state = 7;
+  string postal_code = 8;
+  string country = 9;
+  double latitude = 10;
+  double longitude = 11;
+  bool is_current = 12;
+}
+
+message DeleteAddressRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message DeleteAddressResponse {
+  bool success = 1;
+}
+
+message ListAddressesRequest {
+  string user_id = 1;
+}
+
+message ListAddressesResponse {
+  repeated UserAddress addresses = 1;
+}
+
+message SetCurrentAddressRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message SetCurrentAddressResponse {
+  bool success = 1;
+}
+
+message GetCurrentAddressRequest {
+  string user_id = 1;
 }

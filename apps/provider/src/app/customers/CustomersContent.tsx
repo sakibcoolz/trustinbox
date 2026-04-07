@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { Search, Users, Plus, Trash2, X } from 'lucide-react';
+import { Search, Users, Plus, Trash2, X, UserCheck, UserPlus, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { DataTable, type Column, type SortState, type PaginationState } from '@/components/ui/Table';
 import { FilterChipBar } from '@/components/ui/FilterChipBar';
@@ -64,6 +64,9 @@ export function CustomersContent() {
   const { activeServiceProvider } = useAuth();
   const { success: toastSuccess, error: toastError } = useToast();
 
+  // ── Customer Tabs ──
+  const [customerTab, setCustomerTab] = useState<'all' | 'followed' | 'leads'>('all');
+
   // ── Add / Remove ──
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addVirtualId, setAddVirtualId] = useState('');
@@ -98,10 +101,14 @@ export function CustomersContent() {
   );
 
   // ── GraphQL Query ──
+  // Merge tab-level filters with user-selected filters
+  const effectiveStatus = customerTab === 'followed' ? ['ACTIVE'] : (statuses.length > 0 ? statuses : undefined);
+  const effectiveCategory = customerTab === 'leads' ? ['LEAD', 'PROSPECT'] : (categories.length > 0 ? categories : undefined);
+
   const { data, loading, refetch } = useCustomers({
     search: search || undefined,
-    category: categories.length > 0 ? categories : undefined,
-    status: statuses.length > 0 ? statuses : undefined,
+    category: effectiveCategory,
+    status: effectiveStatus,
     sort: { field: sortField, direction: sortDir },
     first: limit,
     after: cursor,
@@ -290,6 +297,31 @@ export function CustomersContent() {
         </button>
       </div>
 
+      {/* Customer Tabs */}
+      <div className="flex gap-1 bg-bg-secondary rounded-lg p-1 max-w-md">
+        <button
+          onClick={() => { setCustomerTab('all'); updateUrl({ cursor: undefined }); }}
+          className={`flex-1 flex items-center justify-center gap-2 text-sm font-medium py-2 px-3 rounded-md transition-colors ${customerTab === 'all' ? 'bg-bg-card text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+        >
+          <Users size={14} />
+          All
+        </button>
+        <button
+          onClick={() => { setCustomerTab('followed'); updateUrl({ cursor: undefined }); }}
+          className={`flex-1 flex items-center justify-center gap-2 text-sm font-medium py-2 px-3 rounded-md transition-colors ${customerTab === 'followed' ? 'bg-bg-card text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+        >
+          <Heart size={14} />
+          Followed
+        </button>
+        <button
+          onClick={() => { setCustomerTab('leads'); updateUrl({ cursor: undefined }); }}
+          className={`flex-1 flex items-center justify-center gap-2 text-sm font-medium py-2 px-3 rounded-md transition-colors ${customerTab === 'leads' ? 'bg-bg-card text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+        >
+          <UserPlus size={14} />
+          Leads
+        </button>
+      </div>
+
       {/* Add Customer Dialog */}
       {showAddDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -321,7 +353,7 @@ export function CustomersContent() {
                   className="w-full px-3 py-2 bg-bg-input border border-border-secondary rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-active"
                 >
                   <option value="CUSTOMER">Customer</option>
-                  <option value="SUBSCRIBER">Subscriber</option>
+                  <option value="SUBSCRIBER">Followed / Subscriber</option>
                   <option value="LEAD">Lead</option>
                   <option value="PROSPECT">Prospect</option>
                 </select>
@@ -383,10 +415,12 @@ export function CustomersContent() {
         onSelectionChange={handleSelectionChange}
         emptyState={
           <EmptyState
-            icon={Users}
-            title="No customers found"
+            icon={customerTab === 'followed' ? Heart : customerTab === 'leads' ? UserPlus : Users}
+            title={customerTab === 'followed' ? 'No followed customers' : customerTab === 'leads' ? 'No leads found' : 'No customers found'}
             description={search || categories.length || statuses.length
               ? 'Try adjusting your search or filters'
+              : customerTab === 'followed' ? 'Customers who follow your services will appear here'
+              : customerTab === 'leads' ? 'Add leads to track potential customers'
               : 'Customers will appear here once conversations are established'}
           />
         }

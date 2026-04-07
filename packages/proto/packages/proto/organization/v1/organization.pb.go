@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v4.25.1
-// source: organization/v1/organization.proto
+// source: packages/proto/organization/v1/organization.proto
 
 package organizationv1
 
@@ -43,7 +43,7 @@ type CreateServiceProviderRequest struct {
 
 func (x *CreateServiceProviderRequest) Reset() {
 	*x = CreateServiceProviderRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[0]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -55,7 +55,7 @@ func (x *CreateServiceProviderRequest) String() string {
 func (*CreateServiceProviderRequest) ProtoMessage() {}
 
 func (x *CreateServiceProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[0]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -68,7 +68,7 @@ func (x *CreateServiceProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateServiceProviderRequest.ProtoReflect.Descriptor instead.
 func (*CreateServiceProviderRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{0}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *CreateServiceProviderRequest) GetName() string {
@@ -171,7 +171,7 @@ type GetServiceProviderRequest struct {
 
 func (x *GetServiceProviderRequest) Reset() {
 	*x = GetServiceProviderRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[1]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -183,7 +183,7 @@ func (x *GetServiceProviderRequest) String() string {
 func (*GetServiceProviderRequest) ProtoMessage() {}
 
 func (x *GetServiceProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[1]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -196,7 +196,7 @@ func (x *GetServiceProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServiceProviderRequest.ProtoReflect.Descriptor instead.
 func (*GetServiceProviderRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{1}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetServiceProviderRequest) GetServiceProviderId() string {
@@ -218,7 +218,7 @@ type ListServiceProvidersRequest struct {
 
 func (x *ListServiceProvidersRequest) Reset() {
 	*x = ListServiceProvidersRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[2]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -230,7 +230,7 @@ func (x *ListServiceProvidersRequest) String() string {
 func (*ListServiceProvidersRequest) ProtoMessage() {}
 
 func (x *ListServiceProvidersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[2]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -243,7 +243,7 @@ func (x *ListServiceProvidersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServiceProvidersRequest.ProtoReflect.Descriptor instead.
 func (*ListServiceProvidersRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{2}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ListServiceProvidersRequest) GetSearch() string {
@@ -284,7 +284,7 @@ type ListServiceProvidersResponse struct {
 
 func (x *ListServiceProvidersResponse) Reset() {
 	*x = ListServiceProvidersResponse{}
-	mi := &file_organization_v1_organization_proto_msgTypes[3]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -296,7 +296,7 @@ func (x *ListServiceProvidersResponse) String() string {
 func (*ListServiceProvidersResponse) ProtoMessage() {}
 
 func (x *ListServiceProvidersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[3]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -309,7 +309,7 @@ func (x *ListServiceProvidersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServiceProvidersResponse.ProtoReflect.Descriptor instead.
 func (*ListServiceProvidersResponse) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{3}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListServiceProvidersResponse) GetServiceProviders() []*ServiceProvider {
@@ -347,7 +347,7 @@ type UpdateServiceProviderRequest struct {
 
 func (x *UpdateServiceProviderRequest) Reset() {
 	*x = UpdateServiceProviderRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[4]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -359,7 +359,7 @@ func (x *UpdateServiceProviderRequest) String() string {
 func (*UpdateServiceProviderRequest) ProtoMessage() {}
 
 func (x *UpdateServiceProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[4]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -372,7 +372,7 @@ func (x *UpdateServiceProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateServiceProviderRequest.ProtoReflect.Descriptor instead.
 func (*UpdateServiceProviderRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{4}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *UpdateServiceProviderRequest) GetServiceProviderId() string {
@@ -491,7 +491,7 @@ type ServiceProvider struct {
 
 func (x *ServiceProvider) Reset() {
 	*x = ServiceProvider{}
-	mi := &file_organization_v1_organization_proto_msgTypes[5]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -503,7 +503,7 @@ func (x *ServiceProvider) String() string {
 func (*ServiceProvider) ProtoMessage() {}
 
 func (x *ServiceProvider) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[5]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -516,7 +516,7 @@ func (x *ServiceProvider) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceProvider.ProtoReflect.Descriptor instead.
 func (*ServiceProvider) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{5}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ServiceProvider) GetId() string {
@@ -650,7 +650,7 @@ type VerifyServiceProviderRequest struct {
 
 func (x *VerifyServiceProviderRequest) Reset() {
 	*x = VerifyServiceProviderRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[6]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -662,7 +662,7 @@ func (x *VerifyServiceProviderRequest) String() string {
 func (*VerifyServiceProviderRequest) ProtoMessage() {}
 
 func (x *VerifyServiceProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[6]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -675,7 +675,7 @@ func (x *VerifyServiceProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyServiceProviderRequest.ProtoReflect.Descriptor instead.
 func (*VerifyServiceProviderRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{6}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *VerifyServiceProviderRequest) GetServiceProviderId() string {
@@ -715,7 +715,7 @@ type VerifyServiceProviderResponse struct {
 
 func (x *VerifyServiceProviderResponse) Reset() {
 	*x = VerifyServiceProviderResponse{}
-	mi := &file_organization_v1_organization_proto_msgTypes[7]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -727,7 +727,7 @@ func (x *VerifyServiceProviderResponse) String() string {
 func (*VerifyServiceProviderResponse) ProtoMessage() {}
 
 func (x *VerifyServiceProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[7]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -740,7 +740,7 @@ func (x *VerifyServiceProviderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyServiceProviderResponse.ProtoReflect.Descriptor instead.
 func (*VerifyServiceProviderResponse) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{7}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *VerifyServiceProviderResponse) GetSuccess() bool {
@@ -761,7 +761,7 @@ type SuspendServiceProviderRequest struct {
 
 func (x *SuspendServiceProviderRequest) Reset() {
 	*x = SuspendServiceProviderRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[8]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -773,7 +773,7 @@ func (x *SuspendServiceProviderRequest) String() string {
 func (*SuspendServiceProviderRequest) ProtoMessage() {}
 
 func (x *SuspendServiceProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[8]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -786,7 +786,7 @@ func (x *SuspendServiceProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SuspendServiceProviderRequest.ProtoReflect.Descriptor instead.
 func (*SuspendServiceProviderRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{8}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SuspendServiceProviderRequest) GetServiceProviderId() string {
@@ -819,7 +819,7 @@ type SuspendServiceProviderResponse struct {
 
 func (x *SuspendServiceProviderResponse) Reset() {
 	*x = SuspendServiceProviderResponse{}
-	mi := &file_organization_v1_organization_proto_msgTypes[9]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -831,7 +831,7 @@ func (x *SuspendServiceProviderResponse) String() string {
 func (*SuspendServiceProviderResponse) ProtoMessage() {}
 
 func (x *SuspendServiceProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[9]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -844,7 +844,7 @@ func (x *SuspendServiceProviderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SuspendServiceProviderResponse.ProtoReflect.Descriptor instead.
 func (*SuspendServiceProviderResponse) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{9}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SuspendServiceProviderResponse) GetSuccess() bool {
@@ -865,7 +865,7 @@ type AddServiceProviderUserRequest struct {
 
 func (x *AddServiceProviderUserRequest) Reset() {
 	*x = AddServiceProviderUserRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[10]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -877,7 +877,7 @@ func (x *AddServiceProviderUserRequest) String() string {
 func (*AddServiceProviderUserRequest) ProtoMessage() {}
 
 func (x *AddServiceProviderUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[10]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -890,7 +890,7 @@ func (x *AddServiceProviderUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddServiceProviderUserRequest.ProtoReflect.Descriptor instead.
 func (*AddServiceProviderUserRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{10}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AddServiceProviderUserRequest) GetServiceProviderId() string {
@@ -928,7 +928,7 @@ type ServiceProviderUser struct {
 
 func (x *ServiceProviderUser) Reset() {
 	*x = ServiceProviderUser{}
-	mi := &file_organization_v1_organization_proto_msgTypes[11]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -940,7 +940,7 @@ func (x *ServiceProviderUser) String() string {
 func (*ServiceProviderUser) ProtoMessage() {}
 
 func (x *ServiceProviderUser) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[11]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -953,7 +953,7 @@ func (x *ServiceProviderUser) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceProviderUser.ProtoReflect.Descriptor instead.
 func (*ServiceProviderUser) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{11}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ServiceProviderUser) GetId() string {
@@ -1008,7 +1008,7 @@ type RemoveServiceProviderUserRequest struct {
 
 func (x *RemoveServiceProviderUserRequest) Reset() {
 	*x = RemoveServiceProviderUserRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[12]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1020,7 +1020,7 @@ func (x *RemoveServiceProviderUserRequest) String() string {
 func (*RemoveServiceProviderUserRequest) ProtoMessage() {}
 
 func (x *RemoveServiceProviderUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[12]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1033,7 +1033,7 @@ func (x *RemoveServiceProviderUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveServiceProviderUserRequest.ProtoReflect.Descriptor instead.
 func (*RemoveServiceProviderUserRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{12}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *RemoveServiceProviderUserRequest) GetServiceProviderUserId() string {
@@ -1059,7 +1059,7 @@ type RemoveServiceProviderUserResponse struct {
 
 func (x *RemoveServiceProviderUserResponse) Reset() {
 	*x = RemoveServiceProviderUserResponse{}
-	mi := &file_organization_v1_organization_proto_msgTypes[13]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1071,7 +1071,7 @@ func (x *RemoveServiceProviderUserResponse) String() string {
 func (*RemoveServiceProviderUserResponse) ProtoMessage() {}
 
 func (x *RemoveServiceProviderUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[13]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1084,7 +1084,7 @@ func (x *RemoveServiceProviderUserResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use RemoveServiceProviderUserResponse.ProtoReflect.Descriptor instead.
 func (*RemoveServiceProviderUserResponse) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{13}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RemoveServiceProviderUserResponse) GetSuccess() bool {
@@ -1105,7 +1105,7 @@ type ListServiceProviderUsersRequest struct {
 
 func (x *ListServiceProviderUsersRequest) Reset() {
 	*x = ListServiceProviderUsersRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[14]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1117,7 +1117,7 @@ func (x *ListServiceProviderUsersRequest) String() string {
 func (*ListServiceProviderUsersRequest) ProtoMessage() {}
 
 func (x *ListServiceProviderUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[14]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1130,7 +1130,7 @@ func (x *ListServiceProviderUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServiceProviderUsersRequest.ProtoReflect.Descriptor instead.
 func (*ListServiceProviderUsersRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{14}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListServiceProviderUsersRequest) GetServiceProviderId() string {
@@ -1164,7 +1164,7 @@ type ListServiceProviderUsersResponse struct {
 
 func (x *ListServiceProviderUsersResponse) Reset() {
 	*x = ListServiceProviderUsersResponse{}
-	mi := &file_organization_v1_organization_proto_msgTypes[15]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1176,7 +1176,7 @@ func (x *ListServiceProviderUsersResponse) String() string {
 func (*ListServiceProviderUsersResponse) ProtoMessage() {}
 
 func (x *ListServiceProviderUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[15]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1189,7 +1189,7 @@ func (x *ListServiceProviderUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServiceProviderUsersResponse.ProtoReflect.Descriptor instead.
 func (*ListServiceProviderUsersResponse) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{15}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListServiceProviderUsersResponse) GetUsers() []*ServiceProviderUser {
@@ -1215,7 +1215,7 @@ type GetServiceProviderUserRequest struct {
 
 func (x *GetServiceProviderUserRequest) Reset() {
 	*x = GetServiceProviderUserRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[16]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1227,7 +1227,7 @@ func (x *GetServiceProviderUserRequest) String() string {
 func (*GetServiceProviderUserRequest) ProtoMessage() {}
 
 func (x *GetServiceProviderUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[16]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1240,7 +1240,7 @@ func (x *GetServiceProviderUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServiceProviderUserRequest.ProtoReflect.Descriptor instead.
 func (*GetServiceProviderUserRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{16}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetServiceProviderUserRequest) GetServiceProviderUserId() string {
@@ -1262,7 +1262,7 @@ type InviteTeamMemberRequest struct {
 
 func (x *InviteTeamMemberRequest) Reset() {
 	*x = InviteTeamMemberRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[17]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1274,7 +1274,7 @@ func (x *InviteTeamMemberRequest) String() string {
 func (*InviteTeamMemberRequest) ProtoMessage() {}
 
 func (x *InviteTeamMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[17]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1287,7 +1287,7 @@ func (x *InviteTeamMemberRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InviteTeamMemberRequest.ProtoReflect.Descriptor instead.
 func (*InviteTeamMemberRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{17}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *InviteTeamMemberRequest) GetServiceProviderId() string {
@@ -1328,7 +1328,7 @@ type InviteTeamMemberResponse struct {
 
 func (x *InviteTeamMemberResponse) Reset() {
 	*x = InviteTeamMemberResponse{}
-	mi := &file_organization_v1_organization_proto_msgTypes[18]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1340,7 +1340,7 @@ func (x *InviteTeamMemberResponse) String() string {
 func (*InviteTeamMemberResponse) ProtoMessage() {}
 
 func (x *InviteTeamMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[18]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1353,7 +1353,7 @@ func (x *InviteTeamMemberResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InviteTeamMemberResponse.ProtoReflect.Descriptor instead.
 func (*InviteTeamMemberResponse) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{18}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *InviteTeamMemberResponse) GetInvitationId() string {
@@ -1380,7 +1380,7 @@ type AcceptInvitationRequest struct {
 
 func (x *AcceptInvitationRequest) Reset() {
 	*x = AcceptInvitationRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[19]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1392,7 +1392,7 @@ func (x *AcceptInvitationRequest) String() string {
 func (*AcceptInvitationRequest) ProtoMessage() {}
 
 func (x *AcceptInvitationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[19]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1405,7 +1405,7 @@ func (x *AcceptInvitationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptInvitationRequest.ProtoReflect.Descriptor instead.
 func (*AcceptInvitationRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{19}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *AcceptInvitationRequest) GetToken() string {
@@ -1431,7 +1431,7 @@ type AcceptInvitationResponse struct {
 
 func (x *AcceptInvitationResponse) Reset() {
 	*x = AcceptInvitationResponse{}
-	mi := &file_organization_v1_organization_proto_msgTypes[20]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1443,7 +1443,7 @@ func (x *AcceptInvitationResponse) String() string {
 func (*AcceptInvitationResponse) ProtoMessage() {}
 
 func (x *AcceptInvitationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[20]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1456,7 +1456,7 @@ func (x *AcceptInvitationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptInvitationResponse.ProtoReflect.Descriptor instead.
 func (*AcceptInvitationResponse) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{20}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *AcceptInvitationResponse) GetSuccess() bool {
@@ -1477,7 +1477,7 @@ type RevokeInvitationRequest struct {
 
 func (x *RevokeInvitationRequest) Reset() {
 	*x = RevokeInvitationRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[21]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1489,7 +1489,7 @@ func (x *RevokeInvitationRequest) String() string {
 func (*RevokeInvitationRequest) ProtoMessage() {}
 
 func (x *RevokeInvitationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[21]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1502,7 +1502,7 @@ func (x *RevokeInvitationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeInvitationRequest.ProtoReflect.Descriptor instead.
 func (*RevokeInvitationRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{21}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *RevokeInvitationRequest) GetInvitationId() string {
@@ -1535,7 +1535,7 @@ type RevokeInvitationResponse struct {
 
 func (x *RevokeInvitationResponse) Reset() {
 	*x = RevokeInvitationResponse{}
-	mi := &file_organization_v1_organization_proto_msgTypes[22]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1547,7 +1547,7 @@ func (x *RevokeInvitationResponse) String() string {
 func (*RevokeInvitationResponse) ProtoMessage() {}
 
 func (x *RevokeInvitationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[22]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1560,7 +1560,7 @@ func (x *RevokeInvitationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeInvitationResponse.ProtoReflect.Descriptor instead.
 func (*RevokeInvitationResponse) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{22}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *RevokeInvitationResponse) GetSuccess() bool {
@@ -1582,7 +1582,7 @@ type ListInvitationsRequest struct {
 
 func (x *ListInvitationsRequest) Reset() {
 	*x = ListInvitationsRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[23]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1594,7 +1594,7 @@ func (x *ListInvitationsRequest) String() string {
 func (*ListInvitationsRequest) ProtoMessage() {}
 
 func (x *ListInvitationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[23]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1607,7 +1607,7 @@ func (x *ListInvitationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInvitationsRequest.ProtoReflect.Descriptor instead.
 func (*ListInvitationsRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{23}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListInvitationsRequest) GetServiceProviderId() string {
@@ -1648,7 +1648,7 @@ type ListInvitationsResponse struct {
 
 func (x *ListInvitationsResponse) Reset() {
 	*x = ListInvitationsResponse{}
-	mi := &file_organization_v1_organization_proto_msgTypes[24]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1660,7 +1660,7 @@ func (x *ListInvitationsResponse) String() string {
 func (*ListInvitationsResponse) ProtoMessage() {}
 
 func (x *ListInvitationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[24]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1673,7 +1673,7 @@ func (x *ListInvitationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInvitationsResponse.ProtoReflect.Descriptor instead.
 func (*ListInvitationsResponse) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{24}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ListInvitationsResponse) GetInvitations() []*Invitation {
@@ -1706,7 +1706,7 @@ type Invitation struct {
 
 func (x *Invitation) Reset() {
 	*x = Invitation{}
-	mi := &file_organization_v1_organization_proto_msgTypes[25]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1718,7 +1718,7 @@ func (x *Invitation) String() string {
 func (*Invitation) ProtoMessage() {}
 
 func (x *Invitation) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[25]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1731,7 +1731,7 @@ func (x *Invitation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Invitation.ProtoReflect.Descriptor instead.
 func (*Invitation) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{25}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *Invitation) GetId() string {
@@ -1802,7 +1802,7 @@ type ChangeTeamMemberRoleRequest struct {
 
 func (x *ChangeTeamMemberRoleRequest) Reset() {
 	*x = ChangeTeamMemberRoleRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[26]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1814,7 +1814,7 @@ func (x *ChangeTeamMemberRoleRequest) String() string {
 func (*ChangeTeamMemberRoleRequest) ProtoMessage() {}
 
 func (x *ChangeTeamMemberRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[26]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1827,7 +1827,7 @@ func (x *ChangeTeamMemberRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangeTeamMemberRoleRequest.ProtoReflect.Descriptor instead.
 func (*ChangeTeamMemberRoleRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{26}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ChangeTeamMemberRoleRequest) GetServiceProviderId() string {
@@ -1867,7 +1867,7 @@ type ChangeTeamMemberRoleResponse struct {
 
 func (x *ChangeTeamMemberRoleResponse) Reset() {
 	*x = ChangeTeamMemberRoleResponse{}
-	mi := &file_organization_v1_organization_proto_msgTypes[27]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1879,7 +1879,7 @@ func (x *ChangeTeamMemberRoleResponse) String() string {
 func (*ChangeTeamMemberRoleResponse) ProtoMessage() {}
 
 func (x *ChangeTeamMemberRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[27]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1892,7 +1892,7 @@ func (x *ChangeTeamMemberRoleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangeTeamMemberRoleResponse.ProtoReflect.Descriptor instead.
 func (*ChangeTeamMemberRoleResponse) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{27}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ChangeTeamMemberRoleResponse) GetSuccess() bool {
@@ -1913,7 +1913,7 @@ type RemoveTeamMemberRequest struct {
 
 func (x *RemoveTeamMemberRequest) Reset() {
 	*x = RemoveTeamMemberRequest{}
-	mi := &file_organization_v1_organization_proto_msgTypes[28]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1925,7 +1925,7 @@ func (x *RemoveTeamMemberRequest) String() string {
 func (*RemoveTeamMemberRequest) ProtoMessage() {}
 
 func (x *RemoveTeamMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[28]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1938,7 +1938,7 @@ func (x *RemoveTeamMemberRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveTeamMemberRequest.ProtoReflect.Descriptor instead.
 func (*RemoveTeamMemberRequest) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{28}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *RemoveTeamMemberRequest) GetServiceProviderId() string {
@@ -1971,7 +1971,7 @@ type RemoveTeamMemberResponse struct {
 
 func (x *RemoveTeamMemberResponse) Reset() {
 	*x = RemoveTeamMemberResponse{}
-	mi := &file_organization_v1_organization_proto_msgTypes[29]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1983,7 +1983,7 @@ func (x *RemoveTeamMemberResponse) String() string {
 func (*RemoveTeamMemberResponse) ProtoMessage() {}
 
 func (x *RemoveTeamMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_organization_v1_organization_proto_msgTypes[29]
+	mi := &file_packages_proto_organization_v1_organization_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1996,7 +1996,7 @@ func (x *RemoveTeamMemberResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveTeamMemberResponse.ProtoReflect.Descriptor instead.
 func (*RemoveTeamMemberResponse) Descriptor() ([]byte, []int) {
-	return file_organization_v1_organization_proto_rawDescGZIP(), []int{29}
+	return file_packages_proto_organization_v1_organization_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *RemoveTeamMemberResponse) GetSuccess() bool {
@@ -2006,11 +2006,11 @@ func (x *RemoveTeamMemberResponse) GetSuccess() bool {
 	return false
 }
 
-var File_organization_v1_organization_proto protoreflect.FileDescriptor
+var File_packages_proto_organization_v1_organization_proto protoreflect.FileDescriptor
 
-const file_organization_v1_organization_proto_rawDesc = "" +
+const file_packages_proto_organization_v1_organization_proto_rawDesc = "" +
 	"\n" +
-	"\"organization/v1/organization.proto\x12\x0forganization.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x86\x03\n" +
+	"1packages/proto/organization/v1/organization.proto\x12\x0forganization.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x86\x03\n" +
 	"\x1cCreateServiceProviderRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
@@ -2189,19 +2189,19 @@ const file_organization_v1_organization_proto_rawDesc = "" +
 	"\x10RemoveTeamMember\x12(.organization.v1.RemoveTeamMemberRequest\x1a).organization.v1.RemoveTeamMemberResponseB@Z>github.com/trustinbox/proto/gen/organization/v1;organizationv1b\x06proto3"
 
 var (
-	file_organization_v1_organization_proto_rawDescOnce sync.Once
-	file_organization_v1_organization_proto_rawDescData []byte
+	file_packages_proto_organization_v1_organization_proto_rawDescOnce sync.Once
+	file_packages_proto_organization_v1_organization_proto_rawDescData []byte
 )
 
-func file_organization_v1_organization_proto_rawDescGZIP() []byte {
-	file_organization_v1_organization_proto_rawDescOnce.Do(func() {
-		file_organization_v1_organization_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_organization_v1_organization_proto_rawDesc), len(file_organization_v1_organization_proto_rawDesc)))
+func file_packages_proto_organization_v1_organization_proto_rawDescGZIP() []byte {
+	file_packages_proto_organization_v1_organization_proto_rawDescOnce.Do(func() {
+		file_packages_proto_organization_v1_organization_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_packages_proto_organization_v1_organization_proto_rawDesc), len(file_packages_proto_organization_v1_organization_proto_rawDesc)))
 	})
-	return file_organization_v1_organization_proto_rawDescData
+	return file_packages_proto_organization_v1_organization_proto_rawDescData
 }
 
-var file_organization_v1_organization_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
-var file_organization_v1_organization_proto_goTypes = []any{
+var file_packages_proto_organization_v1_organization_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_packages_proto_organization_v1_organization_proto_goTypes = []any{
 	(*CreateServiceProviderRequest)(nil),      // 0: organization.v1.CreateServiceProviderRequest
 	(*GetServiceProviderRequest)(nil),         // 1: organization.v1.GetServiceProviderRequest
 	(*ListServiceProvidersRequest)(nil),       // 2: organization.v1.ListServiceProvidersRequest
@@ -2234,7 +2234,7 @@ var file_organization_v1_organization_proto_goTypes = []any{
 	(*RemoveTeamMemberResponse)(nil),          // 29: organization.v1.RemoveTeamMemberResponse
 	(*timestamppb.Timestamp)(nil),             // 30: google.protobuf.Timestamp
 }
-var file_organization_v1_organization_proto_depIdxs = []int32{
+var file_packages_proto_organization_v1_organization_proto_depIdxs = []int32{
 	5,  // 0: organization.v1.ListServiceProvidersResponse.service_providers:type_name -> organization.v1.ServiceProvider
 	30, // 1: organization.v1.ServiceProvider.created_at:type_name -> google.protobuf.Timestamp
 	30, // 2: organization.v1.ServiceProvider.updated_at:type_name -> google.protobuf.Timestamp
@@ -2282,26 +2282,26 @@ var file_organization_v1_organization_proto_depIdxs = []int32{
 	0,  // [0:8] is the sub-list for field type_name
 }
 
-func init() { file_organization_v1_organization_proto_init() }
-func file_organization_v1_organization_proto_init() {
-	if File_organization_v1_organization_proto != nil {
+func init() { file_packages_proto_organization_v1_organization_proto_init() }
+func file_packages_proto_organization_v1_organization_proto_init() {
+	if File_packages_proto_organization_v1_organization_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_organization_v1_organization_proto_rawDesc), len(file_organization_v1_organization_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_packages_proto_organization_v1_organization_proto_rawDesc), len(file_packages_proto_organization_v1_organization_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_organization_v1_organization_proto_goTypes,
-		DependencyIndexes: file_organization_v1_organization_proto_depIdxs,
-		MessageInfos:      file_organization_v1_organization_proto_msgTypes,
+		GoTypes:           file_packages_proto_organization_v1_organization_proto_goTypes,
+		DependencyIndexes: file_packages_proto_organization_v1_organization_proto_depIdxs,
+		MessageInfos:      file_packages_proto_organization_v1_organization_proto_msgTypes,
 	}.Build()
-	File_organization_v1_organization_proto = out.File
-	file_organization_v1_organization_proto_goTypes = nil
-	file_organization_v1_organization_proto_depIdxs = nil
+	File_packages_proto_organization_v1_organization_proto = out.File
+	file_packages_proto_organization_v1_organization_proto_goTypes = nil
+	file_packages_proto_organization_v1_organization_proto_depIdxs = nil
 }

@@ -248,7 +248,6 @@ export default function ProfileSettingsPage() {
     postalCode: '',
     country: '',
     logoUrl: '',
-    serviceMode: 'NEARBY',
   });
 
   // Branding fields
@@ -299,7 +298,7 @@ export default function ProfileSettingsPage() {
   useEffect(() => {
     if (orgData?.serviceProvider) {
       const sp = orgData.serviceProvider;
-      const parsed = parseAddress(sp.address);
+      const fallback = parseAddress(sp.address);
       const newForm = {
         name: sp.name || '',
         displayName: sp.displayName || sp.name || '',
@@ -307,14 +306,13 @@ export default function ProfileSettingsPage() {
         websiteUrl: sp.website || '',
         contactEmail: sp.contactEmail || '',
         supportPhone: sp.supportPhone || '',
-        addressLine1: parsed.addressLine1,
-        addressLine2: parsed.addressLine2,
-        city: parsed.city,
-        state: parsed.state,
-        postalCode: parsed.postalCode,
-        country: parsed.country,
+        addressLine1: sp.address || fallback.addressLine1,
+        addressLine2: fallback.addressLine2,
+        city: sp.city || fallback.city,
+        state: sp.state || fallback.state,
+        postalCode: sp.postalCode || fallback.postalCode,
+        country: sp.country || fallback.country,
         logoUrl: sp.logoUrl || '',
-        serviceMode: sp.serviceMode || 'NEARBY',
       };
       setOrgForm(newForm);
       setOrgFormInitial(JSON.stringify(newForm));
@@ -355,11 +353,13 @@ export default function ProfileSettingsPage() {
         websiteUrl,
         contactEmail: orgForm.contactEmail,
         supportPhone: orgForm.supportPhone,
-        address: [orgForm.addressLine1, orgForm.addressLine2, orgForm.city, orgForm.state, orgForm.postalCode, orgForm.country].filter(Boolean).join(', '),
+        address: orgForm.addressLine1,
+        city: orgForm.city,
+        state: orgForm.state,
+        country: orgForm.country,
+        postalCode: orgForm.postalCode,
         logoUrl: orgForm.logoUrl,
         primaryColor,
-        notificationFooter,
-        serviceMode: orgForm.serviceMode,
       });
       setOrgFormInitial(JSON.stringify(orgForm));
       toast.success('Organization profile saved');
@@ -602,33 +602,6 @@ export default function ProfileSettingsPage() {
               </div>
             </div>
           )}
-
-          {/* Service Mode */}
-          <div>
-            <label className="block text-xs text-text-muted mb-2">Service Mode *</label>
-            <div className="flex gap-3">
-              <button type="button" onClick={() => updateOrgField('serviceMode', 'NEARBY')}
-                className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${orgForm.serviceMode === 'NEARBY' ? 'border-accent-blue bg-accent-blue/5' : 'border-border-secondary bg-bg-input hover:border-border-primary'}`}>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${orgForm.serviceMode === 'NEARBY' ? 'bg-accent-blue/10 text-accent-blue' : 'bg-bg-elevated text-text-muted'}`}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                </div>
-                <div className="text-left">
-                  <p className={`text-sm font-medium ${orgForm.serviceMode === 'NEARBY' ? 'text-text-primary' : 'text-text-secondary'}`}>Nearby Services</p>
-                  <p className="text-[10px] text-text-muted">Physical / local presence</p>
-                </div>
-              </button>
-              <button type="button" onClick={() => updateOrgField('serviceMode', 'ONLINE')}
-                className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${orgForm.serviceMode === 'ONLINE' ? 'border-accent-blue bg-accent-blue/5' : 'border-border-secondary bg-bg-input hover:border-border-primary'}`}>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${orgForm.serviceMode === 'ONLINE' ? 'bg-accent-blue/10 text-accent-blue' : 'bg-bg-elevated text-text-muted'}`}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                </div>
-                <div className="text-left">
-                  <p className={`text-sm font-medium ${orgForm.serviceMode === 'ONLINE' ? 'text-text-primary' : 'text-text-secondary'}`}>Online Services</p>
-                  <p className="text-[10px] text-text-muted">Digital / remote services</p>
-                </div>
-              </button>
-            </div>
-          </div>
 
           {/* Logo Upload */}
           <div>

@@ -8,7 +8,6 @@ interface UseServiceProvidersOptions {
   limit?: number;
   offset?: number;
   search?: string;
-  serviceMode?: string;
 }
 
 export function useServiceProviders(options?: UseServiceProvidersOptions) {
@@ -17,7 +16,6 @@ export function useServiceProviders(options?: UseServiceProvidersOptions) {
       limit: options?.limit ?? 20,
       offset: options?.offset ?? 0,
       search: options?.search ?? null,
-      serviceMode: options?.serviceMode ?? null,
     },
   });
 

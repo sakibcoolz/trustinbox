@@ -31,22 +31,18 @@ func (h *ServiceProviderHandler) CreateServiceProvider(ctx context.Context, req 
 		Industry:    req.Industry,
 		Description: req.Description,
 		Website:     req.Website,
-		ServiceMode: req.ServiceMode,
+		Address:     req.Address,
+		City:        req.City,
+		State:       req.State,
+		Country:     req.Country,
+		PostalCode:  req.PostalCode,
+		Latitude:    req.Latitude,
+		Longitude:   req.Longitude,
 	}, req.AdminUserId)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &pb.ServiceProvider{
-		Id:                 sp.ID,
-		Name:               sp.Name,
-		LegalName:          sp.LegalName,
-		Industry:           sp.Industry,
-		Description:        sp.Description,
-		VerificationStatus: sp.VerificationStatus,
-		Status:             sp.Status,
-		Website:            sp.Website,
-		ServiceMode:        sp.ServiceMode,
-	}, nil
+	return spToProto(sp), nil
 }
 
 func (h *ServiceProviderHandler) GetServiceProvider(ctx context.Context, req *pb.GetServiceProviderRequest) (*pb.ServiceProvider, error) {
@@ -54,37 +50,17 @@ func (h *ServiceProviderHandler) GetServiceProvider(ctx context.Context, req *pb
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &pb.ServiceProvider{
-		Id:                 sp.ID,
-		Name:               sp.Name,
-		LegalName:          sp.LegalName,
-		Industry:           sp.Industry,
-		Description:        sp.Description,
-		VerificationStatus: sp.VerificationStatus,
-		Status:             sp.Status,
-		Website:            sp.Website,
-		ServiceMode:        sp.ServiceMode,
-	}, nil
+	return spToProto(sp), nil
 }
 
 func (h *ServiceProviderHandler) ListServiceProviders(ctx context.Context, req *pb.ListServiceProvidersRequest) (*pb.ListServiceProvidersResponse, error) {
-	sps, total, err := h.uc.ListServiceProviders(ctx, req.Search, req.VerificationStatus, req.ServiceMode, int(req.Limit), int(req.Offset))
+	sps, total, err := h.uc.ListServiceProviders(ctx, req.Search, req.VerificationStatus, int(req.Limit), int(req.Offset))
 	if err != nil {
 		return nil, mapError(err)
 	}
 	pbSPs := make([]*pb.ServiceProvider, len(sps))
 	for i, sp := range sps {
-		pbSPs[i] = &pb.ServiceProvider{
-			Id:                 sp.ID,
-			Name:               sp.Name,
-			LegalName:          sp.LegalName,
-			Industry:           sp.Industry,
-			Description:        sp.Description,
-			VerificationStatus: sp.VerificationStatus,
-			Status:             sp.Status,
-			Website:            sp.Website,
-			ServiceMode:        sp.ServiceMode,
-		}
+		pbSPs[i] = spToProto(&sp)
 	}
 	return &pb.ListServiceProvidersResponse{
 		ServiceProviders: pbSPs,
@@ -100,22 +76,18 @@ func (h *ServiceProviderHandler) UpdateServiceProvider(ctx context.Context, req 
 		Industry:    req.Industry,
 		Description: req.Description,
 		Website:     req.Website,
-		ServiceMode: req.ServiceMode,
+		Address:     req.Address,
+		City:        req.City,
+		State:       req.State,
+		Country:     req.Country,
+		PostalCode:  req.PostalCode,
+		Latitude:    req.Latitude,
+		Longitude:   req.Longitude,
 	})
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &pb.ServiceProvider{
-		Id:                 sp.ID,
-		Name:               sp.Name,
-		LegalName:          sp.LegalName,
-		Industry:           sp.Industry,
-		Description:        sp.Description,
-		VerificationStatus: sp.VerificationStatus,
-		Status:             sp.Status,
-		Website:            sp.Website,
-		ServiceMode:        sp.ServiceMode,
-	}, nil
+	return spToProto(sp), nil
 }
 
 func (h *ServiceProviderHandler) VerifyServiceProvider(ctx context.Context, req *pb.VerifyServiceProviderRequest) (*pb.VerifyServiceProviderResponse, error) {
@@ -292,5 +264,27 @@ func mapError(err error) error {
 		return status.Errorf(codes.PermissionDenied, err.Error())
 	default:
 		return status.Errorf(codes.Internal, err.Error())
+	}
+}
+
+func spToProto(sp *entity.ServiceProvider) *pb.ServiceProvider {
+	return &pb.ServiceProvider{
+		Id:                 sp.ID,
+		Name:               sp.Name,
+		LegalName:          sp.LegalName,
+		Industry:           sp.Industry,
+		Description:        sp.Description,
+		VerificationStatus: sp.VerificationStatus,
+		Status:             sp.Status,
+		Website:            sp.Website,
+		Address:            sp.Address,
+		City:               sp.City,
+		State:              sp.State,
+		Country:            sp.Country,
+		PostalCode:         sp.PostalCode,
+		Latitude:           sp.Latitude,
+		Longitude:          sp.Longitude,
+		CreatedAt:          timestamppb.New(sp.CreatedAt),
+		UpdatedAt:          timestamppb.New(sp.UpdatedAt),
 	}
 }

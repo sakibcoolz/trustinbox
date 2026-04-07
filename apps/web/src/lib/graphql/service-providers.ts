@@ -1,8 +1,8 @@
 import { gql } from '@apollo/client';
 
 export const MY_SERVICE_PROVIDERS = gql`
-  query MyServiceProviders($limit: Int, $offset: Int, $search: String, $serviceMode: String) {
-    myServiceProviders(limit: $limit, offset: $offset, search: $search, serviceMode: $serviceMode) {
+  query MyServiceProviders($limit: Int, $offset: Int, $search: String) {
+    myServiceProviders(limit: $limit, offset: $offset, search: $search) {
       nodes {
         id
         slug
@@ -12,7 +12,6 @@ export const MY_SERVICE_PROVIDERS = gql`
         verificationStatus
         status
         website
-        serviceMode
       }
       totalCount
     }
@@ -20,8 +19,8 @@ export const MY_SERVICE_PROVIDERS = gql`
 `;
 
 export const SP_DIRECTORY = gql`
-  query SPDirectory($search: String, $limit: Int, $offset: Int, $industry: String, $serviceMode: String) {
-    serviceProviderDirectory(search: $search, limit: $limit, offset: $offset, industry: $industry, serviceMode: $serviceMode) {
+  query SPDirectory($search: String, $limit: Int, $offset: Int, $industry: String) {
+    serviceProviderDirectory(search: $search, limit: $limit, offset: $offset, industry: $industry) {
       nodes {
         id
         slug
@@ -31,7 +30,13 @@ export const SP_DIRECTORY = gql`
         verificationStatus
         status
         website
-        serviceMode
+        address
+        city
+        state
+        country
+        postalCode
+        latitude
+        longitude
       }
       totalCount
     }
@@ -50,7 +55,6 @@ export const SERVICE_PROVIDER = gql`
       verificationStatus
       status
       website
-      serviceMode
     }
   }
 `;
@@ -70,5 +74,53 @@ export const UNBLOCK_SP = gql`
 export const REPORT_SPAM = gql`
   mutation ReportSpam($input: ReportSpamInput!) {
     reportSpam(input: $input)
+  }
+`;
+
+export const FOLLOWED_PROVIDERS = gql`
+  query FollowedProviders($limit: Int, $offset: Int, $search: String) {
+    followedServiceProviders(limit: $limit, offset: $offset, search: $search) {
+      nodes {
+        id
+        slug
+        name
+        industry
+        description
+        verificationStatus
+        status
+        website
+        address
+        city
+        state
+        country
+        latitude
+        longitude
+      }
+      totalCount
+    }
+  }
+`;
+
+export const NEARBY_PROVIDERS = gql`
+  query NearbyProviders($latitude: Float!, $longitude: Float!, $radiusKm: Float, $limit: Int, $offset: Int) {
+    nearbyServiceProviders(latitude: $latitude, longitude: $longitude, radiusKm: $radiusKm, limit: $limit, offset: $offset) {
+      nodes {
+        id
+        slug
+        name
+        industry
+        description
+        verificationStatus
+        status
+        website
+        address
+        city
+        state
+        country
+        latitude
+        longitude
+      }
+      totalCount
+    }
   }
 `;

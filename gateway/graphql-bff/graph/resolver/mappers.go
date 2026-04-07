@@ -41,6 +41,20 @@ func ptrString(s string) *string {
 	return &s
 }
 
+func ptrFloat64(f float64) *float64 {
+	if f == 0 {
+		return nil
+	}
+	return &f
+}
+
+func floatOrZero(p *float64) float64 {
+	if p != nil {
+		return *p
+	}
+	return 0
+}
+
 func ptrTime(t time.Time) *time.Time {
 	if t.IsZero() {
 		return nil
@@ -256,7 +270,32 @@ func mapServiceProviderFromProto(sp *orgpb.ServiceProvider) *model.ServiceProvid
 		VerificationStatus: sp.VerificationStatus,
 		Status:             sp.Status,
 		Website:            ptrString(sp.Website),
-		ServiceMode:        sp.ServiceMode,
+		Address:            ptrString(sp.Address),
+		City:               ptrString(sp.City),
+		State:              ptrString(sp.State),
+		Country:            ptrString(sp.Country),
+		PostalCode:         ptrString(sp.PostalCode),
+		Latitude:           ptrFloat64(sp.Latitude),
+		Longitude:          ptrFloat64(sp.Longitude),
+	}
+}
+
+func mapUserAddressFromProto(addr *userpb.UserAddress) *model.UserAddress {
+	return &model.UserAddress{
+		ID:           addr.Id,
+		UserID:       addr.UserId,
+		Label:        addr.Label,
+		AddressLine1: addr.AddressLine1,
+		AddressLine2: ptrString(addr.AddressLine2),
+		City:         addr.City,
+		State:        ptrString(addr.State),
+		PostalCode:   ptrString(addr.PostalCode),
+		Country:      addr.Country,
+		Latitude:     ptrFloat64(addr.Latitude),
+		Longitude:    ptrFloat64(addr.Longitude),
+		IsCurrent:    addr.IsCurrent,
+		CreatedAt:    timeFromTimestamp(addr.CreatedAt),
+		UpdatedAt:    timeFromTimestamp(addr.UpdatedAt),
 	}
 }
 

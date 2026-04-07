@@ -65,3 +65,20 @@ type BlockedServiceProvider struct {
 	Reason            string
 	CreatedAt         time.Time
 }
+
+type UserAddress struct {
+	ID           string
+	UserID       string
+	Label        string // Home, Work, Other
+	AddressLine1 string
+	AddressLine2 string
+	City         string
+	State        string
+	PostalCode   string
+	Country      string
+	Latitude     float64
+	Longitude    float64
+	IsCurrent    bool
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}

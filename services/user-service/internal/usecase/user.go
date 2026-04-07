@@ -18,6 +18,7 @@ type UserUseCase struct {
 	dndRepo          repository.DNDRuleRepository
 	availabilityRepo repository.AvailabilitySlotRepository
 	blockRepo        repository.BlockedServiceProviderRepository
+	addressRepo      repository.UserAddressRepository
 	log              *zap.Logger
 }
 
@@ -27,6 +28,7 @@ func NewUserUseCase(
 	dndRepo repository.DNDRuleRepository,
 	availabilityRepo repository.AvailabilitySlotRepository,
 	blockRepo repository.BlockedServiceProviderRepository,
+	addressRepo repository.UserAddressRepository,
 	log *zap.Logger,
 ) *UserUseCase {
 	return &UserUseCase{
@@ -35,6 +37,7 @@ func NewUserUseCase(
 		dndRepo:          dndRepo,
 		availabilityRepo: availabilityRepo,
 		blockRepo:        blockRepo,
+		addressRepo:      addressRepo,
 		log:              log,
 	}
 }
@@ -108,4 +111,85 @@ func (uc *UserUseCase) UnblockServiceProvider(ctx context.Context, userID, spID 
 
 func (uc *UserUseCase) ListBlockedServiceProviders(ctx context.Context, userID string) ([]entity.BlockedServiceProvider, error) {
 	return uc.blockRepo.ListByUser(ctx, userID)
+}
+
+// ─── Address Methods ───────────────────────────────────────────────────────
+
+func (uc *UserUseCase) CreateAddress(ctx context.Context, addr *entity.UserAddress) (*entity.UserAddress, error) {
+	ctx, span := tracing.StartSpan(ctx, "user-service", "CreateAddress",
+		attribute.String("user_id", addr.UserID),
+	)
+	defer span.End()
+
+	addr.ID = uuid.New().String()
+	if addr.Label == "" {
+		addr.Label = "Home"
+	}
+	if err := uc.addressRepo.Create(ctx, addr); err != nil {
+		return nil, bzerr.Internal("failed to create address", err)
+	}
+	// If marked as current, ensure only this one is current
+	if addr.IsCurrent {
+		if err := uc.addressRepo.SetCurrent(ctx, addr.ID, addr.UserID); err != nil {
+			uc.log.Error("failed to set current address", zap.Error(err))
+		}
+	}
+	uc.log.Info("address created", zap.String("address_id", addr.ID), zap.String("user_id", addr.UserID))
+	return addr, nil
+}
+
+func (uc *UserUseCase) UpdateAddress(ctx context.Context, addr *entity.UserAddress) (*entity.UserAddress, error) {
+	ctx, span := tracing.StartSpan(ctx, "user-service", "UpdateAddress",
+		attribute.String("user_id", addr.UserID),
+		attribute.String("address_id", addr.ID),
+	)
+	defer span.End()
+
+	if err := uc.addressRepo.Update(ctx, addr); err != nil {
+		return nil, bzerr.Internal("failed to update address", err)
+	}
+	if addr.IsCurrent {
+		if err := uc.addressRepo.SetCurrent(ctx, addr.ID, addr.UserID); err != nil {
+			uc.log.Error("failed to set current address", zap.Error(err))
+		}
+	}
+	return addr, nil
+}
+
+func (uc *UserUseCase) DeleteAddress(ctx context.Context, id, userID string) error {
+	ctx, span := tracing.StartSpan(ctx, "user-service", "DeleteAddress",
+		attribute.String("user_id", userID),
+		attribute.String("address_id", id),
+	)
+	defer span.End()
+
+	return uc.addressRepo.Delete(ctx, id, userID)
+}
+
+func (uc *UserUseCase) ListAddresses(ctx context.Context, userID string) ([]entity.UserAddress, error) {
+	ctx, span := tracing.StartSpan(ctx, "user-service", "ListAddresses",
+		attribute.String("user_id", userID),
+	)
+	defer span.End()
+
+	return uc.addressRepo.ListByUser(ctx, userID)
+}
+
+func (uc *UserUseCase) SetCurrentAddress(ctx context.Context, id, userID string) error {
+	ctx, span := tracing.StartSpan(ctx, "user-service", "SetCurrentAddress",
+		attribute.String("user_id", userID),
+		attribute.String("address_id", id),
+	)
+	defer span.End()
+
+	return uc.addressRepo.SetCurrent(ctx, id, userID)
+}
+
+func (uc *UserUseCase) GetCurrentAddress(ctx context.Context, userID string) (*entity.UserAddress, error) {
+	ctx, span := tracing.StartSpan(ctx, "user-service", "GetCurrentAddress",
+		attribute.String("user_id", userID),
+	)
+	defer span.End()
+
+	return uc.addressRepo.GetCurrent(ctx, userID)
 }

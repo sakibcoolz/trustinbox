@@ -257,3 +257,97 @@ func mapError(err error) error {
 		return status.Errorf(codes.Internal, err.Error())
 	}
 }
+
+// ─── Address Handlers ──────────────────────────────────────────────────────
+
+func (h *UserHandler) CreateAddress(ctx context.Context, req *pb.CreateAddressRequest) (*pb.UserAddress, error) {
+	addr, err := h.uc.CreateAddress(ctx, &entity.UserAddress{
+		UserID:       req.UserId,
+		Label:        req.Label,
+		AddressLine1: req.AddressLine1,
+		AddressLine2: req.AddressLine2,
+		City:         req.City,
+		State:        req.State,
+		PostalCode:   req.PostalCode,
+		Country:      req.Country,
+		Latitude:     req.Latitude,
+		Longitude:    req.Longitude,
+		IsCurrent:    req.IsCurrent,
+	})
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return addrToProto(addr), nil
+}
+
+func (h *UserHandler) UpdateAddress(ctx context.Context, req *pb.UpdateAddressRequest) (*pb.UserAddress, error) {
+	addr, err := h.uc.UpdateAddress(ctx, &entity.UserAddress{
+		ID:           req.Id,
+		UserID:       req.UserId,
+		Label:        req.Label,
+		AddressLine1: req.AddressLine1,
+		AddressLine2: req.AddressLine2,
+		City:         req.City,
+		State:        req.State,
+		PostalCode:   req.PostalCode,
+		Country:      req.Country,
+		Latitude:     req.Latitude,
+		Longitude:    req.Longitude,
+		IsCurrent:    req.IsCurrent,
+	})
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return addrToProto(addr), nil
+}
+
+func (h *UserHandler) DeleteAddress(ctx context.Context, req *pb.DeleteAddressRequest) (*pb.DeleteAddressResponse, error) {
+	if err := h.uc.DeleteAddress(ctx, req.Id, req.UserId); err != nil {
+		return nil, mapError(err)
+	}
+	return &pb.DeleteAddressResponse{Success: true}, nil
+}
+
+func (h *UserHandler) ListAddresses(ctx context.Context, req *pb.ListAddressesRequest) (*pb.ListAddressesResponse, error) {
+	addrs, err := h.uc.ListAddresses(ctx, req.UserId)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	pbAddrs := make([]*pb.UserAddress, len(addrs))
+	for i, a := range addrs {
+		pbAddrs[i] = addrToProto(&a)
+	}
+	return &pb.ListAddressesResponse{Addresses: pbAddrs}, nil
+}
+
+func (h *UserHandler) SetCurrentAddress(ctx context.Context, req *pb.SetCurrentAddressRequest) (*pb.SetCurrentAddressResponse, error) {
+	if err := h.uc.SetCurrentAddress(ctx, req.Id, req.UserId); err != nil {
+		return nil, mapError(err)
+	}
+	return &pb.SetCurrentAddressResponse{Success: true}, nil
+}
+
+func (h *UserHandler) GetCurrentAddress(ctx context.Context, req *pb.GetCurrentAddressRequest) (*pb.UserAddress, error) {
+	addr, err := h.uc.GetCurrentAddress(ctx, req.UserId)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return addrToProto(addr), nil
+}
+
+func addrToProto(a *entity.UserAddress) *pb.UserAddress {
+	return &pb.UserAddress{
+		Id:           a.ID,
+		UserId:       a.UserID,
+		Label:        a.Label,
+		AddressLine1: a.AddressLine1,
+		AddressLine2: a.AddressLine2,
+		City:         a.City,
+		State:        a.State,
+		PostalCode:   a.PostalCode,
+		Country:      a.Country,
+		Latitude:     a.Latitude,
+		Longitude:    a.Longitude,
+		IsCurrent:    a.IsCurrent,
+	}
+}

@@ -41,3 +41,13 @@ type BlockedServiceProviderRepository interface {
 	Unblock(ctx context.Context, userID, spID string) error
 	ListByUser(ctx context.Context, userID string) ([]entity.BlockedServiceProvider, error)
 }
+
+type UserAddressRepository interface {
+	Create(ctx context.Context, addr *entity.UserAddress) error
+	Update(ctx context.Context, addr *entity.UserAddress) error
+	Delete(ctx context.Context, id, userID string) error
+	GetByID(ctx context.Context, id, userID string) (*entity.UserAddress, error)
+	ListByUser(ctx context.Context, userID string) ([]entity.UserAddress, error)
+	SetCurrent(ctx context.Context, id, userID string) error
+	GetCurrent(ctx context.Context, userID string) (*entity.UserAddress, error)
+}

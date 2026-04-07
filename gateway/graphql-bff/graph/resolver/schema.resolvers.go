@@ -7,6 +7,7 @@ package resolver
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -649,6 +650,107 @@ func (r *mutationResolver) RemoveTeamMember(ctx context.Context, input model.Rem
 	panic(fmt.Errorf("not implemented: RemoveTeamMember - removeTeamMember"))
 }
 
+// CreateAddress is the resolver for the createAddress field.
+func (r *mutationResolver) CreateAddress(ctx context.Context, input model.CreateAddressInput) (*model.UserAddress, error) {
+	userID, err := requireAnyAuthenticatedRole(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	isCurrent := false
+	if input.IsCurrent != nil {
+		isCurrent = *input.IsCurrent
+	}
+
+	resp, err := r.Clients.User.CreateAddress(ctx, &userpb.CreateAddressRequest{
+		UserId:       userID,
+		Label:        input.Label,
+		AddressLine1: input.AddressLine1,
+		AddressLine2: strOrEmpty(input.AddressLine2),
+		City:         input.City,
+		State:        strOrEmpty(input.State),
+		PostalCode:   strOrEmpty(input.PostalCode),
+		Country:      input.Country,
+		Latitude:     floatOrZero(input.Latitude),
+		Longitude:    floatOrZero(input.Longitude),
+		IsCurrent:    isCurrent,
+	})
+	if err != nil {
+		r.Log.Error("failed to create address", zap.Error(err), zap.String("user_id", userID))
+		return nil, fmt.Errorf("failed to create address: %w", err)
+	}
+	return mapUserAddressFromProto(resp), nil
+}
+
+// UpdateAddress is the resolver for the updateAddress field.
+func (r *mutationResolver) UpdateAddress(ctx context.Context, input model.UpdateAddressInput) (*model.UserAddress, error) {
+	userID, err := requireAnyAuthenticatedRole(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	isCurrent := false
+	if input.IsCurrent != nil {
+		isCurrent = *input.IsCurrent
+	}
+
+	resp, err := r.Clients.User.UpdateAddress(ctx, &userpb.UpdateAddressRequest{
+		Id:           input.ID,
+		UserId:       userID,
+		Label:        strOrEmpty(input.Label),
+		AddressLine1: strOrEmpty(input.AddressLine1),
+		AddressLine2: strOrEmpty(input.AddressLine2),
+		City:         strOrEmpty(input.City),
+		State:        strOrEmpty(input.State),
+		PostalCode:   strOrEmpty(input.PostalCode),
+		Country:      strOrEmpty(input.Country),
+		Latitude:     floatOrZero(input.Latitude),
+		Longitude:    floatOrZero(input.Longitude),
+		IsCurrent:    isCurrent,
+	})
+	if err != nil {
+		r.Log.Error("failed to update address", zap.Error(err), zap.String("user_id", userID))
+		return nil, fmt.Errorf("failed to update address: %w", err)
+	}
+	return mapUserAddressFromProto(resp), nil
+}
+
+// DeleteAddress is the resolver for the deleteAddress field.
+func (r *mutationResolver) DeleteAddress(ctx context.Context, id string) (bool, error) {
+	userID, err := requireAnyAuthenticatedRole(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = r.Clients.User.DeleteAddress(ctx, &userpb.DeleteAddressRequest{
+		Id:     id,
+		UserId: userID,
+	})
+	if err != nil {
+		r.Log.Error("failed to delete address", zap.Error(err), zap.String("user_id", userID))
+		return false, fmt.Errorf("failed to delete address: %w", err)
+	}
+	return true, nil
+}
+
+// SetCurrentAddress is the resolver for the setCurrentAddress field.
+func (r *mutationResolver) SetCurrentAddress(ctx context.Context, id string) (bool, error) {
+	userID, err := requireAnyAuthenticatedRole(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = r.Clients.User.SetCurrentAddress(ctx, &userpb.SetCurrentAddressRequest{
+		Id:     id,
+		UserId: userID,
+	})
+	if err != nil {
+		r.Log.Error("failed to set current address", zap.Error(err), zap.String("user_id", userID))
+		return false, fmt.Errorf("failed to set current address: %w", err)
+	}
+	return true, nil
+}
+
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	userID, err := requireAnyAuthenticatedRole(ctx)
@@ -997,17 +1099,16 @@ func (r *queryResolver) PendingInvitations(ctx context.Context, serviceProviderI
 }
 
 // MyServiceProviders is the resolver for the myServiceProviders field.
-func (r *queryResolver) MyServiceProviders(ctx context.Context, limit *int, offset *int, search *string, serviceMode *string) (*model.ServiceProviderConnection, error) {
+func (r *queryResolver) MyServiceProviders(ctx context.Context, limit *int, offset *int, search *string) (*model.ServiceProviderConnection, error) {
 	userID, err := requireAnyAuthenticatedRole(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	resp, err := r.Clients.Organization.ListServiceProviders(ctx, &orgpb.ListServiceProvidersRequest{
-		Search:      strOrEmpty(search),
-		ServiceMode: strOrEmpty(serviceMode),
-		Limit:       intOrDefault(limit, 20),
-		Offset:      intOrDefault(offset, 0),
+		Search: strOrEmpty(search),
+		Limit:  intOrDefault(limit, 20),
+		Offset: intOrDefault(offset, 0),
 	})
 	if err != nil {
 		r.Log.Error("failed to list user service providers", zap.Error(err), zap.String("user_id", userID))
@@ -1284,7 +1385,7 @@ func (r *queryResolver) MyDashboardSummary(ctx context.Context) (*model.Customer
 }
 
 // ServiceProviderDirectory is the resolver for the serviceProviderDirectory field.
-func (r *queryResolver) ServiceProviderDirectory(ctx context.Context, limit *int, offset *int, search *string, industry *string, serviceMode *string) (*model.ServiceProviderConnection, error) {
+func (r *queryResolver) ServiceProviderDirectory(ctx context.Context, limit *int, offset *int, search *string, industry *string) (*model.ServiceProviderConnection, error) {
 	_, err := requireAnyAuthenticatedRole(ctx)
 	if err != nil {
 		return nil, err
@@ -1293,7 +1394,6 @@ func (r *queryResolver) ServiceProviderDirectory(ctx context.Context, limit *int
 	req := &orgpb.ListServiceProvidersRequest{
 		Search:             strOrEmpty(search),
 		VerificationStatus: "VERIFIED",
-		ServiceMode:        strOrEmpty(serviceMode),
 		Limit:              intOrDefault(limit, 20),
 		Offset:             intOrDefault(offset, 0),
 	}
@@ -1304,6 +1404,250 @@ func (r *queryResolver) ServiceProviderDirectory(ctx context.Context, limit *int
 		return nil, fmt.Errorf("failed to list service provider directory: %w", err)
 	}
 	return mapServiceProviderConnectionFromProto(resp), nil
+}
+
+// FollowedServiceProviders is the resolver for the followedServiceProviders field.
+func (r *queryResolver) FollowedServiceProviders(ctx context.Context, limit *int, offset *int, search *string) (*model.ServiceProviderConnection, error) {
+	userID, err := requireAnyAuthenticatedRole(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	lim := intOrDefault(limit, 20)
+	off := intOrDefault(offset, 0)
+
+	query := `SELECT sp.id, COALESCE(sp.slug, sp.id::text), sp.name, sp.legal_name, sp.industry,
+	                 sp.description, sp.verification_status, sp.status, sp.website,
+	                 sp.address, sp.city, sp.state, sp.country, sp.postal_code, sp.latitude, sp.longitude
+	          FROM customer_sp_relations csr
+	          JOIN service_providers sp ON sp.id = csr.service_provider_id
+	          WHERE csr.user_id = $1 AND csr.status = 'ACTIVE'`
+	countQuery := `SELECT COUNT(*) FROM customer_sp_relations csr
+	               JOIN service_providers sp ON sp.id = csr.service_provider_id
+	               WHERE csr.user_id = $1 AND csr.status = 'ACTIVE'`
+	args := []interface{}{userID}
+	countArgs := []interface{}{userID}
+	idx := 2
+
+	if s := strOrEmpty(search); s != "" {
+		pattern := "%" + s + "%"
+		clause := fmt.Sprintf(" AND sp.name ILIKE $%d", idx)
+		query += clause
+		countQuery += clause
+		args = append(args, pattern)
+		countArgs = append(countArgs, pattern)
+		idx++
+	}
+
+	var total int
+	if err := r.DB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		r.Log.Error("failed to count followed providers", zap.Error(err), zap.String("user_id", userID))
+		return nil, fmt.Errorf("failed to count followed providers: %w", err)
+	}
+
+	query += fmt.Sprintf(" ORDER BY csr.created_at DESC LIMIT $%d OFFSET $%d", idx, idx+1)
+	args = append(args, lim, off)
+
+	rows, err := r.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		r.Log.Error("failed to list followed providers", zap.Error(err), zap.String("user_id", userID))
+		return nil, fmt.Errorf("failed to list followed providers: %w", err)
+	}
+	defer rows.Close()
+
+	var nodes []*model.ServiceProvider
+	for rows.Next() {
+		var sp model.ServiceProvider
+		var legalName, description, website, address, city, state, country, postalCode sql.NullString
+		var lat, lng sql.NullFloat64
+		if err := rows.Scan(&sp.ID, &sp.Slug, &sp.Name, &legalName, &sp.Industry,
+			&description, &sp.VerificationStatus, &sp.Status, &website,
+			&address, &city, &state, &country, &postalCode, &lat, &lng); err != nil {
+			return nil, fmt.Errorf("scan followed provider: %w", err)
+		}
+		if legalName.Valid {
+			sp.LegalName = &legalName.String
+		}
+		if description.Valid {
+			sp.Description = &description.String
+		}
+		if website.Valid {
+			sp.Website = &website.String
+		}
+		if address.Valid {
+			sp.Address = &address.String
+		}
+		if city.Valid {
+			sp.City = &city.String
+		}
+		if state.Valid {
+			sp.State = &state.String
+		}
+		if country.Valid {
+			sp.Country = &country.String
+		}
+		if postalCode.Valid {
+			sp.PostalCode = &postalCode.String
+		}
+		if lat.Valid {
+			sp.Latitude = &lat.Float64
+		}
+		if lng.Valid {
+			sp.Longitude = &lng.Float64
+		}
+		nodes = append(nodes, &sp)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate followed providers: %w", err)
+	}
+
+	return &model.ServiceProviderConnection{
+		Nodes:      nodes,
+		TotalCount: total,
+	}, nil
+}
+
+// NearbyServiceProviders is the resolver for the nearbyServiceProviders field.
+func (r *queryResolver) NearbyServiceProviders(ctx context.Context, latitude float64, longitude float64, radiusKm *float64, limit *int, offset *int) (*model.ServiceProviderConnection, error) {
+	_, err := requireAnyAuthenticatedRole(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	radius := 25.0
+	if radiusKm != nil {
+		radius = *radiusKm
+	}
+	lim := intOrDefault(limit, 20)
+	off := intOrDefault(offset, 0)
+
+	// Haversine distance in km
+	const haversine = `(6371 * acos(
+		cos(radians($1)) * cos(radians(latitude)) *
+		cos(radians(longitude) - radians($2)) +
+		sin(radians($1)) * sin(radians(latitude))
+	))`
+
+	countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM service_providers
+		WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+		AND verification_status = 'VERIFIED' AND status = 'ACTIVE'
+		AND %s <= $3`, haversine)
+
+	var total int
+	if err := r.DB.QueryRowContext(ctx, countQuery, latitude, longitude, radius).Scan(&total); err != nil {
+		r.Log.Error("failed to count nearby providers", zap.Error(err))
+		return nil, fmt.Errorf("failed to count nearby providers: %w", err)
+	}
+
+	query := fmt.Sprintf(`SELECT id, COALESCE(slug, id::text), name, legal_name, industry,
+		description, verification_status, status, website,
+		address, city, state, country, postal_code, latitude, longitude,
+		%s AS distance_km
+		FROM service_providers
+		WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+		AND verification_status = 'VERIFIED' AND status = 'ACTIVE'
+		AND %s <= $3
+		ORDER BY distance_km ASC
+		LIMIT $4 OFFSET $5`, haversine, haversine)
+
+	rows, err := r.DB.QueryContext(ctx, query, latitude, longitude, radius, lim, off)
+	if err != nil {
+		r.Log.Error("failed to query nearby providers", zap.Error(err))
+		return nil, fmt.Errorf("failed to query nearby providers: %w", err)
+	}
+	defer rows.Close()
+
+	var nodes []*model.ServiceProvider
+	for rows.Next() {
+		var sp model.ServiceProvider
+		var legalName, description, website, address, city, state, country, postalCode sql.NullString
+		var lat, lng sql.NullFloat64
+		var distKm float64
+		if err := rows.Scan(&sp.ID, &sp.Slug, &sp.Name, &legalName, &sp.Industry,
+			&description, &sp.VerificationStatus, &sp.Status, &website,
+			&address, &city, &state, &country, &postalCode, &lat, &lng,
+			&distKm); err != nil {
+			return nil, fmt.Errorf("scan nearby provider: %w", err)
+		}
+		if legalName.Valid {
+			sp.LegalName = &legalName.String
+		}
+		if description.Valid {
+			sp.Description = &description.String
+		}
+		if website.Valid {
+			sp.Website = &website.String
+		}
+		if address.Valid {
+			sp.Address = &address.String
+		}
+		if city.Valid {
+			sp.City = &city.String
+		}
+		if state.Valid {
+			sp.State = &state.String
+		}
+		if country.Valid {
+			sp.Country = &country.String
+		}
+		if postalCode.Valid {
+			sp.PostalCode = &postalCode.String
+		}
+		if lat.Valid {
+			sp.Latitude = &lat.Float64
+		}
+		if lng.Valid {
+			sp.Longitude = &lng.Float64
+		}
+		nodes = append(nodes, &sp)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate nearby providers: %w", err)
+	}
+
+	return &model.ServiceProviderConnection{
+		Nodes:      nodes,
+		TotalCount: total,
+	}, nil
+}
+
+// MyAddresses is the resolver for the myAddresses field.
+func (r *queryResolver) MyAddresses(ctx context.Context) ([]*model.UserAddress, error) {
+	userID, err := requireAnyAuthenticatedRole(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := r.Clients.User.ListAddresses(ctx, &userpb.ListAddressesRequest{
+		UserId: userID,
+	})
+	if err != nil {
+		r.Log.Error("failed to list addresses", zap.Error(err), zap.String("user_id", userID))
+		return nil, fmt.Errorf("failed to list addresses: %w", err)
+	}
+
+	result := make([]*model.UserAddress, len(resp.Addresses))
+	for i, addr := range resp.Addresses {
+		result[i] = mapUserAddressFromProto(addr)
+	}
+	return result, nil
+}
+
+// MyCurrentAddress is the resolver for the myCurrentAddress field.
+func (r *queryResolver) MyCurrentAddress(ctx context.Context) (*model.UserAddress, error) {
+	userID, err := requireAnyAuthenticatedRole(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := r.Clients.User.GetCurrentAddress(ctx, &userpb.GetCurrentAddressRequest{
+		UserId: userID,
+	})
+	if err != nil {
+		r.Log.Error("failed to get current address", zap.Error(err), zap.String("user_id", userID))
+		return nil, fmt.Errorf("failed to get current address: %w", err)
+	}
+	return mapUserAddressFromProto(resp), nil
 }
 
 // NotificationReceived is the resolver for the notificationReceived field.

@@ -305,6 +305,7 @@ func main() {
 		Resolvers: &resolver.Resolver{
 			Clients: svc,
 			Log:     log,
+			DB:      db,
 		},
 	}))
 	mux.Handle("/graphql", gqlSrv)
@@ -335,8 +336,9 @@ func main() {
 	providerMux.HandleFunc("/api/v1/analytics/", handleProviderAnalytics(svc, db, log))
 	providerMux.HandleFunc("/api/v1/customers", handleProviderCustomers(db, log))
 	providerMux.HandleFunc("/api/v1/customers/", handleProviderCustomers(db, log))
-	providerMux.HandleFunc("/api/v1/service-providers/", handleProviderServiceProviders(svc, db, log))
 	providerMux.HandleFunc("/api/v1/policy/check", handleProviderPolicyCheck(db, log))
+	providerMux.HandleFunc("/api/v1/service-providers", handleProviderSPProfile(db, log))
+	providerMux.HandleFunc("/api/v1/service-providers/", handleProviderSPProfile(db, log))
 
 	providerHandler := apiKeyAuth(db, tokenSvc, log, rateLimitMiddleware(rl, log, providerMux))
 	mux.Handle("/api/v1/", providerHandler)

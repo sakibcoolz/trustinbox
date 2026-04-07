@@ -18,14 +18,13 @@ func NewServiceProviderRepository(db *sql.DB) repository.ServiceProviderReposito
 }
 
 func (r *spRepo) Create(ctx context.Context, sp *entity.ServiceProvider) error {
-	if sp.ServiceMode == "" {
-		sp.ServiceMode = "NEARBY"
-	}
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO service_providers (id, name, legal_name, industry, description, verification_status, status, website, slug, service_mode, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())`,
+		`INSERT INTO service_providers (id, name, legal_name, industry, description, verification_status, status, website, slug, address, city, state, country, postal_code, latitude, longitude, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())`,
 		sp.ID, sp.Name, sp.LegalName, sp.Industry, sp.Description,
-		sp.VerificationStatus, sp.Status, sp.Website, sp.ID, sp.ServiceMode,
+		sp.VerificationStatus, sp.Status, sp.Website, sp.ID,
+		nullStr(sp.Address), nullStr(sp.City), nullStr(sp.State), nullStr(sp.Country), nullStr(sp.PostalCode),
+		nullFloat(sp.Latitude), nullFloat(sp.Longitude),
 	)
 	if err != nil {
 		return fmt.Errorf("create service provider: %w", err)
@@ -35,29 +34,35 @@ func (r *spRepo) Create(ctx context.Context, sp *entity.ServiceProvider) error {
 
 func (r *spRepo) GetByID(ctx context.Context, id string) (*entity.ServiceProvider, error) {
 	var sp entity.ServiceProvider
-	var legalName, description, website sql.NullString
+	var legalName, description, website, addr, city, state, country, postalCode sql.NullString
+	var lat, lng sql.NullFloat64
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, name, legal_name, industry, description, verification_status, status, website, service_mode, created_at, updated_at
+		`SELECT id, name, legal_name, industry, description, verification_status, status, website,
+		        address, city, state, country, postal_code, latitude, longitude, created_at, updated_at
 		 FROM service_providers WHERE id = $1`, id,
 	).Scan(&sp.ID, &sp.Name, &legalName, &sp.Industry, &description,
-		&sp.VerificationStatus, &sp.Status, &website, &sp.ServiceMode, &sp.CreatedAt, &sp.UpdatedAt)
+		&sp.VerificationStatus, &sp.Status, &website,
+		&addr, &city, &state, &country, &postalCode, &lat, &lng,
+		&sp.CreatedAt, &sp.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("get service provider: %w", err)
 	}
-	if legalName.Valid {
-		sp.LegalName = legalName.String
-	}
-	if description.Valid {
-		sp.Description = description.String
-	}
-	if website.Valid {
-		sp.Website = website.String
-	}
+	sp.LegalName = legalName.String
+	sp.Description = description.String
+	sp.Website = website.String
+	sp.Address = addr.String
+	sp.City = city.String
+	sp.State = state.String
+	sp.Country = country.String
+	sp.PostalCode = postalCode.String
+	sp.Latitude = lat.Float64
+	sp.Longitude = lng.Float64
 	return &sp, nil
 }
 
-func (r *spRepo) List(ctx context.Context, search string, verificationStatus string, serviceMode string, limit, offset int) ([]entity.ServiceProvider, int, error) {
-	query := `SELECT id, name, legal_name, industry, description, verification_status, status, website, service_mode, created_at, updated_at
+func (r *spRepo) List(ctx context.Context, search string, verificationStatus string, limit, offset int) ([]entity.ServiceProvider, int, error) {
+	query := `SELECT id, name, legal_name, industry, description, verification_status, status, website,
+	                 address, city, state, country, postal_code, latitude, longitude, created_at, updated_at
 	          FROM service_providers WHERE 1=1`
 	countQuery := `SELECT COUNT(*) FROM service_providers WHERE 1=1`
 	args := []interface{}{}
@@ -81,14 +86,6 @@ func (r *spRepo) List(ctx context.Context, search string, verificationStatus str
 		countArgs = append(countArgs, verificationStatus)
 		idx++
 	}
-	if serviceMode != "" {
-		clause := fmt.Sprintf(" AND service_mode = $%d", idx)
-		query += clause
-		countQuery += clause
-		args = append(args, serviceMode)
-		countArgs = append(countArgs, serviceMode)
-		idx++
-	}
 
 	var total int
 	if err := r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
@@ -107,20 +104,24 @@ func (r *spRepo) List(ctx context.Context, search string, verificationStatus str
 	var providers []entity.ServiceProvider
 	for rows.Next() {
 		var sp entity.ServiceProvider
-		var legalName, description, website sql.NullString
+		var legalName, description, website, addr, city, state, country, postalCode sql.NullString
+		var lat, lng sql.NullFloat64
 		if err := rows.Scan(&sp.ID, &sp.Name, &legalName, &sp.Industry, &description,
-			&sp.VerificationStatus, &sp.Status, &website, &sp.ServiceMode, &sp.CreatedAt, &sp.UpdatedAt); err != nil {
+			&sp.VerificationStatus, &sp.Status, &website,
+			&addr, &city, &state, &country, &postalCode, &lat, &lng,
+			&sp.CreatedAt, &sp.UpdatedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan service provider: %w", err)
 		}
-		if legalName.Valid {
-			sp.LegalName = legalName.String
-		}
-		if description.Valid {
-			sp.Description = description.String
-		}
-		if website.Valid {
-			sp.Website = website.String
-		}
+		sp.LegalName = legalName.String
+		sp.Description = description.String
+		sp.Website = website.String
+		sp.Address = addr.String
+		sp.City = city.String
+		sp.State = state.String
+		sp.Country = country.String
+		sp.PostalCode = postalCode.String
+		sp.Latitude = lat.Float64
+		sp.Longitude = lng.Float64
 		providers = append(providers, sp)
 	}
 	return providers, total, rows.Err()
@@ -129,14 +130,33 @@ func (r *spRepo) List(ctx context.Context, search string, verificationStatus str
 func (r *spRepo) Update(ctx context.Context, sp *entity.ServiceProvider) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE service_providers SET name = $1, legal_name = $2, industry = $3, description = $4,
-		        website = $5, service_mode = $6, updated_at = NOW()
-		 WHERE id = $7`,
-		sp.Name, sp.LegalName, sp.Industry, sp.Description, sp.Website, sp.ServiceMode, sp.ID,
+		        website = $5, address = $6, city = $7, state = $8, country = $9, postal_code = $10,
+		        latitude = $11, longitude = $12, updated_at = NOW()
+		 WHERE id = $13`,
+		sp.Name, sp.LegalName, sp.Industry, sp.Description, sp.Website,
+		nullStr(sp.Address), nullStr(sp.City), nullStr(sp.State), nullStr(sp.Country), nullStr(sp.PostalCode),
+		nullFloat(sp.Latitude), nullFloat(sp.Longitude), sp.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("update service provider: %w", err)
 	}
 	return nil
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+func nullStr(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	return s
+}
+
+func nullFloat(f float64) interface{} {
+	if f == 0 {
+		return nil
+	}
+	return f
 }
 
 func (r *spRepo) UpdateVerificationStatus(ctx context.Context, id, status string) error {

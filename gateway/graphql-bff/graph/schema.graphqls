@@ -91,7 +91,30 @@ type ServiceProvider {
   verificationStatus: String!
   status: String!
   website: String
-  serviceMode: String!
+  address: String
+  city: String
+  state: String
+  country: String
+  postalCode: String
+  latitude: Float
+  longitude: Float
+}
+
+type UserAddress {
+  id: ID!
+  userId: ID!
+  label: String!
+  addressLine1: String!
+  addressLine2: String
+  city: String!
+  state: String
+  postalCode: String
+  country: String!
+  latitude: Float
+  longitude: Float
+  isCurrent: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type Notification {
@@ -900,6 +923,33 @@ input RemoveTeamMemberInput {
   targetUserId: ID!
 }
 
+input CreateAddressInput {
+  label: String!
+  addressLine1: String!
+  addressLine2: String
+  city: String!
+  state: String
+  postalCode: String
+  country: String!
+  latitude: Float
+  longitude: Float
+  isCurrent: Boolean
+}
+
+input UpdateAddressInput {
+  id: ID!
+  label: String
+  addressLine1: String
+  addressLine2: String
+  city: String
+  state: String
+  postalCode: String
+  country: String
+  latitude: Float
+  longitude: Float
+  isCurrent: Boolean
+}
+
 # ============================================================
 # QUERIES
 # ============================================================
@@ -1060,7 +1110,6 @@ type Query {
     limit: Int
     offset: Int
     search: String
-    serviceMode: String
   ): ServiceProviderConnection!
 
   # ─── Customer Portal Queries ────────────────────────────
@@ -1111,8 +1160,25 @@ type Query {
     offset: Int
     search: String
     industry: String
-    serviceMode: String
   ): ServiceProviderConnection!
+
+  followedServiceProviders(
+    limit: Int
+    offset: Int
+    search: String
+  ): ServiceProviderConnection!
+
+  nearbyServiceProviders(
+    latitude: Float!
+    longitude: Float!
+    radiusKm: Float
+    limit: Int
+    offset: Int
+  ): ServiceProviderConnection!
+
+  # User Addresses
+  myAddresses: [UserAddress!]!
+  myCurrentAddress: UserAddress
 }
 
 # ============================================================
@@ -1187,6 +1253,12 @@ type Mutation {
   revokeInvitation(invitationId: ID!, serviceProviderId: ID!): Boolean!
   changeTeamMemberRole(input: ChangeTeamMemberRoleInput!): Boolean!
   removeTeamMember(input: RemoveTeamMemberInput!): Boolean!
+
+  # User Addresses
+  createAddress(input: CreateAddressInput!): UserAddress!
+  updateAddress(input: UpdateAddressInput!): UserAddress!
+  deleteAddress(id: ID!): Boolean!
+  setCurrentAddress(id: ID!): Boolean!
 }
 
 # ============================================================

@@ -6,6 +6,8 @@ package resolver
 // here.
 
 import (
+	"database/sql"
+
 	"github.com/trustinbox/graphql-bff/internal/clients"
 	"go.uber.org/zap"
 )
@@ -13,4 +15,5 @@ import (
 type Resolver struct {
 	Clients *clients.ServiceClients
 	Log     *zap.Logger
+	DB      *sql.DB
 }

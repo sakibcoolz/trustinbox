@@ -73,8 +73,8 @@ func (uc *SPUseCase) GetServiceProvider(ctx context.Context, id string) (*entity
 	return sp, nil
 }
 
-func (uc *SPUseCase) ListServiceProviders(ctx context.Context, search, verificationStatus, serviceMode string, limit, offset int) ([]entity.ServiceProvider, int, error) {
-	return uc.spRepo.List(ctx, search, verificationStatus, serviceMode, limit, offset)
+func (uc *SPUseCase) ListServiceProviders(ctx context.Context, search, verificationStatus string, limit, offset int) ([]entity.ServiceProvider, int, error) {
+	return uc.spRepo.List(ctx, search, verificationStatus, limit, offset)
 }
 
 func (uc *SPUseCase) VerifyServiceProvider(ctx context.Context, spID, decision, reason, adminUserID string) error {
@@ -129,9 +129,6 @@ func (uc *SPUseCase) UpdateServiceProvider(ctx context.Context, sp *entity.Servi
 	}
 	if sp.Website != "" {
 		existing.Website = sp.Website
-	}
-	if sp.ServiceMode != "" {
-		existing.ServiceMode = sp.ServiceMode
 	}
 
 	if err := uc.spRepo.Update(ctx, existing); err != nil {

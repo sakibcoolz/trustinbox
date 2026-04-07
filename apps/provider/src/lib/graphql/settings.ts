@@ -62,10 +62,15 @@ export interface OrganizationProfile {
   website?: string;
   verificationStatus: string;
   status: string;
-  serviceMode: string;
   contactEmail?: string;
   supportPhone?: string;
   address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  latitude?: number;
+  longitude?: number;
   logoUrl?: string;
   primaryColor?: string;
   notificationFooter?: string;

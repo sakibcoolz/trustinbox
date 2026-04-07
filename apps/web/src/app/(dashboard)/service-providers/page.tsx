@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
-import { useServiceProviders } from '@/hooks/useServiceProviders';
+import { useQuery, useMutation } from '@apollo/client';
+import { SP_DIRECTORY, BLOCK_SP, UNBLOCK_SP, FOLLOWED_PROVIDERS, NEARBY_PROVIDERS } from '@/lib/graphql/service-providers';
+import { MY_BLOCKED_PROVIDERS } from '@/lib/graphql/profile';
+import { MY_CURRENT_ADDRESS } from '@/lib/graphql/addresses';
 import { useBlockedProviders } from '@/hooks/useBlockedProviders';
 import { useDetailParam } from '@/hooks/useDetailParam';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Building2 } from 'lucide-react';
+import { Building2, Globe, MapPin, Heart } from 'lucide-react';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -24,13 +27,68 @@ export default function ServiceProvidersPage() {
 
 function ServiceProvidersContent() {
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<'NEARBY' | 'ONLINE'>('NEARBY');
+  const [activeTab, setActiveTab] = useState<'all' | 'nearby' | 'following'>('all');
   const { selectedId, setSelectedId, clearSelectedId } = useDetailParam();
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
   const [detailTab, setDetailTab] = useState<'profile' | 'history'>('profile');
   const [blockingId, setBlockingId] = useState<string | null>(null);
 
-  const { providers, loading, error, block, unblock } = useServiceProviders({ search: search || undefined, serviceMode: activeTab });
+  // All tab — serviceProviderDirectory (all verified SPs)
+  const { data: dirData, loading: dirLoading, error: dirError } = useQuery(SP_DIRECTORY, {
+    variables: {
+      limit: 50,
+      offset: 0,
+      search: search || null,
+    },
+    skip: activeTab === 'following' || activeTab === 'nearby',
+  });
+
+  // Following tab — followedServiceProviders (SPs user has a relationship with)
+  const { data: followData, loading: followLoading, error: followError } = useQuery(FOLLOWED_PROVIDERS, {
+    variables: {
+      limit: 50,
+      offset: 0,
+      search: search || null,
+    },
+    skip: activeTab !== 'following',
+  });
+
+  // Current address for nearby tab
+  const { data: addrData } = useQuery(MY_CURRENT_ADDRESS, {
+    skip: activeTab !== 'nearby',
+  });
+  const currentAddr = addrData?.myCurrentAddress;
+
+  // Nearby tab — nearbyServiceProviders (SPs within radius of user's current address)
+  const { data: nearbyData, loading: nearbyLoading, error: nearbyError } = useQuery(NEARBY_PROVIDERS, {
+    variables: {
+      latitude: currentAddr?.latitude ?? 0,
+      longitude: currentAddr?.longitude ?? 0,
+      radiusKm: 50,
+      limit: 50,
+      offset: 0,
+    },
+    skip: activeTab !== 'nearby' || !currentAddr?.latitude || !currentAddr?.longitude,
+  });
+
+  const providers = activeTab === 'following'
+    ? (followData?.followedServiceProviders?.nodes ?? [])
+    : activeTab === 'nearby'
+    ? (nearbyData?.nearbyServiceProviders?.nodes ?? [])
+    : (dirData?.serviceProviderDirectory?.nodes ?? []);
+  const loading = activeTab === 'following' ? followLoading : activeTab === 'nearby' ? nearbyLoading : dirLoading;
+  const error = activeTab === 'following' ? followError : activeTab === 'nearby' ? nearbyError : dirError;
+
+  const [blockMutation] = useMutation(BLOCK_SP, {
+    refetchQueries: [{ query: SP_DIRECTORY }, { query: FOLLOWED_PROVIDERS }, { query: MY_BLOCKED_PROVIDERS }],
+  });
+  const [unblockMutation] = useMutation(UNBLOCK_SP, {
+    refetchQueries: [{ query: SP_DIRECTORY }, { query: FOLLOWED_PROVIDERS }, { query: MY_BLOCKED_PROVIDERS }],
+  });
+  const block = (serviceProviderId: string, reason?: string) =>
+    blockMutation({ variables: { serviceProviderId, reason } });
+  const unblock = (serviceProviderId: string) =>
+    unblockMutation({ variables: { serviceProviderId } });
   const { blockedProviders } = useBlockedProviders();
 
   const blockedIds = useMemo(() => new Set(
@@ -112,16 +170,25 @@ function ServiceProvidersContent() {
           <h2 className="text-lg font-semibold text-text-primary">Service Providers</h2>
           <div className="flex gap-1 bg-bg-tertiary rounded-lg p-0.5">
             <button
-              onClick={() => setActiveTab('NEARBY')}
-              className={`flex-1 text-xs font-medium py-1.5 px-3 rounded-md transition-colors ${activeTab === 'NEARBY' ? 'bg-bg-card text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+              onClick={() => setActiveTab('all')}
+              className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 px-2 rounded-md transition-colors ${activeTab === 'all' ? 'bg-bg-card text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
             >
-              Nearby Services
+              <Globe size={12} />
+              All
             </button>
             <button
-              onClick={() => setActiveTab('ONLINE')}
-              className={`flex-1 text-xs font-medium py-1.5 px-3 rounded-md transition-colors ${activeTab === 'ONLINE' ? 'bg-bg-card text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+              onClick={() => setActiveTab('nearby')}
+              className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 px-2 rounded-md transition-colors ${activeTab === 'nearby' ? 'bg-bg-card text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
             >
-              Online Services
+              <MapPin size={12} />
+              Nearby
+            </button>
+            <button
+              onClick={() => setActiveTab('following')}
+              className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 px-2 rounded-md transition-colors ${activeTab === 'following' ? 'bg-bg-card text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              <Heart size={12} />
+              Following
             </button>
           </div>
           <div className="relative">
@@ -135,8 +202,8 @@ function ServiceProvidersContent() {
           {filtered.length === 0 ? (
             <EmptyState
               icon={Building2}
-              title="No service provider connections"
-              description="Browse the directory to discover verified service providers and control how they contact you."
+              title={activeTab === 'following' ? 'No followed providers yet' : activeTab === 'nearby' ? (currentAddr?.latitude ? 'No nearby providers found' : 'Set your current address') : 'No service providers found'}
+              description={activeTab === 'following' ? 'Service providers you connect with will appear here.' : activeTab === 'nearby' ? (currentAddr?.latitude ? 'No service providers found within 50 km of your current address.' : 'Go to Settings > My Addresses to add and set a current address for nearby discovery.') : 'Browse the directory to discover verified service providers and control how they contact you.'}
               action={search ? { label: 'Clear search', onClick: () => setSearch('') } : undefined}
             />
           ) : (
@@ -155,6 +222,7 @@ function ServiceProvidersContent() {
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-2xs text-text-muted">{sp.industry ?? ''}</span>
+                    {sp.city && <span className="text-2xs text-text-muted">· {[sp.city, sp.country].filter(Boolean).join(', ')}</span>}
                   </div>
                 </div>
                 {sp.trustScore != null && <TrustBadge score={sp.trustScore} />}
@@ -220,10 +288,6 @@ function ServiceProvidersContent() {
                       <p className="text-sm text-text-primary mt-1">{selected.industry ?? '—'}</p>
                     </div>
                     <div>
-                      <p className="text-2xs text-text-muted uppercase tracking-wider font-medium">Service Type</p>
-                      <p className="mt-1"><span className={`chip text-2xs ${selected.serviceMode === 'ONLINE' ? 'chip-blue' : 'chip-green'}`}>{selected.serviceMode === 'ONLINE' ? 'Online' : 'Nearby'}</span></p>
-                    </div>
-                    <div>
                       <p className="text-2xs text-text-muted uppercase tracking-wider font-medium">Verification</p>
                       <p className="mt-1"><span className={`chip text-2xs ${selected.verificationStatus === 'VERIFIED' ? 'chip-green' : 'chip-orange'}`}>{selected.verificationStatus ?? 'UNKNOWN'}</span></p>
                     </div>
@@ -237,6 +301,12 @@ function ServiceProvidersContent() {
                       <div>
                         <p className="text-2xs text-text-muted uppercase tracking-wider font-medium">Website</p>
                         <p className="text-sm text-accent-blue mt-1 truncate">{selected.website}</p>
+                      </div>
+                    )}
+                    {selected.city && (
+                      <div>
+                        <p className="text-2xs text-text-muted uppercase tracking-wider font-medium">Location</p>
+                        <p className="text-sm text-text-primary mt-1">{[selected.address, selected.city, selected.state, selected.country].filter(Boolean).join(', ')}</p>
                       </div>
                     )}
                   </div>
