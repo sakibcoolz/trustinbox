@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/conversation.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../services/chat_service.dart';
 import '../../config/theme.dart';
 
@@ -24,15 +25,55 @@ class _ChatScreenState extends State<ChatScreen> {
   Conversation? _conversation;
   bool _isLoading = true;
   bool _isSending = false;
+  VoidCallback? _unsubscribeChat;
 
   @override
   void initState() {
     super.initState();
     _loadConversation();
+    _subscribeToChatMessages();
+  }
+
+  void _subscribeToChatMessages() {
+    final notifProvider = context.read<NotificationProvider>();
+    _unsubscribeChat = notifProvider.onChatMessage((data) {
+      final convId = data['conversationId'] as String?;
+      if (convId != widget.conversationId) return;
+
+      final auth = context.read<AuthProvider>();
+      final userId = auth.user?.id ?? '';
+      final senderId = data['senderID'] as String? ?? data['senderId'] as String? ?? '';
+
+      // Skip own messages (already shown via optimistic echo)
+      if (senderId == userId) return;
+
+      final msg = Message(
+        id: data['messageID'] as String? ?? data['id'] as String? ?? '',
+        conversationId: convId,
+        senderId: senderId,
+        senderName: data['senderName'] as String?,
+        senderType: 'USER',
+        messageType: data['messageType'] as String? ?? 'TEXT',
+        content: data['content'] as String? ?? '',
+        createdAt: data['timestamp'] as String? ?? DateTime.now().toIso8601String(),
+        status: 'sent',
+      );
+
+      if (mounted) {
+        setState(() {
+          // Deduplicate by ID
+          if (!_messages.any((m) => m.id == msg.id)) {
+            _messages.add(msg);
+          }
+        });
+        _scrollToBottom();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _unsubscribeChat?.call();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();

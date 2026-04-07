@@ -21,7 +21,7 @@ class AppConstants {
   }
 
   static String get graphqlUrl => '$apiBaseUrl/graphql';
-  static String get sseUrl => '$apiBaseUrl/api/consumer/events/stream';
+  static String get sseUrl => '$apiBaseUrl/api/notifications/stream';
 
   // Auth endpoints
   static String get loginUrl => '$apiBaseUrl/api/auth/login';
