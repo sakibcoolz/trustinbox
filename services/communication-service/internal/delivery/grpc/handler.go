@@ -140,6 +140,7 @@ func (h *CommunicationHandler) ListConversations(ctx context.Context, req *pb.Li
 			ServiceProviderId: c.ServiceProviderID,
 			Status:            c.Status,
 			CreatedAt:         timestamppb.New(c.CreatedAt),
+			UpdatedAt:         timestamppb.New(c.UpdatedAt),
 		}
 	}
 	return &pb.ListConversationsResponse{

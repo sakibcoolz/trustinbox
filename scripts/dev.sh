@@ -48,7 +48,7 @@ source "$ROOT/.env"
 set +a
 
 # ── 5. Kill any stale processes on our ports ────────────────────────────────
-PORTS="50051 50052 50053 50054 50055 50056 50057 50058 50059 50060 50061 50062 50063 4000 3000 6060"
+PORTS="50051 50052 50053 50054 50055 50056 50057 50058 50059 50060 50061 50062 50063 4000 3000 6060 8080"
 for port in $PORTS; do
   fuser -k "$port/tcp" 2>/dev/null || true
 done
@@ -123,10 +123,15 @@ echo "[web-app]              → :3000"
 (cd "$ROOT/apps/provider" && GATEWAY_URL="$GATEWAY_URL" npm run dev -- --port 6060) &
 echo "[provider-ui]          → :6060"
 
+# ── 11. Start Flutter hybrid app (web server) ───────────────────────────────
+(cd "$ROOT/apps/hybrid-app" && flutter run -d web-server --web-port=8080) &
+echo "[hybrid-app]           → :8080"
+
 echo ""
 echo "┌─────────────────────────────────────────┐"
 echo "│  web-app       http://localhost:3000     │"
 echo "│  provider-ui   http://localhost:6060     │"
+echo "│  hybrid-app    http://localhost:8080     │"
 echo "│  GraphQL   http://localhost:4000/graphql │"
 echo "│  Jaeger    http://localhost:16686        │"
 echo "│  MinIO     http://localhost:9001         │"

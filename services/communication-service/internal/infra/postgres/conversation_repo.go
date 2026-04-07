@@ -51,14 +51,20 @@ func (r *conversationRepo) GetByID(ctx context.Context, id string) (*entity.Conv
 func (r *conversationRepo) ListByUser(ctx context.Context, userID string, limit, offset int) ([]entity.Conversation, int, error) {
 	var total int
 	if err := r.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM conversations WHERE user_id = $1`, userID,
+		`SELECT COUNT(DISTINCT c.id)
+		 FROM conversations c
+		 LEFT JOIN conversation_participants cp ON cp.conversation_id = c.id
+		 WHERE c.user_id = $1 OR cp.user_id = $1`, userID,
 	).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count conversations: %w", err)
 	}
 
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, user_id, service_provider_id, status, created_at, updated_at
-		 FROM conversations WHERE user_id = $1 ORDER BY updated_at DESC LIMIT $2 OFFSET $3`,
+		`SELECT DISTINCT c.id, c.user_id, c.service_provider_id, c.status, c.created_at, COALESCE(c.updated_at, c.created_at)
+		 FROM conversations c
+		 LEFT JOIN conversation_participants cp ON cp.conversation_id = c.id
+		 WHERE c.user_id = $1 OR cp.user_id = $1
+		 ORDER BY COALESCE(c.updated_at, c.created_at) DESC LIMIT $2 OFFSET $3`,
 		userID, limit, offset,
 	)
 	if err != nil {
@@ -69,9 +75,12 @@ func (r *conversationRepo) ListByUser(ctx context.Context, userID string, limit,
 	var convs []entity.Conversation
 	for rows.Next() {
 		var c entity.Conversation
-		var spID sql.NullString
-		if err := rows.Scan(&c.ID, &c.UserID, &spID, &c.Status, &c.CreatedAt, &c.UpdatedAt); err != nil {
+		var uID, spID sql.NullString
+		if err := rows.Scan(&c.ID, &uID, &spID, &c.Status, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan conversation: %w", err)
+		}
+		if uID.Valid {
+			c.UserID = uID.String
 		}
 		if spID.Valid {
 			c.ServiceProviderID = spID.String
