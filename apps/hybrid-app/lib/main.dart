@@ -30,8 +30,17 @@ class TrustInboxApp extends StatelessWidget {
       child: Consumer2<AuthProvider, ThemeProvider>(
         builder: (context, auth, themeProvider, _) {
           // Start notification listener when authenticated
-          return ChangeNotifierProvider(
+          return ChangeNotifierProxyProvider<AuthProvider, NotificationProvider>(
             create: (_) => NotificationProvider(getToken: () => auth.token),
+            update: (_, auth, previous) {
+              if (previous == null) return NotificationProvider(getToken: () => auth.token);
+              if (auth.isAuthenticated && !previous.connected) {
+                previous.connectSSE();
+              } else if (!auth.isAuthenticated && previous.connected) {
+                previous.disconnectSSE();
+              }
+              return previous;
+            },
             child: GraphQLProvider(
               client: GraphQLService.client,
               child: MaterialApp.router(

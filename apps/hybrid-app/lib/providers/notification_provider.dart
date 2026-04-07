@@ -92,7 +92,7 @@ class NotificationProvider extends ChangeNotifier {
     final token = _getToken();
     if (token == null) return;
 
-    _disconnectSSE();
+    disconnectSSE();
     _startSSE(token);
   }
 
@@ -194,7 +194,7 @@ class NotificationProvider extends ChangeNotifier {
     });
   }
 
-  void _disconnectSSE() {
+  void disconnectSSE() {
     _sseClient?.close();
     _sseClient = null;
     _connected = false;
@@ -219,7 +219,7 @@ class NotificationProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _disconnectSSE();
+    disconnectSSE();
     super.dispose();
   }
 }

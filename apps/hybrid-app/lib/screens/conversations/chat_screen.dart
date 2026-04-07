@@ -42,13 +42,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
       final auth = context.read<AuthProvider>();
       final userId = auth.user?.id ?? '';
-      final senderId = data['senderID'] as String? ?? data['senderId'] as String? ?? '';
+      final senderId = data['senderId'] as String? ?? '';
 
       // Skip own messages (already shown via optimistic echo)
       if (senderId == userId) return;
 
       final msg = Message(
-        id: data['messageID'] as String? ?? data['id'] as String? ?? '',
+        id: data['messageId'] as String? ?? data['id'] as String? ?? '',
         conversationId: convId,
         senderId: senderId,
         senderName: data['senderName'] as String?,
