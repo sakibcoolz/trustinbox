@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
+import '../screens/setup/permission_setup_screen.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/inbox/inbox_screen.dart';
 import '../screens/conversations/conversations_screen.dart';
@@ -31,6 +32,7 @@ GoRouter createRouter(AuthProvider auth) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
+    refreshListenable: auth,
     redirect: (context, state) {
       final isAuth = auth.isAuthenticated;
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
@@ -49,6 +51,14 @@ GoRouter createRouter(AuthProvider auth) {
       GoRoute(
         path: '/auth/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      // Permission setup (first-launch)
+      GoRoute(
+        path: '/setup/permissions',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => PermissionSetupScreen(
+          onComplete: () => GoRouter.of(context).go('/'),
+        ),
       ),
       // Full-screen routes outside the shell
       GoRoute(

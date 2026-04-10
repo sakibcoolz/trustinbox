@@ -3,6 +3,7 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import '../../graphql/callbacks.dart';
 import '../../models/callback_request.dart';
 import '../../config/theme.dart';
+import '../../services/contact_service.dart';
 import '../../widgets/empty_state.dart';
 
 // ─── Callbacks Screen ───────────────────────────────────
@@ -101,7 +102,7 @@ class _CallbacksScreenState extends State<CallbacksScreen> with SingleTickerProv
                 final cb = callbacks[index];
                 return _CallbackTile(
                   callback: cb,
-                  onApprove: () => _showApproveDialog(context, cb.id),
+                  onApprove: () => _showApproveDialog(context, cb),
                   onReject: () => _showRejectDialog(context, cb.id),
                 );
               },
@@ -112,31 +113,80 @@ class _CallbacksScreenState extends State<CallbacksScreen> with SingleTickerProv
     );
   }
 
-  void _showApproveDialog(BuildContext context, String callbackId) {
+  void _showApproveDialog(BuildContext context, CallbackRequest cb) {
+    final nameController = TextEditingController(text: cb.serviceProvider?.name ?? '');
+    final phoneController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Approve Callback'),
-        content: const Text('Approve this callback request?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Approve callback from ${cb.serviceProvider?.name ?? "Unknown"}?'),
+            const SizedBox(height: 16),
+            const Text('Save as contact (for calls):', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Contact Name',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Phone Number',
+                hintText: 'Enter SP phone to save',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           Mutation(
             options: MutationOptions(
               document: gql(approveCallbackMutation),
-              onCompleted: (_) => Navigator.pop(ctx),
+              onCompleted: (data) async {
+                Navigator.pop(ctx);
+                // Auto-save contact if phone number provided
+                final phone = phoneController.text.trim();
+                final name = nameController.text.trim();
+                if (phone.isNotEmpty && name.isNotEmpty) {
+                  final saved = await ContactService.saveContact(
+                    phoneNumber: phone,
+                    displayName: name,
+                    organization: cb.serviceProvider?.name,
+                    note: 'Approved via TrustInbox callback',
+                  );
+                  if (saved && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Contact "$name" saved — they can now call you')),
+                    );
+                  }
+                }
+              },
             ),
             builder: (runMutation, result) {
               return FilledButton(
                 onPressed: () {
                   runMutation({
                     'input': {
-                      'callbackRequestId': callbackId,
+                      'callbackRequestId': cb.id,
                       'approvedSlotStart': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
                       'approvedSlotEnd': DateTime.now().add(const Duration(hours: 2)).toIso8601String(),
                     },
                   });
                 },
-                child: const Text('Approve'),
+                child: const Text('Approve & Save Contact'),
               );
             },
           ),

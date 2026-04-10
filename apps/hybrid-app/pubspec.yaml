@@ -39,6 +39,14 @@ dependencies:
   shimmer: ^3.0.0
   # Toast/snackbar
   fluttertoast: ^8.2.10
+  # Permissions
+  permission_handler: ^11.3.1
+  # Contacts
+  flutter_contacts: ^1.1.9+2
+  # Connectivity
+  connectivity_plus: ^6.1.4
+  # Phone state
+  phone_state: ^2.0.3
 
 dev_dependencies:
   flutter_test:
