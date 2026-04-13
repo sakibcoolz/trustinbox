@@ -126,9 +126,18 @@ class MainActivity : FlutterActivity() {
 
     private fun registerCallStateReceiver() {
         if (callStateReceiver == null) {
-            callStateReceiver = CallStateReceiver()
-            val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
-            registerReceiver(callStateReceiver, filter)
+            try {
+                callStateReceiver = CallStateReceiver()
+                val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    registerReceiver(callStateReceiver, filter, RECEIVER_NOT_EXPORTED)
+                } else {
+                    registerReceiver(callStateReceiver, filter)
+                }
+            } catch (e: Exception) {
+                // Don't crash the app if receiver registration fails
+                callStateReceiver = null
+            }
         }
     }
 

@@ -78,19 +78,22 @@ class _TrustInboxRootState extends State<_TrustInboxRoot> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
-    return InternetGuard(
-      child: PostCallPrompt(
-        child: GraphQLProvider(
-          client: GraphQLService.client,
-          child: MaterialApp.router(
-            title: 'TrustInbox',
-            debugShowCheckedModeBanner: false,
-            theme: buildLightTheme(),
-            darkTheme: buildDarkTheme(),
-            themeMode: themeProvider.themeMode,
-            routerConfig: _router,
-          ),
-        ),
+    return GraphQLProvider(
+      client: GraphQLService.client,
+      child: MaterialApp.router(
+        title: 'TrustInbox',
+        debugShowCheckedModeBanner: false,
+        theme: buildLightTheme(),
+        darkTheme: buildDarkTheme(),
+        themeMode: themeProvider.themeMode,
+        routerConfig: _router,
+        builder: (context, child) {
+          return InternetGuard(
+            child: PostCallPrompt(
+              child: child ?? const SizedBox.shrink(),
+            ),
+          );
+        },
       ),
     );
   }

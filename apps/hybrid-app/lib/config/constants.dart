@@ -17,7 +17,7 @@ class AppConstants {
       final base = Uri.base;
       return '${base.scheme}://${base.host}:4000';
     }
-    return 'http://10.0.2.2:4000';
+    return 'http://localhost-0.taildb081d.ts.net:4000';
   }
 
   static String get graphqlUrl => '$apiBaseUrl/graphql';
