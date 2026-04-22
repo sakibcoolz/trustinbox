@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Star, Pin, Share2, Smile, Check, CheckCheck, Clock, X, ArrowLeft, MessageCircle } from 'lucide-react';
+import { Star, Pin, Share2, Smile, X, ArrowLeft, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useChat, Message, Conversation, Reaction } from '@/lib/chat-context';
 import { VoiceMessagePlayer } from './voice-recorder';
@@ -335,11 +335,10 @@ export function ChatArea({ conversation, onBack }: ChatAreaProps) {
                         {!msg.content && mediaAtts.length === 0 && (
                           <p className="italic text-text-muted text-xs">Empty message</p>
                         )}
-                        {/* Meta row – time + delivery ticks, inside every bubble */}
+                        {/* Meta row – time + status label */}
                         <div className="flex items-center justify-end gap-1 mt-1.5">
                           {isEdited && <span className="text-[10px] opacity-65 italic">edited</span>}
-                          <span className={`text-[10px] ${isOwn ? 'opacity-65' : 'text-text-muted'}`}>{formatMessageTime(msg.createdAt)}</span>
-                          {isOwn && <DeliveryTick status={msg.status} />}
+                          <span className={`text-[9px] font-mono ${isOwn ? 'opacity-65' : 'text-text-muted'}`}>{statusLabel(msg, isOwn)}</span>
                         </div>
                       </>
                     )}
@@ -504,38 +503,18 @@ export function ChatArea({ conversation, onBack }: ChatAreaProps) {
   );
 }
 
-// ── Delivery tick ────────────────────────────────────────────────────────────
-// Renders WhatsApp-style message status ticks inside own-message bubbles.
-// pending   = clock  (message queued, not yet ACKed by server)
-// sent      = ✓      (single grey – server received)
-// delivered = ✓✓     (double grey – reached recipient device)
-// read      = ✓✓     (double sky-blue – recipient opened the chat)
-function DeliveryTick({ status }: { status?: string }) {
-  switch (status) {
-    case 'pending':
-      return (
-        <span title="Sending…" className="flex items-center opacity-55">
-          <Clock size={11} strokeWidth={2} />
-        </span>
-      );
-    case 'read':
-      return (
-        <span title="Read" className="flex items-center text-sky-200">
-          <CheckCheck size={13} strokeWidth={2.5} />
-        </span>
-      );
-    case 'delivered':
-      return (
-        <span title="Delivered" className="flex items-center opacity-80">
-          <CheckCheck size={13} strokeWidth={2} />
-        </span>
-      );
-    default: // 'sent'
-      return (
-        <span title="Sent" className="flex items-center opacity-60">
-          <Check size={13} strokeWidth={2} />
-        </span>
-      );
+// ── Status label (text-based) ────────────────────────────────────────────────
+// Sent messages show cumulative:  s: 08:15 | r: 08:15 | rr: 08:15
+// Received messages:              r: 08:15
+function statusLabel(msg: { createdAt: string; status?: string }, isOwn: boolean): string {
+  const time = formatMessageTime(msg.createdAt);
+  if (!isOwn) return `r: ${time}`;
+  switch (msg.status) {
+    case 'pending':   return 's: ...';
+    case 'sent':      return `s: ${time}`;
+    case 'delivered': return `s: ${time} | r: ${time}`;
+    case 'read':      return `s: ${time} | r: ${time} | rr: ${time}`;
+    default:          return `s: ${time}`;
   }
 }
 

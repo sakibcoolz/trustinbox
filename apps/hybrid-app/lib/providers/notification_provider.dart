@@ -19,6 +19,7 @@ class NotificationProvider extends ChangeNotifier {
   // Listeners for SSE events
   final List<void Function(Map<String, dynamic>)> _chatMessageListeners = [];
   final List<void Function(Map<String, dynamic>)> _presenceListeners = [];
+  final List<void Function(Map<String, dynamic>)> _messageReadListeners = [];
   final List<VoidCallback> _friendListeners = [];
 
   List<AppNotification> get notifications => _notifications;
@@ -175,6 +176,12 @@ class NotificationProvider extends ChangeNotifier {
             cb(parsed);
           }
           break;
+
+        case 'message_read':
+          for (final cb in _messageReadListeners) {
+            cb(parsed);
+          }
+          break;
       }
     } catch (_) {}
   }
@@ -210,6 +217,11 @@ class NotificationProvider extends ChangeNotifier {
   VoidCallback onPresenceUpdate(void Function(Map<String, dynamic>) cb) {
     _presenceListeners.add(cb);
     return () => _presenceListeners.remove(cb);
+  }
+
+  VoidCallback onMessageRead(void Function(Map<String, dynamic>) cb) {
+    _messageReadListeners.add(cb);
+    return () => _messageReadListeners.remove(cb);
   }
 
   VoidCallback onFriendEvent(VoidCallback cb) {

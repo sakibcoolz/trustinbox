@@ -43,6 +43,13 @@ export interface PresencePayload {
   online: boolean;
 }
 
+export interface MessageReadPayload {
+  conversationId: string;
+  readByUserId:   string;
+  lastReadAt:     string;
+  messageId:      string;
+}
+
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
@@ -54,6 +61,8 @@ interface NotificationContextType {
   onChatMessage: (cb: (msg: ChatMessagePayload) => void) => () => void;
   /** Register a listener for SSE-pushed presence updates. */
   onPresenceUpdate: (cb: (p: PresencePayload) => void) => () => void;
+  /** Register a listener for SSE-pushed read receipts. */
+  onMessageRead: (cb: (p: MessageReadPayload) => void) => () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -66,6 +75,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const friendListenersRef   = useRef<Set<() => void>>(new Set());
   const chatMsgListenersRef  = useRef<Set<(msg: ChatMessagePayload) => void>>(new Set());
   const presenceListenersRef = useRef<Set<(p: PresencePayload) => void>>(new Set());
+  const messageReadListenersRef = useRef<Set<(p: MessageReadPayload) => void>>(new Set());
 
   const onFriendEvent = useCallback((cb: () => void) => {
     friendListenersRef.current.add(cb);
@@ -80,6 +90,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const onPresenceUpdate = useCallback((cb: (p: PresencePayload) => void) => {
     presenceListenersRef.current.add(cb);
     return () => { presenceListenersRef.current.delete(cb); };
+  }, []);
+
+  const onMessageRead = useCallback((cb: (p: MessageReadPayload) => void) => {
+    messageReadListenersRef.current.add(cb);
+    return () => { messageReadListenersRef.current.delete(cb); };
   }, []);
 
   const fetchNotifications = useCallback(async () => {
@@ -210,6 +225,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         }
       });
 
+      // Read receipts — when the other party reads messages in a conversation.
+      es.addEventListener('message_read', (event) => {
+        try {
+          const p: MessageReadPayload = JSON.parse(event.data);
+          messageReadListenersRef.current.forEach((cb) => cb(p));
+        } catch {
+          // ignore parse errors
+        }
+      });
+
       // Reset backoff once connected (first message received or open fires)
       es.addEventListener('open', () => { retryDelay = 3000; });
 
@@ -238,7 +263,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   return (
     <NotificationContext.Provider
-      value={{ notifications, unreadCount, fetchNotifications, markAllRead, markRead, onFriendEvent, onChatMessage, onPresenceUpdate }}
+      value={{ notifications, unreadCount, fetchNotifications, markAllRead, markRead, onFriendEvent, onChatMessage, onPresenceUpdate, onMessageRead }}
     >
       {children}
     </NotificationContext.Provider>

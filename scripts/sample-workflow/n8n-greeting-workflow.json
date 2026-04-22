@@ -1,0 +1,58 @@
+{
+  "name": "TrustInbox Sample — Greeting",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trustinbox-greet",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f1a1c0a0-0000-4000-8000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// TrustInbox payload (see services/bot-service/internal/infra/n8n/client.go):\n//   { workflowId, botId, serviceProviderId, conversationId, userId,\n//     resumeCallbackUrl, inputData: <raw JSON from execute_workflow tool> }\n//\n// The bot's `execute_workflow` tool passes whatever the LLM puts in\n// `input_data` straight through. For this sample we expect:\n//   { \"name\": \"Alice\", \"intent\": \"hello\" }\n\nconst body = $input.first().json;\nconst input = body.inputData || {};\nconst name = input.name || 'there';\nconst intent = input.intent || 'hello';\n\nlet message;\nswitch (intent) {\n  case 'hello':\n    message = `Hello ${name}! 👋 Thanks for reaching out — how can I help?`;\n    break;\n  case 'order_status':\n    message = `Hi ${name}, your order is being processed and will ship within 24h.`;\n    break;\n  case 'business_hours':\n    message = `Our team is available Monday–Friday, 9am–6pm IST.`;\n    break;\n  default:\n    message = `Hi ${name}, I received your request but don't recognise the intent \"${intent}\".`;\n}\n\nreturn [\n  {\n    json: {\n      success: true,\n      data: {\n        message,\n        handledBy: 'n8n-sample-greeting-workflow',\n        intent,\n        botId: body.botId,\n        userId: body.userId,\n        timestamp: new Date().toISOString()\n      }\n    }\n  }\n];\n"
+      },
+      "id": "f1a1c0a0-0000-4000-8000-000000000002",
+      "name": "Build Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "f1a1c0a0-0000-4000-8000-000000000003",
+      "name": "Respond to TrustInbox",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Build Reply", "type": "main", "index": 0 }]]
+    },
+    "Build Reply": {
+      "main": [[{ "node": "Respond to TrustInbox", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": [
+    { "name": "trustinbox-sample" }
+  ]
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, use, Suspense } from 'react';
-import { ArrowLeft, Bot as BotIcon, Settings, Database, BarChart3, Code, Shield, Activity, Trash2, Play, Pause, Archive, RotateCcw, Loader2, Send } from 'lucide-react';
+import { ArrowLeft, Bot as BotIcon, Settings, Database, BarChart3, Code, Shield, Activity, Trash2, Play, Pause, Archive, RotateCcw, Loader2, Send, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,8 +25,9 @@ import {
   type BotStatus,
   type BotConfiguration,
 } from '@/lib/graphql/bots';
+import { WorkflowsTab } from './WorkflowsTab';
 
-type TabKey = 'config' | 'prompt' | 'permissions' | 'activity';
+type TabKey = 'config' | 'prompt' | 'permissions' | 'workflows' | 'activity';
 
 /* ─── Test Panel (same as wizard) ─── */
 interface TestMessage { role: 'user' | 'bot'; text: string }
@@ -467,6 +468,7 @@ function BotDetailContent({ params }: { params: Promise<{ id: string }> }) {
     { key: 'config', label: 'Configuration', icon: Settings },
     { key: 'prompt', label: 'System Prompt', icon: Code },
     { key: 'permissions', label: 'Permissions', icon: Shield },
+    { key: 'workflows', label: 'Workflows (n8n)', icon: Workflow },
     { key: 'activity', label: 'Activity Log', icon: Activity },
   ];
 
@@ -547,6 +549,8 @@ function BotDetailContent({ params }: { params: Promise<{ id: string }> }) {
       )}
 
       {tab === 'permissions' && <PermissionsTab botId={id} />}
+
+      {tab === 'workflows' && <WorkflowsTab botId={id} serviceProviderId={spId} />}
 
       {tab === 'activity' && <BotActivityLog botId={id} />}
     </div>

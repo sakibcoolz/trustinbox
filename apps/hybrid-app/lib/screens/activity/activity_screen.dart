@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import '../../graphql/notifications.dart';
 import '../../models/notification.dart';
@@ -68,7 +69,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Activity')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) { context.pop(); } else { context.go('/'); }
+          },
+        ),
+        title: const Text('Activity'),
+      ),
       body: Column(
         children: [
           // Filter chips

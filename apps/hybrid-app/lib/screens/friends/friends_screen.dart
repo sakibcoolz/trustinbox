@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import '../../graphql/friends.dart';
 import '../../models/settings.dart';
@@ -34,6 +35,12 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) { context.pop(); } else { context.go('/'); }
+          },
+        ),
         title: const Text('Friends'),
         bottom: TabBar(
           controller: _tabController,

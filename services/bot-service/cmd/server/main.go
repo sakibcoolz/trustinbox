@@ -11,6 +11,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 	grpcdelivery "github.com/trustinbox/bot-service/internal/delivery/grpc"
+	"github.com/trustinbox/bot-service/internal/infra/n8n"
 	"github.com/trustinbox/bot-service/internal/infra/postgres"
 	"github.com/trustinbox/bot-service/internal/usecase"
 	"github.com/trustinbox/cornerstone/config"
@@ -50,6 +51,8 @@ func main() {
 	sourceRepo := postgres.NewKnowledgeSourceRepository(db)
 	actionRepo := postgres.NewBotActionLogRepository(db)
 	statsRepo := postgres.NewBotAnalyticsRepository(db)
+	workflowRepo := postgres.NewBotWorkflowConfigRepository(db)
+	suspensionRepo := postgres.NewBotWorkflowSuspensionRepository(db)
 
 	// Redis for event publishing
 	redisOpts, err := redis.ParseURL(cfg.RedisURL)
@@ -71,8 +74,29 @@ func main() {
 	defer aiConn.Close()
 	aiClient := aiv1.NewAIServiceClient(aiConn)
 
+	// n8n workflow dispatcher (optional — disabled if N8N_BASE_URL is empty)
+	var workflowDispatcher usecase.WorkflowDispatcher
+	n8nBaseURL := config.GetEnv("N8N_BASE_URL", "")
+	if n8nBaseURL != "" {
+		n8nClient := n8n.NewClient(
+			n8nBaseURL,
+			config.GetEnv("N8N_WEBHOOK_SECRET", ""),
+			log,
+		)
+		workflowDispatcher = n8n.NewDispatcher(n8nClient)
+		log.Info("n8n workflow dispatcher enabled", zap.String("base_url", n8nBaseURL))
+	} else {
+		log.Info("n8n workflow dispatcher disabled (set N8N_BASE_URL to enable)")
+	}
+	resumeBaseURL := config.GetEnv("GATEWAY_PUBLIC_URL", "")
+
 	// Use case
-	botUC := usecase.NewBotUseCase(botRepo, configRepo, permRepo, sourceRepo, actionRepo, statsRepo, nil, aiClient, publisher, log)
+	botUC := usecase.NewBotUseCase(
+		botRepo, configRepo, permRepo, sourceRepo, actionRepo, statsRepo,
+		workflowRepo, suspensionRepo,
+		nil, aiClient, workflowDispatcher, resumeBaseURL,
+		publisher, log,
+	)
 
 	// gRPC handler
 	handler := grpcdelivery.NewBotHandler(botUC)

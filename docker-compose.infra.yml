@@ -119,6 +119,50 @@ services:
       prometheus:
         condition: service_healthy
 
+  # n8n — workflow automation engine triggered by bots via execute_workflow tool.
+  # Owner UI: http://localhost:5678  (login: admin / trustinbox_n8n_dev)
+  # Webhook base URL used by bot-service: http://n8n:5678 (inside Docker)
+  #                                       http://localhost:5678 (from host)
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      # ─── Auth (Basic Auth gate on the editor UI) ────────────
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: admin
+      N8N_BASIC_AUTH_PASSWORD: trustinbox_n8n_dev
+      # ─── Public/Webhook URLs ────────────────────────────────
+      N8N_HOST: localhost
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5678/
+      # ─── Runtime config ─────────────────────────────────────
+      GENERIC_TIMEZONE: UTC
+      TZ: UTC
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_RUNNERS_ENABLED: "true"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      # ─── 32-byte key used to encrypt stored credentials ─────
+      # In production replace with a secret from a vault.
+      N8N_ENCRYPTION_KEY: trustinbox_n8n_encryption_key_dev_32b
+      # ─── Shared HMAC secret for TrustInbox ↔ n8n callbacks ──
+      # Mirror this in the gateway + bot-service env (N8N_WEBHOOK_SECRET).
+      TRUSTINBOX_WEBHOOK_SECRET: trustinbox_n8n_webhook_secret_dev
+      # ─── Resume callback target (gateway public URL) ────────
+      TRUSTINBOX_GATEWAY_URL: http://host.docker.internal:4000
+    volumes:
+      - n8ndata:/home/node/.n8n
+    extra_hosts:
+      # Allow workflows to reach gateway/services running on the host.
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://localhost:5678/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   pgdata:
   redisdata:
@@ -126,3 +170,4 @@ volumes:
   ejabberddata:
   prometheusdata:
   grafanadata:
+  n8ndata:

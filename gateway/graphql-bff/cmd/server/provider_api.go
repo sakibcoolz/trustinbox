@@ -809,6 +809,10 @@ func handleProviderBots(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger
 						writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
 					}
 					return
+
+				case "workflows":
+					handleProviderBotWorkflows(w, r, db, log, spID, id)
+					return
 				}
 				writeJSON(w, http.StatusNotFound, errorResponse{Error: "unknown sub-resource"})
 				return

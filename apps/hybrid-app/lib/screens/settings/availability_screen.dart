@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import '../../graphql/settings.dart';
 import '../../config/theme.dart';
@@ -61,6 +62,12 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) { context.pop(); } else { context.go('/settings'); }
+          },
+        ),
         title: const Text('Availability'),
         actions: [
           IconButton(

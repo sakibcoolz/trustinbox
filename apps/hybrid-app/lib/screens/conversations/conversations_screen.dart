@@ -110,7 +110,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                         ],
                       ],
                     ),
-                    onTap: () => context.go('/conversations/${conv.id}'),
+                    onTap: () => context.push('/conversations/${conv.id}'),
                   );
                 },
               ),

@@ -111,18 +111,43 @@ gqlgen: ## Generate GraphQL resolvers
 
 # ─── Database ─────────────────────────────────────────────
 
-migrate: ## Run database migrations
-	@echo "Running migrations..."
-	psql "postgresql://trustinbox:trustinbox_dev@localhost:5432/trustinbox?sslmode=disable" \
-		-f infra/migrations/001_initial_schema.up.sql
+# Runs psql inside the postgres container so no host psql client is required.
+PSQL_DOCKER = docker exec -i trustinbox-postgres-1 psql -v ON_ERROR_STOP=1 -U trustinbox -d trustinbox
+PSQL_DOCKER_Q = docker exec trustinbox-postgres-1 psql -v ON_ERROR_STOP=1 -tAU trustinbox -d trustinbox
 
-migrate-down: ## Rollback database migrations
-	psql "postgresql://trustinbox:trustinbox_dev@localhost:5432/trustinbox?sslmode=disable" \
-		-f infra/migrations/001_initial_schema.down.sql
+migrate: ## Run pending .up.sql migrations (idempotent — tracks applied versions)
+	@echo "Running migrations via trustinbox-postgres-1..."
+	@$(PSQL_DOCKER) -c "CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW());" >/dev/null
+	@for f in $$(ls infra/migrations/*.up.sql | sort); do \
+		v=$$(basename $$f .up.sql); \
+		applied=$$($(PSQL_DOCKER_Q) -c "SELECT 1 FROM schema_migrations WHERE version='$$v'"); \
+		if [ "$$applied" = "1" ]; then \
+			echo "  ✓ $$v (already applied)"; \
+		else \
+			echo "  → $$v"; \
+			$(PSQL_DOCKER) < $$f || exit 1; \
+			$(PSQL_DOCKER) -c "INSERT INTO schema_migrations(version) VALUES('$$v') ON CONFLICT DO NOTHING;" >/dev/null; \
+		fi; \
+	done
+	@echo "Migrations complete."
+
+migrate-baseline: ## Mark all existing .up.sql files as applied without running them
+	@$(PSQL_DOCKER) -c "CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW());" >/dev/null
+	@for f in $$(ls infra/migrations/*.up.sql | sort); do \
+		v=$$(basename $$f .up.sql); \
+		echo "  ✓ marking $$v applied"; \
+		$(PSQL_DOCKER) -c "INSERT INTO schema_migrations(version) VALUES('$$v') ON CONFLICT DO NOTHING;" >/dev/null; \
+	done
+
+migrate-down: ## Roll back the most recently applied migration
+	@v=$$($(PSQL_DOCKER_Q) -c "SELECT version FROM schema_migrations ORDER BY applied_at DESC LIMIT 1"); \
+	if [ -z "$$v" ]; then echo "no migrations to roll back"; exit 0; fi; \
+	echo "  ← $$v"; \
+	$(PSQL_DOCKER) < infra/migrations/$$v.down.sql || exit 1; \
+	$(PSQL_DOCKER) -c "DELETE FROM schema_migrations WHERE version='$$v';" >/dev/null
 
 seed: ## Seed database with test data
-	psql "postgresql://trustinbox:trustinbox_dev@localhost:5432/trustinbox?sslmode=disable" \
-		-f infra/migrations/002_seed_data.sql
+	$(PSQL_DOCKER) < infra/migrations/002_seed_data.sql
 
 # ─── Lint ─────────────────────────────────────────────────
 

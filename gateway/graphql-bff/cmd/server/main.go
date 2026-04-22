@@ -343,6 +343,11 @@ func main() {
 	providerHandler := apiKeyAuth(db, tokenSvc, log, rateLimitMiddleware(rl, log, providerMux))
 	mux.Handle("/api/v1/", providerHandler)
 
+	// n8n async workflow resume callback — HMAC-authenticated, no API key.
+	// Registered AFTER the providerHandler line so this exact path takes
+	// precedence over the /api/v1/ catch-all (longer pattern wins in net/http).
+	mux.HandleFunc("/api/v1/workflows/resume/", handleWorkflowResume(db, log))
+
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.HTTPPort),
 		Handler: handler,

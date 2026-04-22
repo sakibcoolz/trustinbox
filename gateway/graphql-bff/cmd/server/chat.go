@@ -389,6 +389,9 @@ func handleListMessages(deps *chatDeps) http.HandlerFunc {
 		}
 		defer rows.Close()
 
+		// Compute read status: if the other participant's last_read_at >= message created_at, it's 'read'
+		otherLastReadAt := getOtherParticipantLastReadAt(ctx, deps, convID, userID)
+
 		var messages []messageResponse
 		for rows.Next() {
 			var m messageResponse
@@ -416,7 +419,13 @@ func handleListMessages(deps *chatDeps) http.HandlerFunc {
 				m.DeletedAt = &deletedAt.String
 			}
 			m.CreatedAt = createdAt.Format(time.RFC3339)
-			m.Status = "sent"
+
+			// Determine message status for own messages
+			if senderRefID == userID && otherLastReadAt != nil && !createdAt.After(*otherLastReadAt) {
+				m.Status = "read"
+			} else {
+				m.Status = "sent"
+			}
 
 			// Get reactions
 			m.Reactions = getMessageReactions(ctx, deps, m.ID)
@@ -926,7 +935,7 @@ func handleMarkConversationRead(deps *chatDeps) http.HandlerFunc {
 			now, msgIDPtr, convID, userID,
 		)
 
-		// Broadcast read receipt
+		// Broadcast read receipt via WebSocket
 		participants := getConversationParticipants(ctx, deps, convID)
 		others := filterOut(participants, userID)
 		deps.hub.broadcast(ctx, others, wsOutgoing{
@@ -936,6 +945,17 @@ func handleMarkConversationRead(deps *chatDeps) http.HandlerFunc {
 			LastReadAt:     now.Format(time.RFC3339),
 			MessageID:      lastMsgID.String,
 		})
+
+		// Broadcast read receipt via SSE (for hybrid app / web SSE listeners)
+		readPayload := map[string]interface{}{
+			"conversationId": convID,
+			"readByUserId":   userID,
+			"lastReadAt":     now.Format(time.RFC3339),
+			"messageId":      lastMsgID.String,
+		}
+		for _, uid := range others {
+			deps.sseHub.send(uid, "message_read", readPayload)
+		}
 
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}
@@ -1048,6 +1068,23 @@ func getReplyPreview(ctx context.Context, deps *chatDeps, messageID string) *rep
 		rp.Content = &c
 	}
 	return &rp
+}
+
+// getOtherParticipantLastReadAt returns the other participant's last_read_at timestamp
+// in a conversation, used to determine read status for the current user's messages.
+func getOtherParticipantLastReadAt(ctx context.Context, deps *chatDeps, convID, userID string) *time.Time {
+	var lastReadAt sql.NullTime
+	deps.db.QueryRowContext(ctx,
+		`SELECT last_read_at FROM conversation_participants
+		 WHERE conversation_id = $1 AND user_id != $2
+		 ORDER BY last_read_at DESC NULLS LAST
+		 LIMIT 1`,
+		convID, userID,
+	).Scan(&lastReadAt)
+	if lastReadAt.Valid {
+		return &lastReadAt.Time
+	}
+	return nil
 }
 
 func getMessageReactions(ctx context.Context, deps *chatDeps, messageID string) []reactionResponse {

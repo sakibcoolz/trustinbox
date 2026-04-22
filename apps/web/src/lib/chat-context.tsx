@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './auth-context';
-import { useNotifications, ChatMessagePayload, PresencePayload } from './notification-context';
+import { useNotifications, ChatMessagePayload, PresencePayload, MessageReadPayload } from './notification-context';
 import { xmppClient, XMPPMessage, XMPPPresence, XMPPTyping, XMPPDeliveryReceipt, XMPP_DOMAIN, XMPP_MUC_DOMAIN, uuidv4 } from './xmpp-client';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -142,7 +142,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const { user, token, xmppToken, xmppJid, isLoading: isAuthLoading, refreshAccessToken } = useAuth();
-  const { onChatMessage, onPresenceUpdate } = useNotifications();
+  const { onChatMessage, onPresenceUpdate, onMessageRead } = useNotifications();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversationState] = useState<Conversation | null>(null);
@@ -1074,6 +1074,16 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     return onPresenceUpdate((p: PresencePayload) => handlePresenceUpdate(p));
   }, [onPresenceUpdate, handlePresenceUpdate]);
+
+  // 2b. SSE read receipt events (supplements WebSocket read receipts)
+  useEffect(() => {
+    return onMessageRead((p: MessageReadPayload) => handleMessageRead({
+      conversationId: p.conversationId,
+      userId: p.readByUserId,
+      lastReadAt: p.lastReadAt,
+      messageId: p.messageId,
+    }));
+  }, [onMessageRead, handleMessageRead]);
 
   // 3. Initial presence snapshot once conversations are loaded
   useEffect(() => {

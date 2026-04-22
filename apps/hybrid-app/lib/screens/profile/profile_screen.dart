@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../graphql/profile.dart';
@@ -19,7 +20,15 @@ class ProfileScreen extends StatelessWidget {
     final user = auth.user;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) { context.pop(); } else { context.go('/'); }
+          },
+        ),
+        title: const Text('Profile'),
+      ),
       body: Query(
         options: QueryOptions(
           document: gql(myProfileQuery),

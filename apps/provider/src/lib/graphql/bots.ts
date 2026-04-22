@@ -227,7 +227,37 @@ export const ALLOWED_BOT_TOOLS = [
   { name: 'update_ticket', label: 'Update Ticket', description: 'Update existing tickets' },
   { name: 'escalate_to_human', label: 'Escalate to Human', description: 'Hand off to a human agent' },
   { name: 'check_account_status', label: 'Check Account Status', description: 'View account balance and status' },
+  { name: 'execute_workflow', label: 'Execute n8n Workflow', description: 'Trigger registered n8n workflows for custom automations' },
 ] as const;
+
+// ─── Workflow integration (n8n) ─────────────────────────────────────────────
+
+export interface BotWorkflowConfig {
+  id: string;
+  botId: string;
+  workflowId: string;
+  workflowName: string;
+  webhookPath: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateBotWorkflowInput {
+  workflowId: string;
+  workflowName: string;
+  webhookPath: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export interface UpdateBotWorkflowInput {
+  workflowName?: string;
+  webhookPath?: string;
+  description?: string;
+  isActive: boolean;
+}
 
 // ─── Query Hooks ─────────────────────────────────────────────────────────────
 
@@ -368,4 +398,42 @@ export function useExecuteBotAction() {
 
 export function useBotActionExecutedSubscription(_serviceProviderId: string) {
   return { data: undefined };
+}
+
+// ─── Workflow hooks ─────────────────────────────────────────────────────────
+
+export function useBotWorkflows(botId: string, serviceProviderId: string) {
+  const url = botId && serviceProviderId ? `/api/gateway/v1/bots/${botId}/workflows` : null;
+  const result = useData<BotWorkflowConfig[]>(url, { skip: !botId || !serviceProviderId });
+  return { ...result, data: result.data ? { botWorkflows: result.data } : undefined };
+}
+
+export function useCreateBotWorkflow(botId: string) {
+  const { run, loading, error } = useMutationHelper<BotWorkflowConfig>();
+  return {
+    create: (input: CreateBotWorkflowInput) =>
+      run(`/api/gateway/v1/bots/${botId}/workflows`, 'POST', input),
+    loading,
+    error,
+  };
+}
+
+export function useUpdateBotWorkflow(botId: string) {
+  const { run, loading, error } = useMutationHelper<BotWorkflowConfig>();
+  return {
+    update: (configId: string, input: UpdateBotWorkflowInput) =>
+      run(`/api/gateway/v1/bots/${botId}/workflows/${configId}`, 'PUT', input),
+    loading,
+    error,
+  };
+}
+
+export function useDeleteBotWorkflow(botId: string) {
+  const { run, loading, error } = useMutationHelper();
+  return {
+    remove: (configId: string) =>
+      run(`/api/gateway/v1/bots/${botId}/workflows/${configId}`, 'DELETE'),
+    loading,
+    error,
+  };
 }

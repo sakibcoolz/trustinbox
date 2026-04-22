@@ -302,7 +302,7 @@ func newTestUseCase(
 ) *usecase.BotUseCase {
 	return usecase.NewBotUseCase(
 		botRepo, configRepo, permRepo, sourceRepo,
-		actionRepo, statsRepo, policy, nil, pub, zap.NewNop(),
+		actionRepo, statsRepo, nil, nil, policy, nil, nil, "", pub, zap.NewNop(),
 	)
 }
 

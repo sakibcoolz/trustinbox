@@ -40,12 +40,34 @@ for i in $(seq 1 15); do
   fi
   sleep 2
 done
+
+# ── 3b. Wait for n8n to be ready (best-effort, non-fatal) ───────────────────
+echo "⏳ Waiting for n8n..."
+n8n_ready=false
+for i in $(seq 1 20); do
+  if curl -fsS -o /dev/null http://localhost:5678/healthz 2>/dev/null; then
+    echo "   n8n ready."
+    n8n_ready=true
+    break
+  fi
+  sleep 2
+done
+if [ "$n8n_ready" = false ]; then
+  echo "   WARN: n8n not reachable on :5678 — execute_workflow tool will fail until it's up." >&2
+fi
 echo ""
 
 # ── 4. Load env ──────────────────────────────────────────────────────────────
-set -a
-source "$ROOT/.env"
-set +a
+if [ -f "$ROOT/.env" ]; then
+  set -a
+  source "$ROOT/.env"
+  set +a
+fi
+
+# ── 4b. n8n / workflow integration defaults ─────────────────────────────────
+export N8N_BASE_URL="${N8N_BASE_URL:-http://localhost:5678}"
+export N8N_WEBHOOK_SECRET="${N8N_WEBHOOK_SECRET:-trustinbox_n8n_webhook_secret_dev}"
+export GATEWAY_PUBLIC_URL="${GATEWAY_PUBLIC_URL:-http://host.docker.internal:4000}"
 
 # ── 5. Kill any stale processes on our ports ────────────────────────────────
 PORTS="50051 50052 50053 50054 50055 50056 50057 50058 50059 50060 50061 50062 50063 4000 3000 6060 8080"
@@ -128,14 +150,15 @@ echo "[provider-ui]          → :6060"
 echo "[hybrid-app]           → :8080"
 
 echo ""
-echo "┌─────────────────────────────────────────┐"
-echo "│  web-app       http://localhost:3000     │"
-echo "│  provider-ui   http://localhost:6060     │"
-echo "│  hybrid-app    http://localhost:8080     │"
-echo "│  GraphQL   http://localhost:4000/graphql │"
-echo "│  Jaeger    http://localhost:16686        │"
-echo "│  MinIO     http://localhost:9001         │"
-echo "└─────────────────────────────────────────┘"
+echo "┌──────────────────────────────────────────────┐"
+echo "│  web-app       http://localhost:3000          │"
+echo "│  provider-ui   http://localhost:6060          │"
+echo "│  hybrid-app    http://localhost:8080          │"
+echo "│  GraphQL       http://localhost:4000/graphql  │"
+echo "│  n8n editor    http://localhost:5678          │"
+echo "│  Jaeger        http://localhost:16686         │"
+echo "│  MinIO         http://localhost:9001          │"
+echo "└──────────────────────────────────────────────┘"
 echo ""
 echo "Press Ctrl+C to stop all services."
 echo ""

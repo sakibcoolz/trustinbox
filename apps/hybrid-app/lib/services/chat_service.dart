@@ -102,4 +102,34 @@ class ChatService {
     if (res.statusCode != 201 && res.statusCode != 200) return null;
     return json.decode(res.body) as Map<String, dynamic>;
   }
+
+  // ─── Edit Message ────────────────────────────────────
+  static Future<bool> editMessage(String messageId, String content) async {
+    final headers = await _authHeaders();
+    final res = await http.put(
+      Uri.parse('${AppConstants.apiBaseUrl}/api/messages/$messageId'),
+      headers: headers,
+      body: json.encode({'content': content}),
+    );
+    return res.statusCode == 200;
+  }
+
+  // ─── Delete Message ──────────────────────────────────
+  static Future<bool> deleteMessage(String messageId) async {
+    final headers = await _authHeaders();
+    final res = await http.delete(
+      Uri.parse('${AppConstants.apiBaseUrl}/api/messages/$messageId'),
+      headers: headers,
+    );
+    return res.statusCode == 200 || res.statusCode == 204;
+  }
+
+  // ─── Mark Conversation as Read ───────────────────────
+  static Future<void> markAsRead(String conversationId) async {
+    final headers = await _authHeaders();
+    await http.post(
+      Uri.parse('${AppConstants.apiBaseUrl}/api/conversations/$conversationId/read'),
+      headers: headers,
+    );
+  }
 }

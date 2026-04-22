@@ -64,6 +64,7 @@ const (
 	KnowledgeSourceText     KnowledgeSourceType = "TEXT"
 	KnowledgeSourceFAQ      KnowledgeSourceType = "FAQ"
 	KnowledgeSourceAPI      KnowledgeSourceType = "API"
+	KnowledgeSourceWorkflow KnowledgeSourceType = "WORKFLOW"
 )
 
 // KnowledgeSourceStatus represents the processing status.
@@ -139,4 +140,5 @@ var AllowedBotTools = []string{
 	"share_document",
 	"get_conversation_summary",
 	"escalate_to_human",
+	"execute_workflow",
 }

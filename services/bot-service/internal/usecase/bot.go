@@ -21,18 +21,46 @@ type PolicyChecker interface {
 	EvaluateBotAction(ctx context.Context, botID, userID, toolName string) (allowed bool, reason string, err error)
 }
 
+// WorkflowDispatcher triggers an n8n workflow via its webhook and returns the response.
+// Implemented by services/bot-service/internal/infra/n8n.Client.
+type WorkflowDispatcher interface {
+	Trigger(ctx context.Context, webhookPath string, req *WorkflowTriggerInput) (*WorkflowTriggerOutput, error)
+}
+
+// WorkflowTriggerInput is the data passed to the workflow dispatcher.
+type WorkflowTriggerInput struct {
+	WorkflowID        string
+	BotID             string
+	ServiceProviderID string
+	ConversationID    string
+	UserID            string
+	ResumeCallbackURL string
+	InputDataJSON     json.RawMessage
+}
+
+// WorkflowTriggerOutput is the response returned by the dispatcher.
+type WorkflowTriggerOutput struct {
+	Success bool
+	Data    json.RawMessage
+	Error   string
+}
+
 // BotUseCase implements bot lifecycle and action operations.
 type BotUseCase struct {
-	botRepo    repository.BotRepository
-	configRepo repository.BotConfigurationRepository
-	permRepo   repository.BotPermissionRepository
-	sourceRepo repository.KnowledgeSourceRepository
-	actionRepo repository.BotActionLogRepository
-	statsRepo  repository.BotAnalyticsRepository
-	policy     PolicyChecker
-	aiClient   aiv1.AIServiceClient
-	publisher  events.Publisher
-	log        *zap.Logger
+	botRepo        repository.BotRepository
+	configRepo     repository.BotConfigurationRepository
+	permRepo       repository.BotPermissionRepository
+	sourceRepo     repository.KnowledgeSourceRepository
+	actionRepo     repository.BotActionLogRepository
+	statsRepo      repository.BotAnalyticsRepository
+	workflowRepo   repository.BotWorkflowConfigRepository
+	suspensionRepo repository.BotWorkflowSuspensionRepository
+	policy         PolicyChecker
+	aiClient       aiv1.AIServiceClient
+	workflows      WorkflowDispatcher
+	resumeBaseURL  string
+	publisher      events.Publisher
+	log            *zap.Logger
 }
 
 // NewBotUseCase creates a new BotUseCase.
@@ -43,22 +71,30 @@ func NewBotUseCase(
 	sourceRepo repository.KnowledgeSourceRepository,
 	actionRepo repository.BotActionLogRepository,
 	statsRepo repository.BotAnalyticsRepository,
+	workflowRepo repository.BotWorkflowConfigRepository,
+	suspensionRepo repository.BotWorkflowSuspensionRepository,
 	policy PolicyChecker,
 	aiClient aiv1.AIServiceClient,
+	workflows WorkflowDispatcher,
+	resumeBaseURL string,
 	publisher events.Publisher,
 	log *zap.Logger,
 ) *BotUseCase {
 	return &BotUseCase{
-		botRepo:    botRepo,
-		configRepo: configRepo,
-		permRepo:   permRepo,
-		sourceRepo: sourceRepo,
-		actionRepo: actionRepo,
-		statsRepo:  statsRepo,
-		policy:     policy,
-		aiClient:   aiClient,
-		publisher:  publisher,
-		log:        log,
+		botRepo:        botRepo,
+		configRepo:     configRepo,
+		permRepo:       permRepo,
+		sourceRepo:     sourceRepo,
+		actionRepo:     actionRepo,
+		statsRepo:      statsRepo,
+		workflowRepo:   workflowRepo,
+		suspensionRepo: suspensionRepo,
+		policy:         policy,
+		aiClient:       aiClient,
+		workflows:      workflows,
+		resumeBaseURL:  resumeBaseURL,
+		publisher:      publisher,
+		log:            log,
 	}
 }
 
@@ -282,8 +318,31 @@ func (uc *BotUseCase) ExecuteAction(ctx context.Context, botID, spID, conversati
 		return "", false, bizerr.PolicyDenied(policyReason)
 	}
 
-	// TODO: Execute the actual tool action via AI orchestration layer
-	outputJSON := `{"status":"executed","tool":"` + toolName + `"}`
+	// Dispatch to the appropriate tool implementation.
+	var outputJSON string
+	switch toolName {
+	case "execute_workflow":
+		out, escalated, err := uc.dispatchWorkflowTool(ctx, botID, spID, conversationID, userID, inputJSON)
+		if err != nil {
+			actionLog.Success = false
+			actionLog.ErrorMessage = err.Error()
+			actionLog.DurationMS = int(time.Since(start).Milliseconds())
+			uc.actionRepo.Create(ctx, actionLog)
+			return "", false, err
+		}
+		outputJSON = out
+		if escalated {
+			// Workflow returned a suspension token — caller should pause the turn.
+			actionLog.OutputSummary = truncate(outputJSON, 500)
+			actionLog.DurationMS = int(time.Since(start).Milliseconds())
+			uc.actionRepo.Create(ctx, actionLog)
+			uc.statsRepo.IncrementActions(ctx, botID)
+			return outputJSON, true, nil
+		}
+	default:
+		// TODO: route remaining tools through ai-service ExecuteTool
+		outputJSON = `{"status":"executed","tool":"` + toolName + `"}`
+	}
 
 	actionLog.OutputSummary = truncate(outputJSON, 500)
 	actionLog.DurationMS = int(time.Since(start).Milliseconds())

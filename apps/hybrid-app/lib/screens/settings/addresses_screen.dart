@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import '../../graphql/addresses.dart';
 import '../../config/theme.dart';
@@ -59,7 +60,15 @@ class _AddressesScreenState extends State<AddressesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Addresses')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) { context.pop(); } else { context.go('/settings'); }
+          },
+        ),
+        title: const Text('My Addresses'),
+      ),
       body: Query(
         options: QueryOptions(
           document: gql(myAddressesQuery),

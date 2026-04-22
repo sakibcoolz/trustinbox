@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import '../../graphql/documents.dart';
 import '../../models/document.dart';
@@ -35,7 +36,15 @@ class DocumentsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Documents')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) { context.pop(); } else { context.go('/'); }
+          },
+        ),
+        title: const Text('Documents'),
+      ),
       body: Query(
         options: QueryOptions(
           document: gql(myDocumentsQuery),
