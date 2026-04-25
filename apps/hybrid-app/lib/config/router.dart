@@ -43,16 +43,20 @@ GoRouter createRouter(AuthProvider auth) {
     initialLocation: '/',
     refreshListenable: auth,
     redirect: (context, state) {
+      final loc = state.matchedLocation;
       final isAuth = auth.isAuthenticated;
-      final isAuthRoute = state.matchedLocation.startsWith('/auth');
-      final isOnboarding = state.matchedLocation == '/onboarding';
-      final isSetup = state.matchedLocation.startsWith('/setup');
+      final isAuthRoute = loc.startsWith('/auth');
+      final isOnboarding = loc == '/onboarding';
+      final isSetup = loc.startsWith('/setup');
 
+      // Splash is handled by MaterialApp.router's builder (_AppShell widget).
+      // While loading, the router stays at '/' but the splash overlay covers
+      // it — so no guards are needed until auth is resolved.
       if (auth.isLoading) return null;
+
       if (!isAuth && !isAuthRoute) return '/auth/login';
       if (isAuth && isAuthRoute) return '/';
 
-      // After auth + permission setup, force onboarding wizard until done.
       if (isAuth && !auth.onboardingComplete && !isOnboarding && !isSetup) {
         return '/onboarding';
       }

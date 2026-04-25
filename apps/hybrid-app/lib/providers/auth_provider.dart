@@ -30,13 +30,41 @@ class AuthProvider extends ChangeNotifier {
   bool get onboardingComplete => _onboardingComplete;
 
   AuthProvider() {
+    // Failsafe: guarantees isLoading is cleared even if _restoreSession stalls
+    // at the native layer (platform channel hangs are not cancelled by .timeout).
+    Timer(const Duration(seconds: 8), () {
+      if (_isLoading) {
+        _isLoading = false;
+        notifyListeners();
+      }
+    });
     _restoreSession();
   }
 
   // ─── Session Restore ─────────────────────────────────
   Future<void> _restoreSession() async {
-    final savedToken = await _storage.read('accessToken');
-    final savedUser = await _storage.read('user');
+    try {
+      // Guard against secure-storage hangs and unreachable network during
+      // token refresh — app must never be stuck on the splash screen.
+      await _doRestoreSession().timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Timed out or unexpected error — proceed as unauthenticated.
+      _token = null;
+      _user = null;
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> _doRestoreSession() async {
+    // Per-read timeouts: platform channel calls can hang at native level even
+    // when Dart's Future.timeout fires. Returning null treats it as no token.
+    final savedToken = await _storage
+        .read('accessToken')
+        .timeout(const Duration(seconds: 3), onTimeout: () => null);
+    final savedUser = await _storage
+        .read('user')
+        .timeout(const Duration(seconds: 3), onTimeout: () => null);
 
     final prefs = await SharedPreferences.getInstance();
     _onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
@@ -45,7 +73,8 @@ class AuthProvider extends ChangeNotifier {
       _token = savedToken;
       _user = User.fromJson(json.decode(savedUser) as Map<String, dynamic>);
 
-      // If token is expired or expiring soon, try refresh
+      // If token is expired or expiring soon, try refresh.
+      // Use a short timeout so an unreachable server doesn't block the app.
       if (GraphQLService.isTokenExpiringSoon(savedToken)) {
         final ok = await refreshAccessToken();
         if (!ok) {
@@ -55,9 +84,6 @@ class AuthProvider extends ChangeNotifier {
         _scheduleRefresh(savedToken);
       }
     }
-
-    _isLoading = false;
-    notifyListeners();
   }
 
   // ─── Login ───────────────────────────────────────────
@@ -147,7 +173,7 @@ class AuthProvider extends ChangeNotifier {
         Uri.parse(AppConstants.refreshUrl),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'refreshToken': refreshToken}),
-      );
+      ).timeout(const Duration(seconds: 8));
 
       if (res.statusCode != 200) return false;
 

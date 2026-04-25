@@ -5,9 +5,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 // ─── Token Storage ──────────────────────────────────────
 // Uses SharedPreferences on web (crypto.subtle unavailable over HTTP)
 // and FlutterSecureStorage on mobile for encrypted storage.
+//
+// resetOnError: true is critical on Android — without it, a locked or
+// corrupted Keystore causes read() to hang indefinitely (Samsung Knox,
+// Huawei, etc.), which blocks _restoreSession() and keeps isLoading=true.
 
 class TokenStorage {
-  static const _secureStorage = FlutterSecureStorage();
+  static const _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+      resetOnError: true,
+    ),
+  );
 
   Future<String?> read(String key) async {
     if (kIsWeb) {

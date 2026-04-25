@@ -32,3 +32,6 @@
 | 16 | Document Upload & Share | [16-document-sharing-flow.md](16-document-sharing-flow.md) | Upload → MinIO → share → presigned URL → customer download |
 | 17 | Conversation & Chat | [17-conversation-chat-flow.md](17-conversation-chat-flow.md) | SP starts → XMPP/WebSocket → message persist → real-time delivery |
 | 18 | Team & Invitation | [18-team-invitation-flow.md](18-team-invitation-flow.md) | Invite → email token → accept → role assign → team lifecycle |
+| 19 | Twin Sequence Diagrams | [19-twin-sequence-diagrams.md](19-twin-sequence-diagrams.md) | Provider ↔ Customer twin flows for all 12 features with observations |
+| 20 | End-to-End AI Architecture | [20-ai-architecture.md](20-ai-architecture.md) | Full AI system: Orchestrator, RAG, Spam, Categorizer, Summarizer, Tools, LLM routing, security |
+| 21 | Observations & Findings | [21-observations-and-findings.md](21-observations-and-findings.md) | Senior engineer review: strengths, tradeoffs, scaling considerations, security posture |
