@@ -271,13 +271,15 @@ func (uc *BotUseCase) ExecuteAction(ctx context.Context, botID, spID, conversati
 	if bot.ServiceProviderID != spID {
 		return "", false, bizerr.Forbidden("bot does not belong to this service provider")
 	}
-	if bot.Status != entity.BotStatusActive {
-		return "", false, bizerr.InvalidInput("bot is not active")
-	}
 
-	// Handle test_prompt: call AI service directly, skip permission/policy checks
+	// Handle test_prompt: call AI service directly, skip permission/policy/status checks
+	// This allows testing draft bots in the wizard before they are published.
 	if actionType == "test_prompt" {
 		return uc.executeTestPrompt(ctx, bot, inputJSON, start)
+	}
+
+	if bot.Status != entity.BotStatusActive {
+		return "", false, bizerr.InvalidInput("bot is not active")
 	}
 
 	// Check tool permission

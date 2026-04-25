@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import '../../graphql/settings.dart';
 import '../../config/theme.dart';
+import '../../widgets/empty_state.dart';
 
 // ─── DND Settings Screen ────────────────────────────────
 // Mirrors: apps/web/src/app/(dashboard)/settings/dnd/page.tsx
@@ -109,7 +110,11 @@ class _DNDScreenState extends State<DNDScreen> {
                           if (_showForm) _buildForm(runCreate, runDelete),
 
                           if (rules.isEmpty && !_showForm)
-                            _buildEmptyState()
+                            const EmptyState(
+                              icon: Icons.nights_stay_outlined,
+                              title: 'No DND rules yet',
+                              subtitle: 'Add a rule to set quiet hours.',
+                            )
                           else
                             ...rules.map((rule) => _buildRuleCard(
                               rule as Map<String, dynamic>,
@@ -125,28 +130,6 @@ class _DNDScreenState extends State<DNDScreen> {
             },
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 64),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: AppColors.accentPurple.withValues(alpha: 0.15),
-              child: const Icon(Icons.nights_stay_outlined, size: 28, color: AppColors.accentPurple),
-            ),
-            const SizedBox(height: 12),
-            Text('No DND rules yet', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 4),
-            Text('Add a rule to set quiet hours.', style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
       ),
     );
   }

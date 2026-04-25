@@ -59,6 +59,21 @@ export const SERVICE_PROVIDER = gql`
   }
 `;
 
+export const SERVICE_PROVIDER_ACTIVE_BOTS = gql`
+  query ServiceProviderActiveBots($serviceProviderId: ID!, $limit: Int, $offset: Int) {
+    bots(serviceProviderId: $serviceProviderId, status: ACTIVE, limit: $limit, offset: $offset) {
+      nodes {
+        id
+        name
+        purpose
+        status
+        createdBySpUserId
+      }
+      totalCount
+    }
+  }
+`;
+
 export const BLOCK_SP = gql`
   mutation BlockServiceProvider($serviceProviderId: ID!, $reason: String) {
     blockServiceProvider(serviceProviderId: $serviceProviderId, reason: $reason)

@@ -8,8 +8,10 @@ import { useMemo } from 'react';
 import { AISummaryWidget } from '@/features/dashboard/ai-summary-widget';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useNotificationsGql } from '@/hooks/useNotificationsGql';
+import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
 
 export default function DashboardPage() {
+  usePerformanceMonitor('Dashboard');
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
   const { conversations } = useChat();

@@ -1138,13 +1138,22 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     xmppClient.onDeliveryReceipt(onReceipt);
 
     xmppClient.connect(xmppJid, xmppToken).catch(async (err) => {
+      const msg = String(err?.message ?? err).toLowerCase();
+      const isBackendUnavailable = msg.includes('econnerror') || msg.includes('backend unavailable') || msg.includes('connection refused');
+      if (isBackendUnavailable) {
+        // Local/dev fallback: chat backend is down, keep app usable and avoid noisy hard errors.
+        setIsConnected(false);
+        setIsReconnecting(false);
+        console.warn('[chat] xmpp backend unavailable');
+        return;
+      }
       console.error('[chat] xmpp connect failed', err);
       // If ejabberd rejects our credentials the XMPP token is expired/invalid.
       // Attempt a token refresh to get fresh XMPP credentials — the refresh
       // endpoint returns a new xmppToken which updates auth-context state,
       // re-triggering this effect with valid credentials.
-      const msg = String(err?.message ?? err);
-      if (msg.includes('not-authorized') || msg.includes('not authorized')) {
+      const rawMsg = String(err?.message ?? err);
+      if (rawMsg.includes('not-authorized') || rawMsg.includes('not authorized')) {
         const ok = await refreshAccessToken();
         if (!ok) {
           // Refresh also failed — clear stale tokens; user must re-login.

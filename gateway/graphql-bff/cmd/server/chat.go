@@ -146,15 +146,27 @@ func handleCreateConversation(deps *chatDeps) http.HandlerFunc {
 			}
 		}
 
-		// Verify target user exists and is friend
-		var targetExists bool
+		// Verify target user exists.  Bots (account_type='BOT') bypass the
+		// friendship requirement — anyone can chat with an active bot.
+		var targetAccountType string
 		deps.db.QueryRowContext(ctx,
-			`SELECT EXISTS(SELECT 1 FROM friendships WHERE user_id = $1 AND friend_id = $2)`,
-			userID, req.ParticipantID,
-		).Scan(&targetExists)
-		if !targetExists {
-			writeJSON(w, http.StatusForbidden, errorResponse{Error: "you can only message friends"})
+			`SELECT account_type FROM users WHERE id = $1 AND status = 'ACTIVE'`,
+			req.ParticipantID,
+		).Scan(&targetAccountType)
+		if targetAccountType == "" {
+			writeJSON(w, http.StatusNotFound, errorResponse{Error: "user not found"})
 			return
+		}
+		if targetAccountType != "BOT" {
+			var isFriend bool
+			deps.db.QueryRowContext(ctx,
+				`SELECT EXISTS(SELECT 1 FROM friendships WHERE user_id = $1 AND friend_id = $2)`,
+				userID, req.ParticipantID,
+			).Scan(&isFriend)
+			if !isFriend {
+				writeJSON(w, http.StatusForbidden, errorResponse{Error: "you can only message friends"})
+				return
+			}
 		}
 
 		// Create conversation in transaction
@@ -583,6 +595,16 @@ func handleSendMessageREST(deps *chatDeps) http.HandlerFunc {
 			resp.ReplyToID = &req.ReplyToID
 		}
 
+		// If a bot is one of the participants, trigger an async AI reply.
+		// The reply is persisted as a sender_type='AI' message and broadcast
+		// over SSE — same delivery channel as a human reply, so the chat UI
+		// renders it without any special handling.
+		if deps.svc != nil && msgType == "TEXT" && req.Content != "" {
+			if botID, spID := findBotInConversation(ctx, deps.db, convID); botID != "" {
+				triggerBotReplyAsync(deps, deps.svc, convID, userID, botID, spID, req.Content)
+			}
+		}
+
 		writeJSON(w, http.StatusCreated, resp)
 	}
 }
@@ -831,6 +853,7 @@ func handleAddReactionREST(deps *chatDeps) http.HandlerFunc {
 
 		participants := getConversationParticipants(ctx, deps, convID)
 		senderName := getUserDisplayName(ctx, deps, userID)
+		// broadcast() now forwards reaction events to SSE as well.
 		deps.hub.broadcast(ctx, participants, wsOutgoing{
 			Type:           WSEventReactionAdded,
 			ConversationID: convID,

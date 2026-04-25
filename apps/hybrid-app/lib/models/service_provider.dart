@@ -17,6 +17,7 @@ class ServiceProvider {
   final String? postalCode;
   final double? latitude;
   final double? longitude;
+  final num? trustScore;
 
   const ServiceProvider({
     required this.id,
@@ -35,6 +36,7 @@ class ServiceProvider {
     this.postalCode,
     this.latitude,
     this.longitude,
+    this.trustScore,
   });
 
   factory ServiceProvider.fromJson(Map<String, dynamic> json) {
@@ -55,6 +57,7 @@ class ServiceProvider {
       postalCode: json['postalCode'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
+      trustScore: json['trustScore'] as num?,
     );
   }
 }

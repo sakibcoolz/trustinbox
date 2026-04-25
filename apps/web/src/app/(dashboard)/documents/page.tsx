@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef, Suspense } from 'react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useDetailParam } from '@/hooks/useDetailParam';
 import { useAuth } from '@/lib/auth-context';
@@ -31,6 +31,12 @@ function DocumentsContent() {
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
   const [search, setSearch] = useState('');
   const [downloading, setDownloading] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadDesc, setUploadDesc] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-open mobile detail when deep-linked
   useEffect(() => {
@@ -70,6 +76,48 @@ function DocumentsContent() {
       setDownloading(false);
     }
   }, [token]);
+
+  const handleUpload = useCallback(async () => {
+    if (!uploadFile || !token) return;
+    setUploading(true);
+    setUploadError('');
+    try {
+      // 1. Request presigned upload URL
+      const urlRes = await fetch('/api/gateway/documents/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          fileName: uploadFile.name,
+          contentType: uploadFile.type || 'application/octet-stream',
+          description: uploadDesc,
+        }),
+      });
+      const urlData = await urlRes.json();
+      if (!urlRes.ok) throw new Error(urlData.error || 'Failed to get upload URL');
+
+      // 2. PUT file directly to presigned URL (MinIO)
+      await fetch(urlData.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': uploadFile.type || 'application/octet-stream' },
+        body: uploadFile,
+      });
+
+      // 3. Confirm upload
+      await fetch(`/api/gateway/documents/${urlData.documentId}/confirm`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setShowUpload(false);
+      setUploadFile(null);
+      setUploadDesc('');
+      window.location.reload();
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  }, [uploadFile, uploadDesc, token]);
 
   if (loading) {
     return (
@@ -113,7 +161,18 @@ function DocumentsContent() {
       {/* List */}
       <div className={`${mobileShowDetail ? 'hidden sm:flex' : 'flex'} w-full sm:w-panel h-full flex-col bg-bg-secondary border-r border-border-primary sm:shrink-0`}>
         <div className="px-4 pt-4 pb-2 space-y-3">
-          <h2 className="text-lg font-semibold text-text-primary">Documents</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-text-primary">Documents</h2>
+            <button
+              onClick={() => setShowUpload(true)}
+              className="btn-primary flex items-center gap-1.5 text-xs px-3 py-1.5"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+              Upload
+            </button>
+          </div>
           <div className="relative">
             <svg className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -235,6 +294,81 @@ function DocumentsContent() {
           </div>
         )}
       </div>
+
+      {/* Upload modal */}
+      {showUpload && (
+        <UploadModal
+          onClose={() => { setShowUpload(false); setUploadFile(null); setUploadDesc(''); setUploadError(''); }}
+          onUpload={handleUpload}
+          uploading={uploading}
+          error={uploadError}
+          file={uploadFile}
+          setFile={setUploadFile}
+          desc={uploadDesc}
+          setDesc={setUploadDesc}
+        />
+      )}
     </>
+  );
+}
+
+// ─── Upload modal ─────────────────────────────────────────────
+function UploadModal({ onClose, onUpload, uploading, error, file, setFile, desc, setDesc }: {
+  onClose: () => void;
+  onUpload: () => void;
+  uploading: boolean;
+  error: string;
+  file: File | null;
+  setFile: (f: File | null) => void;
+  desc: string;
+  setDesc: (d: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="card w-full max-w-md space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold text-text-primary">Upload Document</h3>
+          <button onClick={onClose} className="btn-icon"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+        </div>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-md px-3 py-2">{error}</div>
+        )}
+
+        <div
+          onClick={() => inputRef.current?.click()}
+          className="border-2 border-dashed border-border-primary rounded-xl p-8 text-center cursor-pointer hover:border-accent-blue/50 transition-colors"
+        >
+          {file ? (
+            <p className="text-sm text-text-primary font-medium">{file.name}</p>
+          ) : (
+            <>
+              <svg className="w-8 h-8 text-text-muted mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+              <p className="text-sm text-text-secondary">Click to select a file</p>
+            </>
+          )}
+          <input ref={inputRef} type="file" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-text-secondary mb-1">Description (optional)</label>
+          <input
+            type="text"
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            placeholder="Brief description…"
+            className="input-field w-full"
+          />
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+          <button onClick={onUpload} disabled={!file || uploading} className="btn-primary flex-1 disabled:opacity-50">
+            {uploading ? 'Uploading…' : 'Upload'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

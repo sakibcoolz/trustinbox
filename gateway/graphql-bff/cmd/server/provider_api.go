@@ -650,6 +650,11 @@ func handleProviderBots(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger
 			parts := strings.SplitN(rest, "/", 2)
 			id := parts[0]
 
+			if !isUUID(id) {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid bot id"})
+				return
+			}
+
 			// Sub-resources
 			if len(parts) > 1 {
 				sub := parts[1]
@@ -835,11 +840,37 @@ func handleProviderBots(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger
 					writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 					return
 				}
+				// Use NULL for empty fields so SQL COALESCE preserves the existing
+				// value — frontend can send a partial body (e.g. only {status})
+				// without wiping the bot's name / purpose / etc.
+				var (
+					nameP, purposeP, deptP, avatarP, statusP interface{}
+				)
+				if body.Name != "" {
+					nameP = body.Name
+				}
+				if body.Purpose != "" {
+					purposeP = body.Purpose
+				}
+				if body.Department != "" {
+					deptP = body.Department
+				}
+				if body.AvatarURL != "" {
+					avatarP = body.AvatarURL
+				}
+				if body.Status != "" {
+					statusP = body.Status
+				}
 				res, err := db.ExecContext(r.Context(),
-					`UPDATE bots SET name = $1, purpose = $2, department = $3,
-					        avatar_url = $4, status = $5, updated_at = NOW()
+					`UPDATE bots SET
+					        name        = COALESCE($1, name),
+					        purpose     = COALESCE($2, purpose),
+					        department  = COALESCE($3, department),
+					        avatar_url  = COALESCE($4, avatar_url),
+					        status      = COALESCE($5, status),
+					        updated_at  = NOW()
 					 WHERE id = $6 AND service_provider_id = $7`,
-					body.Name, body.Purpose, body.Department, body.AvatarURL, body.Status, id, spID)
+					nameP, purposeP, deptP, avatarP, statusP, id, spID)
 				if err != nil {
 					log.Error("update bot", zap.Error(err))
 					writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
@@ -849,6 +880,12 @@ func handleProviderBots(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger
 				if n == 0 {
 					writeJSON(w, http.StatusNotFound, errorResponse{Error: "bot not found"})
 					return
+				}
+				// Provision (or refresh) the bot's shadow chat user.  We always run
+				// it on PUT — not just on ACTIVE — so a name change immediately
+				// reflects in the chat UI.  Best effort.
+				if _, perr := ensureBotShadowUser(r.Context(), db, log, id, body.Name); perr != nil {
+					log.Warn("ensure bot shadow user failed", zap.Error(perr), zap.String("bot_id", id))
 				}
 				dbGetBot(w, r, db, log, spID, id)
 
@@ -907,7 +944,15 @@ func handleProviderBots(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger
 			}
 			var industryProfileIDParam interface{}
 			if body.IndustryProfileID != "" {
-				industryProfileIDParam = body.IndustryProfileID
+				if isUUID(body.IndustryProfileID) {
+					industryProfileIDParam = body.IndustryProfileID
+				} else {
+					// The field is optional; ignore non-UUID values instead of failing bot creation.
+					log.Warn("ignoring non-uuid industry_profile_id on create bot",
+						zap.String("industry_profile_id", body.IndustryProfileID),
+						zap.String("service_provider_id", spID),
+					)
+				}
 			}
 			var id string
 			err := db.QueryRowContext(r.Context(),

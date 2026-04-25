@@ -7,6 +7,7 @@ import '../../models/settings.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../config/theme.dart';
+import '../../widgets/ai_summary_widget.dart';
 
 // ─── Dashboard Screen ───────────────────────────────────
 // Mirrors: apps/web/src/app/(dashboard)/page.tsx
@@ -27,6 +28,7 @@ class DashboardScreen extends StatelessWidget {
           Stack(
             children: [
               IconButton(
+                tooltip: 'Notifications',
                 icon: const Icon(Icons.notifications_outlined),
                 onPressed: () => context.go('/inbox'),
               ),
@@ -49,6 +51,7 @@ class DashboardScreen extends StatelessWidget {
             ],
           ),
           IconButton(
+            tooltip: 'Profile',
             icon: const Icon(Icons.person_outlined),
             onPressed: () => context.go('/profile'),
           ),
@@ -74,6 +77,14 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 // Summary Cards
                 _buildSummaryGrid(context, summary),
+                const SizedBox(height: 16),
+
+                // AI Summary
+                AISummaryWidget(
+                  summary: summary,
+                  isLoading: result.isLoading && summary == null,
+                  onRefresh: () => refetch?.call(),
+                ),
                 const SizedBox(height: 24),
 
                 // Quick Actions
@@ -176,7 +187,7 @@ class DashboardScreen extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: actions.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, separator) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final action = actions[index];
           return GestureDetector(

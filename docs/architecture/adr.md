@@ -198,3 +198,62 @@ Introduce industry profiles as configurable JSONB-backed templates that provide 
 - **Positive**: Extensible via JSONB — new industries without migrations
 - **Negative**: JSONB columns are harder to validate at the database level
 - **Negative**: Profile drift possible if templates are not maintained
+
+---
+
+# ADR-011: XMPP Transport for Hybrid App Chat — Deferred
+
+## Status
+Deferred
+
+## Date
+2026-04-25
+
+## Context
+
+The hybrid Flutter app (`apps/hybrid-app/`) currently receives chat messages via SSE (Server-Sent Events) from the GraphQL gateway and sends messages via REST mutations. The web app uses a dedicated XMPP client (`apps/web/src/lib/xmpp-client.ts`) backed by an ejabberd server for true real-time 1:1 and MUC (Multi-User Chat) messaging with typing indicators, presence updates, and delivery receipts.
+
+Evaluating XMPP directly in Flutter would bring the hybrid app to full transport parity with the web app.
+
+### Options Evaluated
+
+| Package | Pub Score | Last Publish | XMPP Version | MUC | TLS | WebSocket | Assessment |
+|---------|-----------|--------------|--------------|-----|-----|-----------|------------|
+| `xmpp_stone` | 55 | 2022 | RFC 6120 | Partial | ✓ | ✗ | Abandoned — no WebSocket, fragile |
+| `flutter_xmpp_chat` | 12 | 2021 | RFC 6120 | ✗ | ✗ | ✗ | Proof-of-concept only |
+| `xmpp` (dart-xmpp) | 78 | 2024 | RFC 6120/6121 | ✓ | ✓ | ✓ | Most complete; actively maintained |
+
+### Architecture Impact
+
+```
+[hybrid-app] ──WebSocket──→ [ejabberd :5222/5280] ──XMPP Federation──→ existing web clients
+```
+
+A `/api/xmpp-ws` WebSocket proxy in the gateway would allow routing through the existing auth infrastructure rather than exposing ejabberd directly.
+
+### Risk Factors
+
+1. **Package maturity**: Even the best Flutter XMPP package (`xmpp`) has a significantly smaller community than battle-tested web XMPP libraries. Breaking changes between minor versions are common.
+2. **File size budget**: The `xmpp` package adds ~1.2 MB to the APK.
+3. **Session management complexity**: XMPP stream management (XEP-0198) for reconnect handling on mobile networks requires non-trivial implementation.
+4. **Gateway proxy**: The `/api/xmpp-ws` WebSocket proxy does not yet exist — its implementation is prerequisite work.
+5. **Test parity**: Integration tests for XMPP path would require a running ejabberd instance in CI.
+6. **Current SSE chat** already works reliably for 1:1 messaging via the existing `communication-service`.
+
+## Decision
+
+**Defer XMPP integration in the hybrid app.** The current SSE + REST path is sufficient for all current feature requirements. The `xmpp` Dart package will be re-evaluated when:
+
+- The package reaches 1.0 stable with verified XEP-0198 (stream management) support.
+- The `/api/xmpp-ws` gateway proxy is implemented.
+- Mobile-specific XMPP reconnect handling is designed.
+- A clear performance difference (e.g., typing indicators, MUC group latency) justifies the added complexity.
+
+Until then, typing indicators and presence updates will be delivered via the existing SSE `chat_message` / `presence_update` event stream in `NotificationProvider`.
+
+## Consequences
+- **Positive**: No fragile third-party XMPP dependency in the hybrid app
+- **Positive**: Faster iteration — SSE path is fully working and tested
+- **Positive**: No prerequisite gateway proxy work needed
+- **Negative**: Hybrid app lacks native XMPP MUC group chat (future gap)
+- **Negative**: Typing indicator accuracy depends on SSE latency vs true XMPP push

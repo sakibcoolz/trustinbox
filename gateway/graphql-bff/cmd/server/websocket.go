@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 	"github.com/trustinbox/cornerstone/auth/jwt"
+	"github.com/trustinbox/graphql-bff/internal/clients"
 	"go.uber.org/zap"
 )
 
@@ -360,6 +361,21 @@ func (h *wsHub) broadcast(ctx context.Context, targetUserIDs []string, event wsO
 		"event":         event,
 	})
 	h.rdb.Publish(ctx, "chat:broadcast", envelope)
+
+	// Mirror to SSE so non-WS clients (e.g. mobile app) get realtime updates.
+	// We forward only the event types that are useful outside the browser WS
+	// channel — actual chat_message + message_read are already SSE-pushed by
+	// the REST send/read handlers, so we skip them here to avoid duplicates.
+	if h.sseHub != nil {
+		switch event.Type {
+		case WSEventReactionAdded, WSEventReactionRemoved,
+			WSEventTyping, WSEventStopTyping,
+			WSEventMessageEdited, WSEventMessageDeleted:
+			for _, uid := range targetUserIDs {
+				h.sseHub.send(uid, event.Type, event)
+			}
+		}
+	}
 }
 
 // isOnline checks presence in Redis
@@ -388,6 +404,7 @@ type chatDeps struct {
 	sseHub   *sseHub
 	log      *zap.Logger
 	tokenSvc *jwt.TokenService
+	svc      *clients.ServiceClients // optional — used by bot reply trigger
 }
 
 func (c *wsClient) handleMessage(msg wsIncoming, deps *chatDeps) {

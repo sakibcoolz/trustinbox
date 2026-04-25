@@ -1,6 +1,29 @@
 /// <reference types="vitest/globals" />
 import { render, screen, waitFor } from '@testing-library/react';
 
+// Mock Apollo before any imports — the page calls useQuery directly
+vi.mock('@apollo/client', () => {
+  const nodes = [
+    { id: 'sp1', slug: 'acme-bank', name: 'Acme Bank', industry: 'Banking', description: 'A bank', verificationStatus: 'VERIFIED', status: 'ACTIVE', website: 'https://acme.com', trustScore: 90, followerCount: 5, logoUrl: null },
+    { id: 'sp2', slug: 'widget-inc', name: 'Widget Inc', industry: 'Technology', description: 'Tech', verificationStatus: 'PENDING', status: 'ACTIVE', website: null, trustScore: 60, followerCount: 1, logoUrl: null },
+  ];
+  return {
+    useQuery: () => ({
+      data: {
+        serviceProviderDirectory: { nodes, totalCount: 2 },
+        followedServiceProviders: { nodes: [], totalCount: 0 },
+        nearbyServiceProviders: { nodes: [], totalCount: 0 },
+        myCurrentAddress: null,
+        bots: { nodes: [], totalCount: 0 },
+      },
+      loading: false,
+      error: undefined,
+    }),
+    useMutation: () => [vi.fn(), { loading: false }],
+    gql: (strings: TemplateStringsArray) => strings.join(''),
+  };
+});
+
 const mockProviders = [
   { id: 'sp1', slug: 'acme-bank', name: 'Acme Bank', industry: 'Banking', description: 'A bank', verificationStatus: 'VERIFIED', status: 'ACTIVE', website: 'https://acme.com' },
   { id: 'sp2', slug: 'widget-inc', name: 'Widget Inc', industry: 'Technology', description: 'Tech company', verificationStatus: 'PENDING', status: 'ACTIVE', website: null },

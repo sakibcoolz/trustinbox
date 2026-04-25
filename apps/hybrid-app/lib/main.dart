@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +9,8 @@ import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/notification_provider.dart';
 import 'services/graphql_service.dart';
+import 'services/push_service.dart';
+import 'services/sound_service.dart';
 import 'widgets/internet_guard.dart';
 import 'widgets/post_call_prompt.dart';
 
@@ -17,6 +20,17 @@ import 'widgets/post_call_prompt.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initHiveForFlutter();
+  await SoundService.hydrate();
+
+  // Firebase — requires google-services.json (Android) and GoogleService-Info.plist (iOS).
+  // These files are NOT committed; configure them per environment.
+  try {
+    await Firebase.initializeApp();
+    await PushService.initialize();
+  } catch (_) {
+    // Firebase not configured — push will be silently disabled.
+  }
+
   runApp(const TrustInboxApp());
 }
 

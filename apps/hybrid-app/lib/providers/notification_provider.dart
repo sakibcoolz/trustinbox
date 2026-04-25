@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/constants.dart';
 import '../models/notification.dart';
+import '../services/sound_service.dart';
 
 // ─── Notification Provider (SSE) ────────────────────────
 // Mirrors: apps/web/src/lib/notification-context.tsx
@@ -20,7 +21,12 @@ class NotificationProvider extends ChangeNotifier {
   final List<void Function(Map<String, dynamic>)> _chatMessageListeners = [];
   final List<void Function(Map<String, dynamic>)> _presenceListeners = [];
   final List<void Function(Map<String, dynamic>)> _messageReadListeners = [];
+  final List<void Function(Map<String, dynamic>)> _reactionAddedListeners = [];
+  final List<void Function(Map<String, dynamic>)> _reactionRemovedListeners = [];
+  final List<void Function(Map<String, dynamic>, bool isTyping)> _typingListeners = [];
   final List<VoidCallback> _friendListeners = [];
+  final List<VoidCallback> _notificationListeners = [];
+  final List<VoidCallback> _callbackEventListeners = [];
 
   List<AppNotification> get notifications => _notifications;
   int get unreadCount => _notifications.where((n) => !n.read).length;
@@ -157,10 +163,25 @@ class NotificationProvider extends ChangeNotifier {
           final notif = AppNotification.fromJson(parsed);
           _notifications = [notif, ..._notifications];
 
+          // Respect server-provided per-event flags first, then fall back to
+          // the locally-cached preference. `suppressed` blocks toast/sound
+          // entirely; `soundEnabled=false` mutes only the chime.
+          final suppressed = parsed['suppressed'] == true;
+          final soundFlag = parsed['soundEnabled'];
+          final allowSound = !suppressed &&
+              (soundFlag is bool ? soundFlag : true);
+          if (allowSound) {
+            // SoundService internally checks the local enabled flag.
+            unawaited(SoundService.play());
+          }
+
           if (notif.category == 'FRIEND_ACCEPTED' || notif.category == 'FRIEND_REQUEST') {
             for (final cb in _friendListeners) {
               cb();
             }
+          }
+          for (final cb in _notificationListeners) {
+            cb();
           }
           notifyListeners();
           break;
@@ -180,6 +201,39 @@ class NotificationProvider extends ChangeNotifier {
         case 'message_read':
           for (final cb in _messageReadListeners) {
             cb(parsed);
+          }
+          break;
+
+        case 'reaction_added':
+          for (final cb in _reactionAddedListeners) {
+            cb(parsed);
+          }
+          break;
+
+        case 'reaction_removed':
+          for (final cb in _reactionRemovedListeners) {
+            cb(parsed);
+          }
+          break;
+
+        case 'typing':
+          for (final cb in _typingListeners) {
+            cb(parsed, true);
+          }
+          break;
+
+        case 'stop_typing':
+          for (final cb in _typingListeners) {
+            cb(parsed, false);
+          }
+          break;
+
+        case 'callback_created':
+        case 'callback_approved':
+        case 'callback_rejected':
+        case 'callback_expired':
+          for (final cb in _callbackEventListeners) {
+            cb();
           }
           break;
       }
@@ -224,9 +278,38 @@ class NotificationProvider extends ChangeNotifier {
     return () => _messageReadListeners.remove(cb);
   }
 
+  VoidCallback onReactionAdded(void Function(Map<String, dynamic>) cb) {
+    _reactionAddedListeners.add(cb);
+    return () => _reactionAddedListeners.remove(cb);
+  }
+
+  VoidCallback onReactionRemoved(void Function(Map<String, dynamic>) cb) {
+    _reactionRemovedListeners.add(cb);
+    return () => _reactionRemovedListeners.remove(cb);
+  }
+
+  /// Subscribes to typing indicators. Callback receives the SSE payload and
+  /// `true` for `typing`, `false` for `stop_typing`.
+  VoidCallback onTyping(void Function(Map<String, dynamic>, bool isTyping) cb) {
+    _typingListeners.add(cb);
+    return () => _typingListeners.remove(cb);
+  }
+
   VoidCallback onFriendEvent(VoidCallback cb) {
     _friendListeners.add(cb);
     return () => _friendListeners.remove(cb);
+  }
+
+  /// Fires whenever a new `notification` SSE event arrives — use to refetch.
+  VoidCallback onNotification(VoidCallback cb) {
+    _notificationListeners.add(cb);
+    return () => _notificationListeners.remove(cb);
+  }
+
+  /// Fires on any callback SSE event — use to refetch callback lists.
+  VoidCallback onCallbackEvent(VoidCallback cb) {
+    _callbackEventListeners.add(cb);
+    return () => _callbackEventListeners.remove(cb);
   }
 
   @override

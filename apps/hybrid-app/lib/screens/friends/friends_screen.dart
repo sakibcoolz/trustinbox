@@ -152,6 +152,7 @@ class _FriendRequests extends StatelessWidget {
                     Mutation(
                       options: MutationOptions(document: gql(acceptFriendRequestMutation)),
                       builder: (runMutation, _) => IconButton(
+                        tooltip: 'Accept friend request',
                         icon: const Icon(Icons.check_circle_outline, color: AppColors.statusSuccess),
                         onPressed: () => runMutation({'requestId': req.id}),
                       ),
@@ -159,6 +160,7 @@ class _FriendRequests extends StatelessWidget {
                     Mutation(
                       options: MutationOptions(document: gql(declineFriendRequestMutation)),
                       builder: (runMutation, _) => IconButton(
+                        tooltip: 'Decline friend request',
                         icon: const Icon(Icons.cancel_outlined, color: AppColors.statusError),
                         onPressed: () => runMutation({'requestId': req.id}),
                       ),

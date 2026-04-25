@@ -133,9 +133,24 @@ func main() {
 	mux.HandleFunc("/api/auth/me", handleMe(svc, tokenSvc, log))
 	mux.HandleFunc("/api/auth/refresh", handleRefresh(svc, db, tokenSvc, cfg.JWTSecret, log))
 
-	// User endpoints
-	mux.HandleFunc("/api/users/search", handleSearchUsers(db, tokenSvc, log))
+	// ─── Password-reset + email-verification OTP flows ──────
+	mux.HandleFunc("/api/auth/forgot-password", handleForgotPassword(db, log))
+	mux.HandleFunc("/api/auth/reset-password", handleResetPassword(db, log))
+	mux.HandleFunc("/api/auth/request-email-verification", handleRequestEmailVerification(db, tokenSvc, log))
+	mux.HandleFunc("/api/auth/verify-email", handleVerifyEmail(db, log))
 
+	// ─── Push token registration ─────────────────────────────
+	mux.HandleFunc("/api/users/me/push-tokens", handleRegisterPushToken(db, tokenSvc, log))
+
+	// ─── Customer document upload ────────────────────────────
+	mux.HandleFunc("/api/documents/upload-url", handleDocumentUploadURL(db, tokenSvc, minioClient, log))
+	mux.HandleFunc("/api/documents/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/confirm") {
+			handleConfirmDocumentUpload(db, tokenSvc, log)(w, r)
+			return
+		}
+		http.NotFound(w, r)
+	})
 	// Friend request endpoints
 	mux.HandleFunc("/api/friends/request", handleFriendRequest(db, tokenSvc, log, sseHub))
 	mux.HandleFunc("/api/friends/requests", handleListFriendRequests(db, tokenSvc, log))
@@ -155,6 +170,7 @@ func main() {
 		sseHub:   sseHub,
 		log:      log,
 		tokenSvc: tokenSvc,
+		svc:      svc,
 	}
 
 	// WebSocket endpoint
@@ -292,6 +308,12 @@ func main() {
 	}
 	mux.HandleFunc("/internal/ejabberd/check_password", handleEjabberdCheckPassword(ejHookDeps))
 	mux.HandleFunc("/internal/ejabberd/is_user", handleEjabberdIsUser(ejHookDeps))
+
+	// ─── Customer Bot Chat endpoint (JWT-authenticated, customer-facing) ────
+	// /api/bots/conversations — create-or-get a chat with a bot.
+	// /api/bots/{id}/chat       — single-shot stateless test prompt.
+	mux.HandleFunc("/api/bots/conversations", handleCreateBotConversation(chatD, svc))
+	mux.HandleFunc("/api/bots/", handleCustomerBotChat(svc, db, tokenSvc, log))
 
 	// ─── Team Management endpoints (JWT-authenticated) ──────────────────────
 	mux.HandleFunc("/api/team/members", handleTeamMembers(svc, tokenSvc, log))

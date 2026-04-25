@@ -1,13 +1,25 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mime/mime.dart';
 import 'package:provider/provider.dart';
 import '../../models/conversation.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../services/chat_service.dart';
+import '../../services/message_flags_store.dart';
+import '../../services/token_storage.dart';
 import '../../config/theme.dart';
 import 'package:intl/intl.dart';
+import 'widgets/attachment_bubble.dart';
+import 'widgets/forward_sheet.dart';
+import 'widgets/message_reactions.dart';
+import 'widgets/typing_indicator.dart';
+import 'widgets/voice_message_bubble.dart';
 
 // ─── Chat Screen ────────────────────────────────────────
 // Mirrors: apps/web/src/components/chat/chat-area.tsx
@@ -32,18 +44,55 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _hasMore = true;
   VoidCallback? _unsubscribeChat;
   VoidCallback? _unsubscribeRead;
+  VoidCallback? _unsubscribeReactionAdded;
+  VoidCallback? _unsubscribeReactionRemoved;
+  VoidCallback? _unsubscribeTyping;
+  VoidCallback? _unsubscribePresence;
 
   // Reply / Edit state
   Message? _replyingTo;
   Message? _editing;
 
+  // Pending attachments staged before send (mirrors web `pendingAttachments`)
+  final List<Attachment> _pendingAttachments = [];
+
+  // Local-only flags persisted per-device.
+  Set<String> _starred = {};
+  Set<String> _pinned = {};
+
+  // Live presence + typing.
+  bool _peerOnline = false;
+  String? _typingUserName;
+  Timer? _typingClearTimer;
+  String? _authToken;
+
   @override
   void initState() {
     super.initState();
+    _loadAuthToken();
+    _loadFlags();
     _loadConversation();
     _subscribeToChatMessages();
     _subscribeToReadReceipts();
+    _subscribeToReactions();
+    _subscribeToTyping();
+    _subscribeToPresence();
     _scrollController.addListener(_onScroll);
+  }
+
+  Future<void> _loadAuthToken() async {
+    final token = await TokenStorage().read('accessToken');
+    if (mounted) setState(() => _authToken = token);
+  }
+
+  Future<void> _loadFlags() async {
+    final s = await MessageFlagsStore.getStarred(widget.conversationId);
+    final p = await MessageFlagsStore.getPinned(widget.conversationId);
+    if (!mounted) return;
+    setState(() {
+      _starred = s;
+      _pinned = p;
+    });
   }
 
   // ─── Scroll-to-Load-More ─────────────────────────────
@@ -106,25 +155,7 @@ class _ChatScreenState extends State<ChatScreen> {
           _messages = _messages.map((m) {
             // Upgrade own sent/delivered messages to 'read'
             if (m.status == 'sent' || m.status == 'delivered') {
-              return Message(
-                id: m.id,
-                conversationId: m.conversationId,
-                senderId: m.senderId,
-                senderName: m.senderName,
-                senderType: m.senderType,
-                senderRefId: m.senderRefId,
-                messageType: m.messageType,
-                content: m.content,
-                replyToId: m.replyToId,
-                replyPreview: m.replyPreview,
-                attachments: m.attachments,
-                reactions: m.reactions,
-                editedAt: m.editedAt,
-                deletedAt: m.deletedAt,
-                metadata: m.metadata,
-                createdAt: m.createdAt,
-                status: 'read',
-              );
+              return m.copyWith(status: 'read');
             }
             return m;
           }).toList();
@@ -137,9 +168,257 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _unsubscribeChat?.call();
     _unsubscribeRead?.call();
+    _unsubscribeReactionAdded?.call();
+    _unsubscribeReactionRemoved?.call();
+    _unsubscribeTyping?.call();
+    _unsubscribePresence?.call();
+    _typingClearTimer?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // ─── Reaction Subscriptions ──────────────────────────
+  void _subscribeToReactions() {
+    final notifProvider = context.read<NotificationProvider>();
+    final auth = context.read<AuthProvider>();
+    final userId = auth.user?.id ?? '';
+
+    _unsubscribeReactionAdded = notifProvider.onReactionAdded((data) {
+      final convId = data['conversationId'] as String?;
+      if (convId != widget.conversationId) return;
+      final msgId = data['messageId'] as String?;
+      final emoji = data['emoji'] as String?;
+      final reactorId = data['userId'] as String?;
+      if (msgId == null || emoji == null || reactorId == null) return;
+      _applyReactionDelta(msgId, emoji, reactorId, add: true, currentUserId: userId);
+    });
+
+    _unsubscribeReactionRemoved = notifProvider.onReactionRemoved((data) {
+      final convId = data['conversationId'] as String?;
+      if (convId != widget.conversationId) return;
+      final msgId = data['messageId'] as String?;
+      final emoji = data['emoji'] as String?;
+      final reactorId = data['userId'] as String?;
+      if (msgId == null || emoji == null || reactorId == null) return;
+      _applyReactionDelta(msgId, emoji, reactorId, add: false, currentUserId: userId);
+    });
+  }
+
+  void _applyReactionDelta(
+    String msgId,
+    String emoji,
+    String reactorId, {
+    required bool add,
+    required String currentUserId,
+  }) {
+    if (!mounted) return;
+    setState(() {
+      final idx = _messages.indexWhere((m) => m.id == msgId);
+      if (idx == -1) return;
+      final msg = _messages[idx];
+      final updated = List<Reaction>.from(msg.reactions);
+      final rIdx = updated.indexWhere((r) => r.emoji == emoji);
+
+      if (add) {
+        if (rIdx == -1) {
+          updated.add(Reaction(
+            emoji: emoji,
+            count: 1,
+            userIds: [reactorId],
+            mine: reactorId == currentUserId,
+          ));
+        } else {
+          final existing = updated[rIdx];
+          if (!existing.userIds.contains(reactorId)) {
+            final users = [...existing.userIds, reactorId];
+            updated[rIdx] = existing.copyWith(
+              count: users.length,
+              userIds: users,
+              mine: existing.mine || reactorId == currentUserId,
+            );
+          }
+        }
+      } else {
+        if (rIdx != -1) {
+          final existing = updated[rIdx];
+          final users = existing.userIds.where((u) => u != reactorId).toList();
+          if (users.isEmpty) {
+            updated.removeAt(rIdx);
+          } else {
+            updated[rIdx] = existing.copyWith(
+              count: users.length,
+              userIds: users,
+              mine: existing.mine && reactorId != currentUserId,
+            );
+          }
+        }
+      }
+      _messages[idx] = msg.copyWith(reactions: updated);
+    });
+  }
+
+  // ─── Typing Subscription ─────────────────────────────
+  void _subscribeToTyping() {
+    final notifProvider = context.read<NotificationProvider>();
+    final auth = context.read<AuthProvider>();
+    final userId = auth.user?.id ?? '';
+
+    _unsubscribeTyping = notifProvider.onTyping((data, isTyping) {
+      final convId = data['conversationId'] as String?;
+      if (convId != widget.conversationId) return;
+      final fromUser = data['userId'] as String?;
+      if (fromUser == null || fromUser == userId) return;
+
+      if (!mounted) return;
+      if (isTyping) {
+        final name = (data['senderName'] as String?)?.trim();
+        setState(() => _typingUserName = (name?.isNotEmpty == true) ? name : 'Someone');
+        _typingClearTimer?.cancel();
+        _typingClearTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted) setState(() => _typingUserName = null);
+        });
+      } else {
+        _typingClearTimer?.cancel();
+        setState(() => _typingUserName = null);
+      }
+    });
+  }
+
+  // ─── Presence Subscription ───────────────────────────
+  void _subscribeToPresence() {
+    final notifProvider = context.read<NotificationProvider>();
+    _unsubscribePresence = notifProvider.onPresenceUpdate((data) {
+      final uid = data['userId'] as String?;
+      if (uid == null || _conversation == null) return;
+      final isPeer =
+          _conversation!.participants.any((p) => p.userId == uid && p.userId != _currentUserId());
+      if (!isPeer) return;
+      final status = data['status'] as String? ?? data['presence'] as String?;
+      if (!mounted) return;
+      setState(() => _peerOnline = status == 'online');
+    });
+  }
+
+  String _currentUserId() {
+    return context.read<AuthProvider>().user?.id ?? '';
+  }
+
+  // ─── Reactions: add / remove via REST ────────────────
+  Future<void> _toggleReaction(Message msg, String emoji) async {
+    final mine = msg.reactions.any((r) => r.emoji == emoji && r.mine);
+    if (mine) {
+      await ChatService.removeReaction(msg.id, emoji);
+    } else {
+      await ChatService.addReaction(msg.id, emoji);
+    }
+    // SSE roundtrip will update the bubble — we don't optimistic-update
+    // because the server is the source of truth.
+  }
+
+  Future<void> _pickReaction(Message msg) async {
+    final emoji = await ReactionPickerSheet.show(context);
+    if (emoji != null) await _toggleReaction(msg, emoji);
+  }
+
+  // ─── Star / Pin (local) ──────────────────────────────
+  Future<void> _toggleStar(Message msg) async {
+    final on = await MessageFlagsStore.toggleStarred(widget.conversationId, msg.id);
+    if (!mounted) return;
+    setState(() {
+      if (on) {
+        _starred.add(msg.id);
+      } else {
+        _starred.remove(msg.id);
+      }
+    });
+  }
+
+  Future<void> _togglePin(Message msg) async {
+    final on = await MessageFlagsStore.togglePinned(widget.conversationId, msg.id);
+    if (!mounted) return;
+    setState(() {
+      if (on) {
+        _pinned.add(msg.id);
+      } else {
+        _pinned.remove(msg.id);
+      }
+    });
+  }
+
+  // ─── Forward ─────────────────────────────────────────
+  Future<void> _forward(Message msg) async {
+    final attIds = msg.attachments.map((a) => a.id).toList();
+    await ForwardSheet.show(
+      context,
+      currentConversationId: widget.conversationId,
+      content: msg.content,
+      fromSenderName: msg.senderName ?? 'Unknown',
+      attachmentIds: attIds.isEmpty ? null : attIds,
+    );
+  }
+
+  // ─── Attachments: pick + stage ───────────────────────
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (picked == null) return;
+    await _uploadAndStage(File(picked.path));
+  }
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(withData: false);
+    if (result == null || result.files.isEmpty) return;
+    final path = result.files.single.path;
+    if (path == null) return;
+    await _uploadAndStage(File(path));
+  }
+
+  Future<void> _uploadAndStage(File file) async {
+    // 25 MB cap (matches Phase 01 plan)
+    const maxBytes = 25 * 1024 * 1024;
+    final size = await file.length();
+    if (size > maxBytes) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('File too large (max 25 MB)')),
+        );
+      }
+      return;
+    }
+    final mime = lookupMimeType(file.path);
+    setState(() => _isSending = true);
+    final att = await ChatService.uploadFile(file, contentType: mime);
+    if (!mounted) return;
+    setState(() {
+      _isSending = false;
+      if (att != null) _pendingAttachments.add(att);
+    });
+    if (att == null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Upload failed')),
+      );
+    }
+  }
+
+  Future<void> _recordVoice() async {
+    final file = await VoiceRecorderSheet.show(context);
+    if (file == null || !mounted) return;
+    final mime = lookupMimeType(file.path) ?? 'audio/m4a';
+    setState(() => _isSending = true);
+    final att = await ChatService.uploadFile(file, contentType: mime);
+    if (!mounted) return;
+    setState(() => _isSending = false);
+    if (att == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Voice upload failed')),
+        );
+      }
+      return;
+    }
+    // Send a VOICE message immediately (no text body needed)
+    await _sendCore(content: '', messageType: 'VOICE', attachmentIds: [att.id]);
   }
 
   // ─── Load Conversation + Messages ────────────────────
@@ -160,8 +439,14 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() {
           if (convData != null) {
             _conversation = Conversation.fromRestJson(convData, userId);
+            // Seed initial peer online state from conversation participants.
+            final peer = _conversation!.participants
+                .where((p) => p.userId != userId)
+                .cast<Participant?>()
+                .firstWhere((_) => true, orElse: () => null);
+            _peerOnline = peer?.online ?? false;
           }
-          _messages = msgData.map((m) => Message.fromRestJson(m)).toList();
+          _messages = msgData.map((m) => Message.fromRestJson(m, currentUserId: userId)).toList();
           _hasMore = msgData.length >= 50;
           _isLoading = false;
         });
@@ -181,6 +466,8 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => _isLoadingMore = true);
 
     try {
+      final auth = context.read<AuthProvider>();
+      final userId = auth.user?.id ?? '';
       final oldest = _messages.first;
       final msgData = await ChatService.listMessages(
         widget.conversationId,
@@ -190,7 +477,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
       if (mounted) {
         setState(() {
-          for (final m in msgData.map((d) => Message.fromRestJson(d))) {
+          for (final m in msgData.map((d) => Message.fromRestJson(d, currentUserId: userId))) {
             if (!_messages.any((existing) => existing.id == m.id)) {
               _messages.insert(0, m);
             }
@@ -208,13 +495,14 @@ class _ChatScreenState extends State<ChatScreen> {
   // ─── Send / Edit Message ─────────────────────────────
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || _isSending) return;
+    final hasText = text.isNotEmpty;
+    final hasAttachments = _pendingAttachments.isNotEmpty;
+    if (!hasText && !hasAttachments) return;
+    if (_isSending) return;
 
-    final auth = context.read<AuthProvider>();
-    final userId = auth.user?.id ?? '';
-
-    // Handle edit mode
+    // Handle edit mode (text-only — web doesn't allow attachment editing).
     if (_editing != null) {
+      if (!hasText) return;
       setState(() => _isSending = true);
       _messageController.clear();
       final success = await ChatService.editMessage(_editing!.id, text);
@@ -224,23 +512,9 @@ class _ChatScreenState extends State<ChatScreen> {
           if (success) {
             final idx = _messages.indexWhere((m) => m.id == _editing!.id);
             if (idx != -1) {
-              _messages[idx] = Message(
-                id: _messages[idx].id,
-                conversationId: _messages[idx].conversationId,
-                senderId: _messages[idx].senderId,
-                senderName: _messages[idx].senderName,
-                senderType: _messages[idx].senderType,
-                senderRefId: _messages[idx].senderRefId,
-                messageType: _messages[idx].messageType,
+              _messages[idx] = _messages[idx].copyWith(
                 content: text,
-                replyToId: _messages[idx].replyToId,
-                replyPreview: _messages[idx].replyPreview,
-                attachments: _messages[idx].attachments,
-                reactions: _messages[idx].reactions,
                 editedAt: DateTime.now().toIso8601String(),
-                deletedAt: _messages[idx].deletedAt,
-                createdAt: _messages[idx].createdAt,
-                status: _messages[idx].status,
               );
             }
           }
@@ -250,13 +524,55 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    // Normal send with optimistic echo
-    setState(() => _isSending = true);
-    _messageController.clear();
-
+    final attachmentsToSend = List<Attachment>.from(_pendingAttachments);
+    final ids = attachmentsToSend.map((a) => a.id).toList();
     final replyId = _replyingTo?.id;
+
+    // Pick a sensible messageType from the first attachment.
+    String messageType = 'TEXT';
+    if (hasAttachments) {
+      final first = attachmentsToSend.first;
+      if (first.isImage) {
+        messageType = 'IMAGE';
+      } else if (first.isAudio) {
+        messageType = 'VOICE';
+      } else {
+        messageType = 'FILE';
+      }
+    }
+
+    _messageController.clear();
+    setState(() {
+      _pendingAttachments.clear();
+      _replyingTo = null;
+    });
+
+    await _sendCore(
+      content: text,
+      messageType: messageType,
+      attachmentIds: ids,
+      replyToId: replyId,
+      stagedAttachments: attachmentsToSend,
+    );
+  }
+
+  /// Shared send pipeline used by both _sendMessage and _recordVoice.
+  /// Performs an optimistic echo, calls the API, and reconciles.
+  Future<void> _sendCore({
+    required String content,
+    required String messageType,
+    List<String> attachmentIds = const [],
+    String? replyToId,
+    List<Attachment> stagedAttachments = const [],
+  }) async {
+    final auth = context.read<AuthProvider>();
+    final userId = auth.user?.id ?? '';
+
     final replyPreview = _replyingTo != null
-        ? {'senderName': _replyingTo!.senderName ?? '', 'content': _replyingTo!.content}
+        ? {
+            'senderName': _replyingTo!.senderName ?? '',
+            'content': _replyingTo!.content,
+          }
         : null;
 
     final echo = Message(
@@ -264,24 +580,27 @@ class _ChatScreenState extends State<ChatScreen> {
       conversationId: widget.conversationId,
       senderId: userId,
       senderType: 'USER',
-      messageType: 'TEXT',
-      content: text,
-      replyToId: replyId,
+      messageType: messageType,
+      content: content,
+      replyToId: replyToId,
       replyPreview: replyPreview,
+      attachments: stagedAttachments,
       createdAt: DateTime.now().toIso8601String(),
       status: 'pending',
     );
 
     setState(() {
       _messages.add(echo);
-      _replyingTo = null;
+      _isSending = true;
     });
     _scrollToBottom();
 
     final result = await ChatService.sendMessage(
       widget.conversationId,
-      text,
-      replyToId: replyId,
+      content,
+      messageType: messageType,
+      replyToId: replyToId,
+      attachmentIds: attachmentIds.isEmpty ? null : attachmentIds,
     );
 
     if (mounted) {
@@ -289,7 +608,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _isSending = false;
         _messages.removeWhere((m) => m.id == echo.id);
         if (result != null) {
-          _messages.add(Message.fromRestJson(result));
+          _messages.add(Message.fromRestJson(result, currentUserId: userId));
         }
       });
     }
@@ -321,17 +640,9 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         final idx = _messages.indexWhere((m) => m.id == msg.id);
         if (idx != -1) {
-          _messages[idx] = Message(
-            id: msg.id,
-            conversationId: msg.conversationId,
-            senderId: msg.senderId,
-            senderName: msg.senderName,
-            senderType: msg.senderType,
-            messageType: msg.messageType,
+          _messages[idx] = msg.copyWith(
             content: '',
             deletedAt: DateTime.now().toIso8601String(),
-            createdAt: msg.createdAt,
-            status: msg.status,
           );
         }
       });
@@ -370,6 +681,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (msg.deletedAt != null) return;
 
+    final isStarred = _starred.contains(msg.id);
+    final isPinned = _pinned.contains(msg.id);
+
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
@@ -387,11 +701,45 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             const SizedBox(height: 8),
             ListTile(
+              leading: const Icon(Icons.add_reaction_outlined),
+              title: const Text('React'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickReaction(msg);
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.reply),
               title: const Text('Reply'),
               onTap: () {
                 Navigator.pop(ctx);
                 _startReply(msg);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.forward),
+              title: const Text('Forward'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _forward(msg);
+              },
+            ),
+            ListTile(
+              leading: Icon(isStarred ? Icons.star : Icons.star_outline,
+                  color: isStarred ? AppColors.accentOrange : null),
+              title: Text(isStarred ? 'Unstar' : 'Star'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _toggleStar(msg);
+              },
+            ),
+            ListTile(
+              leading: Icon(isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                  color: isPinned ? AppColors.accentBlue : null),
+              title: Text(isPinned ? 'Unpin' : 'Pin'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _togglePin(msg);
               },
             ),
             ListTile(
@@ -485,7 +833,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final peerName = (peer?.fullName.isNotEmpty == true)
         ? peer!.fullName
         : (_conversation?.displayName ?? 'Chat');
-    final peerOnline = peer?.online ?? false;
+    final peerOnline = _peerOnline;
     final initial = peerName.isNotEmpty ? peerName[0].toUpperCase() : '?';
 
     return Scaffold(
@@ -550,6 +898,11 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.star_outline),
+            tooltip: 'Starred messages',
+            onPressed: _openStarred,
+          ),
+          IconButton(
             icon: const Icon(Icons.phone_outlined),
             onPressed: () {},
           ),
@@ -557,6 +910,9 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
+          // Pinned banner
+          if (_pinned.isNotEmpty) _buildPinnedBanner(),
+
           // Messages
           Expanded(
             child: messages.isEmpty
@@ -606,6 +962,10 @@ class _ChatScreenState extends State<ChatScreen> {
                             child: _MessageBubble(
                               message: msg,
                               isMe: isMe,
+                              authToken: _authToken,
+                              isStarred: _starred.contains(msg.id),
+                              isPinned: _pinned.contains(msg.id),
+                              onReactionTap: (emoji) => _toggleReaction(msg, emoji),
                             ),
                           ),
                         ],
@@ -613,6 +973,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     },
                   ),
           ),
+
+          // Typing indicator
+          TypingIndicator(typingUserName: _typingUserName),
 
           // Reply / Edit bar
           if (_replyingTo != null || _editing != null)
@@ -622,14 +985,168 @@ class _ChatScreenState extends State<ChatScreen> {
               onCancel: _cancelReplyOrEdit,
             ),
 
+          // Pending attachments preview
+          if (_pendingAttachments.isNotEmpty) _buildPendingAttachments(),
+
           // Composer
           _MessageComposer(
             controller: _messageController,
             isSending: _isSending,
             isEditing: _editing != null,
+            hasAttachments: _pendingAttachments.isNotEmpty,
             onSend: _sendMessage,
+            onPickImage: _pickImage,
+            onPickFile: _pickFile,
+            onRecordVoice: _recordVoice,
           ),
         ],
+      ),
+    );
+  }
+
+  // ─── Pinned Banner ───────────────────────────────────
+  Widget _buildPinnedBanner() {
+    final firstPinned = _messages.firstWhere(
+      (m) => _pinned.contains(m.id) && m.deletedAt == null,
+      orElse: () => const Message(id: '', content: ''),
+    );
+    if (firstPinned.id.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.accentBlue.withValues(alpha: 0.08),
+        border: Border(bottom: BorderSide(color: AppColors.borderPrimary)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.push_pin, size: 14, color: AppColors.accentBlue),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              firstPinned.content.isEmpty
+                  ? '${_pinned.length} pinned message${_pinned.length == 1 ? '' : 's'}'
+                  : firstPinned.content,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ),
+          if (_pinned.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: Text(
+                '+${_pinned.length - 1}',
+                style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Pending Attachments Strip ───────────────────────
+  Widget _buildPendingAttachments() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: AppColors.borderPrimary)),
+      ),
+      child: SizedBox(
+        height: 60,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: _pendingAttachments.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (_, i) {
+            final a = _pendingAttachments[i];
+            return Stack(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: AppColors.bgCard,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      a.isImage
+                          ? Icons.image_outlined
+                          : a.isAudio
+                              ? Icons.audiotrack
+                              : Icons.insert_drive_file_outlined,
+                      color: AppColors.accentBlue,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: GestureDetector(
+                    onTap: () => setState(() => _pendingAttachments.removeAt(i)),
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: AppColors.accentRed,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, size: 12, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // ─── Starred messages screen ─────────────────────────
+  void _openStarred() {
+    final starredMessages =
+        _messages.where((m) => _starred.contains(m.id)).toList();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        builder: (_, scrollController) => Column(
+          children: [
+            const SizedBox(height: 12),
+            const Text('Starred Messages',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            Expanded(
+              child: starredMessages.isEmpty
+                  ? Center(
+                      child: Text('No starred messages',
+                          style: TextStyle(color: AppColors.textMuted)),
+                    )
+                  : ListView.builder(
+                      controller: scrollController,
+                      itemCount: starredMessages.length,
+                      itemBuilder: (_, i) {
+                        final m = starredMessages[i];
+                        return ListTile(
+                          leading: const Icon(Icons.star, color: AppColors.accentOrange),
+                          title: Text(
+                            m.content.isEmpty ? '(attachment)' : m.content,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(m.senderName ?? ''),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -732,13 +1249,26 @@ class _ReplyEditBar extends StatelessWidget {
 class _MessageBubble extends StatelessWidget {
   final Message message;
   final bool isMe;
+  final String? authToken;
+  final bool isStarred;
+  final bool isPinned;
+  final void Function(String emoji) onReactionTap;
 
-  const _MessageBubble({required this.message, required this.isMe});
+  const _MessageBubble({
+    required this.message,
+    required this.isMe,
+    required this.authToken,
+    required this.isStarred,
+    required this.isPinned,
+    required this.onReactionTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isPending = message.status == 'pending';
     final isDeleted = message.deletedAt != null;
+    final hasAttachments = message.attachments.isNotEmpty;
+    final hasText = message.content.isNotEmpty;
 
     return Opacity(
       opacity: isPending ? 0.6 : 1.0,
@@ -752,6 +1282,9 @@ class _MessageBubble extends StatelessWidget {
             children: [
               // Reply preview
               if (message.replyPreview != null && !isDeleted) _buildReplyPreview(context),
+
+              // Forwarded-from pill
+              if (message.forwardedFrom != null && !isDeleted) _buildForwardedPill(),
 
               // Main bubble
               Container(
@@ -786,21 +1319,51 @@ class _MessageBubble extends StatelessWidget {
                         ),
                       ),
 
-                    // Message content
-                    Text(
-                      isDeleted ? 'This message was deleted' : message.content,
-                      style: TextStyle(
-                        color: isMe ? Colors.white : null,
-                        fontStyle: isDeleted ? FontStyle.italic : null,
-                        fontSize: isDeleted ? 13 : 14,
-                      ),
-                    ),
+                    // Attachments (images/files/voice)
+                    if (hasAttachments && !isDeleted)
+                      ...message.attachments.map((a) => Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: a.isAudio
+                                ? VoiceMessageBubble(
+                                    attachment: a,
+                                    authToken: authToken ?? '',
+                                    isMe: isMe,
+                                  )
+                                : AttachmentBubble(
+                                    attachment: a,
+                                    authToken: authToken ?? '',
+                                    isMe: isMe,
+                                  ),
+                          )),
 
-                    // Meta row: time + edited + status label
+                    // Message content (text)
+                    if (hasText || isDeleted)
+                      Text(
+                        isDeleted ? 'This message was deleted' : message.content,
+                        style: TextStyle(
+                          color: isMe ? Colors.white : null,
+                          fontStyle: isDeleted ? FontStyle.italic : null,
+                          fontSize: isDeleted ? 13 : 14,
+                        ),
+                      ),
+
+                    // Meta row: time + edited + status label + flags
                     const SizedBox(height: 4),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (isStarred)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: Icon(Icons.star,
+                                size: 11, color: isMe ? Colors.white70 : AppColors.accentOrange),
+                          ),
+                        if (isPinned)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: Icon(Icons.push_pin,
+                                size: 11, color: isMe ? Colors.white70 : AppColors.accentBlue),
+                          ),
                         if (message.editedAt != null && !isDeleted)
                           Padding(
                             padding: const EdgeInsets.only(right: 4),
@@ -818,9 +1381,38 @@ class _MessageBubble extends StatelessWidget {
                   ],
                 ),
               ),
+
+              // Reactions strip below the bubble
+              if (message.reactions.isNotEmpty && !isDeleted)
+                MessageReactions(
+                  reactions: message.reactions,
+                  onToggle: onReactionTap,
+                ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildForwardedPill() {
+    final from = (message.forwardedFrom?['senderName'] as String?) ?? '';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.forward, size: 12, color: AppColors.textMuted),
+          const SizedBox(width: 4),
+          Text(
+            'Forwarded${from.isNotEmpty ? " from $from" : ""}',
+            style: TextStyle(
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -881,26 +1473,88 @@ class _MessageBubble extends StatelessWidget {
 
 // ─── Message Composer ───────────────────────────────────
 
-class _MessageComposer extends StatelessWidget {
+class _MessageComposer extends StatefulWidget {
   final TextEditingController controller;
   final bool isSending;
   final bool isEditing;
+  final bool hasAttachments;
   final VoidCallback onSend;
+  final VoidCallback onPickImage;
+  final VoidCallback onPickFile;
+  final VoidCallback onRecordVoice;
 
   const _MessageComposer({
     required this.controller,
     required this.isSending,
     this.isEditing = false,
+    this.hasAttachments = false,
     required this.onSend,
+    required this.onPickImage,
+    required this.onPickFile,
+    required this.onRecordVoice,
   });
 
   @override
+  State<_MessageComposer> createState() => _MessageComposerState();
+}
+
+class _MessageComposerState extends State<_MessageComposer> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onTextChanged);
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _showAttachMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.image_outlined),
+              title: const Text('Photo from gallery'),
+              onTap: () {
+                Navigator.pop(ctx);
+                widget.onPickImage();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.attach_file),
+              title: const Text('File'),
+              onTap: () {
+                Navigator.pop(ctx);
+                widget.onPickFile();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final hasText = widget.controller.text.trim().isNotEmpty;
+    final canSend = hasText || widget.hasAttachments;
+    final showMic = !widget.isEditing && !canSend;
+
     return Container(
       padding: EdgeInsets.only(
-        left: 12,
-        right: 8,
-        top: 8,
+        left: 4,
+        right: 4,
+        top: 6,
         bottom: MediaQuery.of(context).padding.bottom + 8,
       ),
       decoration: BoxDecoration(
@@ -912,33 +1566,46 @@ class _MessageComposer extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          if (!widget.isEditing)
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              tooltip: 'Attach',
+              onPressed: widget.isSending ? null : () => _showAttachMenu(context),
+            ),
           Expanded(
             child: TextField(
-              controller: controller,
+              controller: widget.controller,
               maxLines: 4,
               minLines: 1,
               textInputAction: TextInputAction.newline,
               decoration: InputDecoration(
-                hintText: isEditing ? 'Edit message...' : 'Type a message...',
+                hintText: widget.isEditing ? 'Edit message...' : 'Type a message...',
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
             ),
           ),
           const SizedBox(width: 4),
-          IconButton(
-            icon: isSending
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(
-                    isEditing ? Icons.check_circle : Icons.send,
-                    color: AppColors.accentBlue,
-                  ),
-            onPressed: isSending ? null : onSend,
-          ),
+          if (showMic)
+            IconButton(
+              icon: const Icon(Icons.mic, color: AppColors.accentBlue),
+              tooltip: 'Voice message',
+              onPressed: widget.isSending ? null : widget.onRecordVoice,
+            )
+          else
+            IconButton(
+              icon: widget.isSending
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      widget.isEditing ? Icons.check_circle : Icons.send,
+                      color: AppColors.accentBlue,
+                    ),
+              onPressed: (widget.isSending || !canSend) ? null : widget.onSend,
+            ),
         ],
       ),
     );

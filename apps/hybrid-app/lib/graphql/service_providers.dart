@@ -56,6 +56,28 @@ const String serviceProviderQuery = r'''
       verificationStatus
       status
       website
+      address
+      city
+      state
+      country
+      postalCode
+      latitude
+      longitude
+    }
+  }
+''';
+
+const String serviceProviderActiveBotsQuery = r'''
+  query ServiceProviderActiveBots($serviceProviderId: ID!, $limit: Int, $offset: Int) {
+    bots(serviceProviderId: $serviceProviderId, status: ACTIVE, limit: $limit, offset: $offset) {
+      nodes {
+        id
+        name
+        purpose
+        status
+        createdBySpUserId
+      }
+      totalCount
     }
   }
 ''';

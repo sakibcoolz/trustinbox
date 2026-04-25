@@ -14,6 +14,7 @@ import (
 	"github.com/trustinbox/cornerstone/auth/requestctx"
 	"github.com/trustinbox/graphql-bff/graph/generated"
 	"github.com/trustinbox/graphql-bff/graph/model"
+	botpb "github.com/trustinbox/proto/gen/bot/v1"
 	commpb "github.com/trustinbox/proto/gen/communication/v1"
 	notifpb "github.com/trustinbox/proto/gen/notification/v1"
 	orgpb "github.com/trustinbox/proto/gen/organization/v1"
@@ -980,12 +981,47 @@ func (r *queryResolver) CheckCommunicationPolicy(ctx context.Context, servicePro
 
 // Bot is the resolver for the bot field.
 func (r *queryResolver) Bot(ctx context.Context, id string, serviceProviderID string) (*model.Bot, error) {
-	panic(fmt.Errorf("not implemented: Bot - bot"))
+	_, err := requireAnyAuthenticatedRole(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := r.Clients.Bot.GetBot(ctx, &botpb.GetBotRequest{
+		BotId:             id,
+		ServiceProviderId: serviceProviderID,
+	})
+	if err != nil {
+		r.Log.Error("failed to get bot", zap.Error(err), zap.String("bot_id", id), zap.String("service_provider_id", serviceProviderID))
+		return nil, fmt.Errorf("failed to get bot: %w", err)
+	}
+
+	return mapBotFromProto(resp), nil
 }
 
 // Bots is the resolver for the bots field.
 func (r *queryResolver) Bots(ctx context.Context, serviceProviderID string, status *model.BotStatus, limit *int, offset *int) (*model.BotConnection, error) {
-	panic(fmt.Errorf("not implemented: Bots - bots"))
+	_, err := requireAnyAuthenticatedRole(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	statusFilter := ""
+	if status != nil {
+		statusFilter = status.String()
+	}
+
+	resp, err := r.Clients.Bot.ListBots(ctx, &botpb.ListBotsRequest{
+		ServiceProviderId: serviceProviderID,
+		Status:            statusFilter,
+		Limit:             intOrDefault(limit, 20),
+		Offset:            intOrDefault(offset, 0),
+	})
+	if err != nil {
+		r.Log.Error("failed to list bots", zap.Error(err), zap.String("service_provider_id", serviceProviderID), zap.String("status", statusFilter))
+		return nil, fmt.Errorf("failed to list bots: %w", err)
+	}
+
+	return mapBotConnectionFromProto(resp), nil
 }
 
 // BotConfiguration is the resolver for the botConfiguration field.

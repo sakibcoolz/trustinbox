@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/constants.dart';
 import '../models/user.dart';
 import '../services/graphql_service.dart';
+import '../services/push_service.dart';
 import '../services/token_storage.dart';
 
 // ─── Auth Provider ──────────────────────────────────────
@@ -23,6 +25,10 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _token != null && !GraphQLService.isTokenExpired(_token!);
 
+  // Cached onboarding flag (hydrated during _restoreSession).
+  bool _onboardingComplete = false;
+  bool get onboardingComplete => _onboardingComplete;
+
   AuthProvider() {
     _restoreSession();
   }
@@ -31,6 +37,9 @@ class AuthProvider extends ChangeNotifier {
   Future<void> _restoreSession() async {
     final savedToken = await _storage.read('accessToken');
     final savedUser = await _storage.read('user');
+
+    final prefs = await SharedPreferences.getInstance();
+    _onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
 
     if (savedToken != null && savedUser != null) {
       _token = savedToken;
@@ -66,6 +75,11 @@ class AuthProvider extends ChangeNotifier {
 
     final data = json.decode(res.body) as Map<String, dynamic>;
     await _saveSession(data);
+    // Register FCM/APNS push token after successful login (best-effort).
+    final accessToken = data['accessToken'] as String?;
+    if (accessToken != null) {
+      PushService.registerToken(accessToken).ignore();
+    }
     notifyListeners();
   }
 
@@ -113,6 +127,14 @@ class AuthProvider extends ChangeNotifier {
       _storage.write('user', json.encode(_user!.toJson()));
       notifyListeners();
     }
+  }
+
+  // ─── Onboarding state ────────────────────────────────
+  // Triggers a router refresh after the user completes (or skips) the
+  // first-launch onboarding wizard so that the redirect re-evaluates.
+  void markOnboardingComplete() {
+    _onboardingComplete = true;
+    notifyListeners();
   }
 
   // ─── Token Refresh ───────────────────────────────────

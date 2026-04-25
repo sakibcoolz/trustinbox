@@ -128,6 +128,70 @@ class Conversation {
   }
 }
 
+/// Single attachment associated with a message.
+/// Mirrors the gateway `attachmentResponse` payload from POST /api/upload.
+class Attachment {
+  final String id;
+  final String fileName;
+  final String fileType;
+  final int fileSize;
+  final String url;
+
+  const Attachment({
+    required this.id,
+    required this.fileName,
+    required this.fileType,
+    required this.fileSize,
+    required this.url,
+  });
+
+  bool get isImage => fileType.startsWith('image/');
+  bool get isAudio => fileType.startsWith('audio/');
+  bool get isVideo => fileType.startsWith('video/');
+
+  factory Attachment.fromJson(Map<String, dynamic> json) {
+    return Attachment(
+      id: json['id'] as String? ?? '',
+      fileName: json['fileName'] as String? ?? '',
+      fileType: json['fileType'] as String? ?? 'application/octet-stream',
+      fileSize: (json['fileSize'] as num?)?.toInt() ?? 0,
+      url: json['url'] as String? ?? '',
+    );
+  }
+}
+
+/// Aggregated reaction count for a message (one row per emoji).
+class Reaction {
+  final String emoji;
+  final int count;
+  final List<String> userIds;
+  final bool mine;
+
+  const Reaction({
+    required this.emoji,
+    required this.count,
+    this.userIds = const [],
+    this.mine = false,
+  });
+
+  factory Reaction.fromJson(Map<String, dynamic> json, {String? currentUserId}) {
+    final users = (json['userIds'] as List<dynamic>?)?.cast<String>() ?? const [];
+    return Reaction(
+      emoji: json['emoji'] as String? ?? '',
+      count: (json['count'] as num?)?.toInt() ?? users.length,
+      userIds: users,
+      mine: currentUserId != null && users.contains(currentUserId),
+    );
+  }
+
+  Reaction copyWith({int? count, List<String>? userIds, bool? mine}) => Reaction(
+        emoji: emoji,
+        count: count ?? this.count,
+        userIds: userIds ?? this.userIds,
+        mine: mine ?? this.mine,
+      );
+}
+
 class Message {
   final String id;
   final String? conversationId;
@@ -139,13 +203,18 @@ class Message {
   final String content;
   final String? replyToId;
   final Map<String, dynamic>? replyPreview;
-  final List<dynamic>? attachments;
-  final List<dynamic>? reactions;
+  final List<Attachment> attachments;
+  final List<Reaction> reactions;
+  final Map<String, dynamic>? forwardedFrom;
   final String? editedAt;
   final String? deletedAt;
   final Map<String, dynamic>? metadata;
   final String? createdAt;
   final String? status;
+
+  // Local-only flags (not server-persisted) — see Phase 01 plan.
+  final bool starred;
+  final bool pinned;
 
   const Message({
     required this.id,
@@ -158,17 +227,60 @@ class Message {
     required this.content,
     this.replyToId,
     this.replyPreview,
-    this.attachments,
-    this.reactions,
+    this.attachments = const [],
+    this.reactions = const [],
+    this.forwardedFrom,
     this.editedAt,
     this.deletedAt,
     this.metadata,
     this.createdAt,
     this.status,
+    this.starred = false,
+    this.pinned = false,
   });
 
+  Message copyWith({
+    String? content,
+    List<Attachment>? attachments,
+    List<Reaction>? reactions,
+    String? editedAt,
+    String? deletedAt,
+    String? status,
+    bool? starred,
+    bool? pinned,
+  }) {
+    return Message(
+      id: id,
+      conversationId: conversationId,
+      senderId: senderId,
+      senderName: senderName,
+      senderType: senderType,
+      senderRefId: senderRefId,
+      messageType: messageType,
+      content: content ?? this.content,
+      replyToId: replyToId,
+      replyPreview: replyPreview,
+      attachments: attachments ?? this.attachments,
+      reactions: reactions ?? this.reactions,
+      forwardedFrom: forwardedFrom,
+      editedAt: editedAt ?? this.editedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      metadata: metadata,
+      createdAt: createdAt,
+      status: status ?? this.status,
+      starred: starred ?? this.starred,
+      pinned: pinned ?? this.pinned,
+    );
+  }
+
   /// Parse from REST /api/conversations/{id}/messages response
-  factory Message.fromRestJson(Map<String, dynamic> json) {
+  factory Message.fromRestJson(Map<String, dynamic> json, {String? currentUserId}) {
+    final attachmentsRaw = json['attachments'] as List<dynamic>?;
+    final reactionsRaw = json['reactions'] as List<dynamic>?;
+    final metadata = json['metadata'] as Map<String, dynamic>?;
+    final forwarded = (json['forwardedFrom'] as Map<String, dynamic>?) ??
+        (metadata?['forwardedFrom'] as Map<String, dynamic>?);
+
     return Message(
       id: json['id'] as String,
       conversationId: json['conversationId'] as String?,
@@ -179,10 +291,22 @@ class Message {
       content: json['content'] as String? ?? '',
       replyToId: json['replyToId'] as String?,
       replyPreview: json['replyPreview'] as Map<String, dynamic>?,
-      attachments: json['attachments'] as List<dynamic>?,
-      reactions: json['reactions'] as List<dynamic>?,
+      attachments: attachmentsRaw == null
+          ? const []
+          : attachmentsRaw
+              .whereType<Map<String, dynamic>>()
+              .map(Attachment.fromJson)
+              .toList(),
+      reactions: reactionsRaw == null
+          ? const []
+          : reactionsRaw
+              .whereType<Map<String, dynamic>>()
+              .map((r) => Reaction.fromJson(r, currentUserId: currentUserId))
+              .toList(),
+      forwardedFrom: forwarded,
       editedAt: json['editedAt'] as String?,
       deletedAt: json['deletedAt'] as String?,
+      metadata: metadata,
       createdAt: json['createdAt'] as String?,
       status: json['status'] as String?,
     );

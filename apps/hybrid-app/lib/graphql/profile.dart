@@ -55,3 +55,15 @@ const String myBlockedProvidersQuery = r'''
     }
   }
 ''';
+
+const String myPrivacyPrefsForProfileQuery = r'''
+  query MyPrivacyPrefsForProfile {
+    myPrivacyPreferences {
+      allowPersonalNotifications
+      allowSPNotifications
+      allowAdvertisements
+      requireCallApproval
+      allowChat
+    }
+  }
+''';

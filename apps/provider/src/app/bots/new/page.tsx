@@ -300,42 +300,75 @@ function NewBotContent() {
     }
   }
 
-  async function handleCreate() {
-    try {
-      setCreateProgress('Creating bot…');
-      const result = await create({
-        serviceProviderId: spId,
-        name: form.name,
-        purpose: form.purpose,
-        description: form.description || undefined,
-        department: form.department || undefined,
-        industryProfileId: form.industryProfileId || undefined,
-      });
-      const botId = result?.id;
-      if (!botId) throw new Error('No bot ID returned');
-      setCreatedBotId(botId);
+  async function ensureBotForTesting(): Promise<string> {
+    if (createdBotId) {
+      return createdBotId;
+    }
 
-      setCreateProgress('Configuring personality…');
-      await updateConfig({
+    setCreateProgress('Preparing bot for test chat…');
+    const result = await create({
+      serviceProviderId: spId,
+      name: form.name,
+      purpose: form.purpose,
+      description: form.description || undefined,
+      department: form.department || undefined,
+      industryProfileId: form.industryProfileId || undefined,
+    });
+
+    const botId = result?.id;
+    if (!botId) {
+      throw new Error('No bot ID returned');
+    }
+
+    setCreatedBotId(botId);
+    return botId;
+  }
+
+  async function syncBotCoreConfiguration(botId: string): Promise<void> {
+    setCreateProgress('Syncing bot configuration…');
+    await updateConfig({
+      botId,
+      serviceProviderId: spId,
+      aiModel: form.aiModel,
+      temperature: form.temperature,
+      maxResponseTokens: form.maxResponseTokens,
+      tone: form.tone,
+      writingStyle: form.writingStyle,
+      customSystemPrompt: form.systemPrompt,
+    });
+
+    setCreateProgress('Syncing tool permissions…');
+    for (const tool of ALLOWED_BOT_TOOLS) {
+      await setPermission({
         botId,
         serviceProviderId: spId,
-        aiModel: form.aiModel,
-        temperature: form.temperature,
-        maxResponseTokens: form.maxResponseTokens,
-        tone: form.tone,
-        writingStyle: form.writingStyle,
-        customSystemPrompt: form.systemPrompt,
+        toolName: tool.name,
+        enabled: form.enabledTools.includes(tool.name),
       });
+    }
+  }
 
-      setCreateProgress('Setting tool permissions…');
-      for (const tool of ALLOWED_BOT_TOOLS) {
-        await setPermission({
-          botId,
-          serviceProviderId: spId,
-          toolName: tool.name,
-          enabled: form.enabledTools.includes(tool.name),
-        });
+  async function handleNext() {
+    if (step === 5) {
+      try {
+        const botId = await ensureBotForTesting();
+        await syncBotCoreConfiguration(botId);
+        setStep(6);
+      } catch {
+        toastError('Failed to prepare bot test chat');
+      } finally {
+        setCreateProgress('');
       }
+      return;
+    }
+
+    setStep(step + 1);
+  }
+
+  async function handleCreate() {
+    try {
+      const botId = await ensureBotForTesting();
+      await syncBotCoreConfiguration(botId);
 
       if (form.knowledgeSources.length > 0) {
         setCreateProgress('Adding knowledge sources…');
@@ -790,7 +823,7 @@ function NewBotContent() {
           Back
         </button>
         {step < 7 ? (
-          <button onClick={() => setStep(step + 1)} disabled={!canAdvance()}
+          <button onClick={handleNext} disabled={!canAdvance() || creating || !!createProgress}
             className="flex items-center gap-2 px-4 py-2.5 bg-accent-purple text-white rounded-lg text-sm font-medium hover:bg-accent-purple/90 transition-colors disabled:opacity-50">
             Next <ArrowRight size={16} />
           </button>

@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@apollo/client';
-import { SP_DIRECTORY, BLOCK_SP, UNBLOCK_SP, FOLLOWED_PROVIDERS, NEARBY_PROVIDERS } from '@/lib/graphql/service-providers';
+import { SP_DIRECTORY, BLOCK_SP, UNBLOCK_SP, FOLLOWED_PROVIDERS, NEARBY_PROVIDERS, SERVICE_PROVIDER_ACTIVE_BOTS } from '@/lib/graphql/service-providers';
 import { MY_BLOCKED_PROVIDERS } from '@/lib/graphql/profile';
 import { MY_CURRENT_ADDRESS } from '@/lib/graphql/addresses';
 import { useBlockedProviders } from '@/hooks/useBlockedProviders';
 import { useDetailParam } from '@/hooks/useDetailParam';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Building2, Globe, MapPin, Heart } from 'lucide-react';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -32,6 +35,8 @@ function ServiceProvidersContent() {
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
   const [detailTab, setDetailTab] = useState<'profile' | 'history'>('profile');
   const [blockingId, setBlockingId] = useState<string | null>(null);
+  const [openingBotChat, setOpeningBotChat] = useState<string | null>(null);
+  const router = useRouter();
 
   // All tab — serviceProviderDirectory (all verified SPs)
   const { data: dirData, loading: dirLoading, error: dirError } = useQuery(SP_DIRECTORY, {
@@ -99,6 +104,16 @@ function ServiceProvidersContent() {
   const selected = providers.find((p: any) => p.id === selectedId);
   const isSelectedBlocked = selected ? blockedIds.has(selected.id) : false;
 
+  const { data: activeBotsData, loading: activeBotsLoading } = useQuery(SERVICE_PROVIDER_ACTIVE_BOTS, {
+    variables: {
+      serviceProviderId: selectedId,
+      limit: 20,
+      offset: 0,
+    },
+    skip: !selectedId,
+  });
+  const activeBots = activeBotsData?.bots?.nodes ?? [];
+
   // Auto-open mobile detail when deep-linked
   useEffect(() => {
     if (selectedId) setMobileShowDetail(true);
@@ -124,6 +139,35 @@ function ServiceProvidersContent() {
       setBlockingId(null);
     }
   }, [block, unblock]);
+
+  const handleOpenBotChat = useCallback(async (bot: any) => {
+    if (!bot?.id) return;
+    setOpeningBotChat(bot.id);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const res = await fetch(`${API_BASE}/api/bots/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ botId: bot.id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || `Failed to open bot chat (${res.status})`);
+      }
+      const conv = await res.json();
+      // Navigate to the standard chat section — the bot conversation appears
+      // alongside human conversations.
+      router.push(`/conversations?id=${encodeURIComponent(conv.id)}`);
+    } catch (e) {
+      console.error('open bot chat', e);
+      alert(e instanceof Error ? e.message : 'Failed to open bot chat');
+    } finally {
+      setOpeningBotChat(null);
+    }
+  }, [router]);
 
   if (loading) {
     return (
@@ -329,6 +373,36 @@ function ServiceProvidersContent() {
                       <p className="text-2xs text-text-muted mt-1">Documents</p>
                     </div>
                   </div>
+                </div>
+
+                <div className="card">
+                  <p className="text-2xs text-text-muted uppercase tracking-wider font-medium mb-3">Published Bots</p>
+                  {activeBotsLoading ? (
+                    <p className="text-sm text-text-muted">Loading active bots…</p>
+                  ) : activeBots.length === 0 ? (
+                    <p className="text-sm text-text-muted">No active bots published for this provider yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {activeBots.map((bot: any) => (
+                        <div key={bot.id} className="rounded-lg border border-border-primary bg-bg-tertiary p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-medium text-text-primary truncate">{bot.name}</p>
+                            <span className="chip chip-green text-2xs">{bot.status}</span>
+                          </div>
+                          <p className="text-2xs text-text-muted mt-1 line-clamp-2">{bot.purpose || 'No purpose provided'}</p>
+                          <div className="mt-3">
+                            <button
+                              onClick={() => handleOpenBotChat(bot)}
+                              disabled={openingBotChat === bot.id}
+                              className="btn-secondary text-xs disabled:opacity-50"
+                            >
+                              {openingBotChat === bot.id ? 'Opening…' : 'Chat With Bot'}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Block/Unblock */}

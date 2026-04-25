@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/trustinbox/graphql-bff/graph/model"
+	botpb "github.com/trustinbox/proto/gen/bot/v1"
 	commpb "github.com/trustinbox/proto/gen/communication/v1"
 	notifpb "github.com/trustinbox/proto/gen/notification/v1"
 	orgpb "github.com/trustinbox/proto/gen/organization/v1"
@@ -305,6 +306,50 @@ func mapServiceProviderConnectionFromProto(resp *orgpb.ListServiceProvidersRespo
 		nodes[i] = mapServiceProviderFromProto(sp)
 	}
 	return &model.ServiceProviderConnection{
+		Nodes:      nodes,
+		TotalCount: int(resp.Total),
+	}
+}
+
+// ─── Bot Mappers ──────────────────────────────────────────
+
+func mapBotStatusFromProto(status string) model.BotStatus {
+	s := model.BotStatus(status)
+	if s.IsValid() {
+		return s
+	}
+	return model.BotStatusDraft
+}
+
+func mapBotFromProto(b *botpb.Bot) *model.Bot {
+	if b == nil {
+		return nil
+	}
+
+	return &model.Bot{
+		ID:                b.Id,
+		ServiceProviderID: b.ServiceProviderId,
+		Name:              b.Name,
+		AvatarURL:         ptrString(b.AvatarUrl),
+		Purpose:           b.Purpose,
+		Department:        ptrString(b.Department),
+		IndustryProfileID: ptrString(b.IndustryProfileId),
+		Status:            mapBotStatusFromProto(b.Status),
+		CreatedBySpUserID: b.CreatedBySpUserId,
+		Permissions:       []*model.BotPermission{},
+		KnowledgeSources:  []*model.KnowledgeSource{},
+		CreatedAt:         timeFromTimestamp(b.CreatedAt),
+		UpdatedAt:         timeFromTimestamp(b.UpdatedAt),
+	}
+}
+
+func mapBotConnectionFromProto(resp *botpb.ListBotsResponse) *model.BotConnection {
+	nodes := make([]*model.Bot, len(resp.Bots))
+	for i, b := range resp.Bots {
+		nodes[i] = mapBotFromProto(b)
+	}
+
+	return &model.BotConnection{
 		Nodes:      nodes,
 		TotalCount: int(resp.Total),
 	}

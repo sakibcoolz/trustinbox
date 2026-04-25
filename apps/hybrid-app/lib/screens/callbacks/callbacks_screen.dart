@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:provider/provider.dart';
+import '../../config/theme.dart';
 import '../../graphql/callbacks.dart';
 import '../../models/callback_request.dart';
-import '../../config/theme.dart';
+import '../../providers/notification_provider.dart';
 import '../../services/contact_service.dart';
 import '../../widgets/empty_state.dart';
 
@@ -16,36 +20,37 @@ class CallbacksScreen extends StatefulWidget {
   State<CallbacksScreen> createState() => _CallbacksScreenState();
 }
 
-class _CallbacksScreenState extends State<CallbacksScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  String? _statusFilter;
+class _CallbacksScreenState extends State<CallbacksScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  static const List<String?> _statusFilters = [null, 'PENDING', 'APPROVED', 'REJECTED', 'EXPIRED'];
+
+  VoidCallback? _unsubCallback;
+  Timer? _debounce;
+  int _refetchTick = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(() {
-      setState(() {
-        switch (_tabController.index) {
-          case 0:
-            _statusFilter = null;
-            break;
-          case 1:
-            _statusFilter = 'pending';
-            break;
-          case 2:
-            _statusFilter = 'approved';
-            break;
-          case 3:
-            _statusFilter = 'rejected';
-            break;
-        }
-      });
+    _tabController = TabController(length: 5, vsync: this);
+    _tabController.addListener(() => setState(() {}));
+
+    final notifProvider = context.read<NotificationProvider>();
+    _unsubCallback = notifProvider.onCallbackEvent(_onSSECallbackEvent);
+  }
+
+  void _onSSECallbackEvent() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) setState(() => _refetchTick++);
     });
   }
 
   @override
   void dispose() {
+    _unsubCallback?.call();
+    _debounce?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -58,57 +63,26 @@ class _CallbacksScreenState extends State<CallbacksScreen> with SingleTickerProv
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
+          tabAlignment: TabAlignment.start,
           tabs: const [
             Tab(text: 'All'),
             Tab(text: 'Pending'),
             Tab(text: 'Approved'),
             Tab(text: 'Rejected'),
+            Tab(text: 'Expired'),
           ],
         ),
       ),
-      body: Query(
-        options: QueryOptions(
-          document: gql(myCallbacksQuery),
-          variables: {
-            'status': _statusFilter,
-            'limit': 20,
-            'offset': 0,
-          },
-          fetchPolicy: FetchPolicy.cacheAndNetwork,
-        ),
-        builder: (result, {fetchMore, refetch}) {
-          if (result.isLoading && result.data == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final nodes = result.data?['myCallbackRequests']?['nodes'] as List<dynamic>? ?? [];
-          final callbacks = nodes.map((c) => CallbackRequest.fromJson(c as Map<String, dynamic>)).toList();
-
-          if (callbacks.isEmpty) {
-            return EmptyState(
-              icon: Icons.phone_callback_outlined,
-              title: 'No callback requests',
-              subtitle: 'Callback requests from service providers will appear here',
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async => refetch?.call(),
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: callbacks.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
-              itemBuilder: (context, index) {
-                final cb = callbacks[index];
-                return _CallbackTile(
-                  callback: cb,
-                  onApprove: () => _showApproveDialog(context, cb),
-                  onReject: () => _showRejectDialog(context, cb.id),
-                );
-              },
-            ),
-          );
-        },
+      body: TabBarView(
+        controller: _tabController,
+        children: _statusFilters
+            .map((s) => _CallbackTabBody(
+                  status: s,
+                  refetchTick: _refetchTick,
+                  onApprove: (cb) => _showApproveDialog(context, cb),
+                  onReject: (id) => _showRejectDialog(context, id),
+                ))
+            .toList(),
       ),
     );
   }
@@ -226,6 +200,86 @@ class _CallbacksScreenState extends State<CallbacksScreen> with SingleTickerProv
   }
 }
 
+class _CallbackTabBody extends StatelessWidget {
+  final String? status;
+  final int refetchTick;
+  final void Function(CallbackRequest) onApprove;
+  final void Function(String) onReject;
+
+  const _CallbackTabBody({
+    required this.status,
+    required this.refetchTick,
+    required this.onApprove,
+    required this.onReject,
+  });
+
+  String _emptyTitle() {
+    switch (status) {
+      case 'PENDING': return 'No pending callbacks';
+      case 'APPROVED': return 'No approved callbacks';
+      case 'REJECTED': return 'No rejected callbacks';
+      case 'EXPIRED': return 'No expired callbacks';
+      default: return 'No callback requests';
+    }
+  }
+
+  String _emptySubtitle() {
+    if (status == 'EXPIRED') {
+      return 'No expired callbacks. Approved windows will appear here after expiry.';
+    }
+    return 'Callback requests from service providers will appear here.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Query(
+      options: QueryOptions(
+        document: gql(myCallbacksQuery),
+        variables: {
+          'status': status?.toLowerCase(),
+          'limit': 20,
+          'offset': 0,
+          '_tick': refetchTick,
+        },
+        fetchPolicy: FetchPolicy.cacheAndNetwork,
+      ),
+      builder: (result, {fetchMore, refetch}) {
+        if (result.isLoading && result.data == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final nodes = result.data?['myCallbackRequests']?['nodes'] as List<dynamic>? ?? [];
+        final callbacks = nodes.map((c) => CallbackRequest.fromJson(c as Map<String, dynamic>)).toList();
+
+        if (callbacks.isEmpty) {
+          return EmptyState(
+            icon: Icons.phone_callback_outlined,
+            title: _emptyTitle(),
+            subtitle: _emptySubtitle(),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async => refetch?.call(),
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: callbacks.length,
+            separatorBuilder: (_, separator) => const Divider(height: 1, indent: 72),
+            itemBuilder: (_, index) {
+              final cb = callbacks[index];
+              return _CallbackTile(
+                callback: cb,
+                onApprove: () => onApprove(cb),
+                onReject: () => onReject(cb.id),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _CallbackTile extends StatelessWidget {
   final CallbackRequest callback;
   final VoidCallback onApprove;
@@ -253,6 +307,7 @@ class _CallbackTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      onTap: () => context.push('/callbacks/${callback.id}'),
       leading: CircleAvatar(
         backgroundColor: _statusColor().withValues(alpha: 0.15),
         child: Icon(Icons.phone_callback_outlined, color: _statusColor(), size: 20),
@@ -282,10 +337,12 @@ class _CallbackTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
+                  tooltip: 'Approve callback',
                   icon: const Icon(Icons.check_circle_outline, color: AppColors.statusSuccess, size: 20),
                   onPressed: onApprove,
                 ),
                 IconButton(
+                  tooltip: 'Reject callback',
                   icon: const Icon(Icons.cancel_outlined, color: AppColors.statusError, size: 20),
                   onPressed: onReject,
                 ),

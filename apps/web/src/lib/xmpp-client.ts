@@ -34,6 +34,12 @@ export function uuidv4(): string {
 
 export const XMPP_DOMAIN     = process.env.NEXT_PUBLIC_XMPP_DOMAIN     || 'chat.trustinbox.local';
 export const XMPP_MUC_DOMAIN = process.env.NEXT_PUBLIC_XMPP_MUC_DOMAIN || 'conference.chat.trustinbox.local';
+const XMPP_WS_FALLBACK_URL = process.env.NEXT_PUBLIC_XMPP_WS_FALLBACK_URL || 'ws://localhost-0.taildb081d.ts.net:4000/api/xmpp-ws';
+
+function getLocalBffWsUrl(): string {
+  const bffPort = process.env.NEXT_PUBLIC_BFF_PORT || '4000';
+  return `ws://localhost:${bffPort}/api/xmpp-ws`;
+}
 
 // Derive the XMPP WebSocket URL at runtime so it always uses the same
 // protocol and hostname the browser used to open the app.  This avoids
@@ -54,7 +60,48 @@ function getXmppWsUrl(): string {
   return `${proto}//${hostname}:${bffPort}/api/xmpp-ws`;
 }
 
+function getXmppWsUrls(): string[] {
+  const urls: string[] = [];
+
+  if (process.env.NEXT_PUBLIC_XMPP_WS_URL) {
+    urls.push(process.env.NEXT_PUBLIC_XMPP_WS_URL);
+  }
+
+  urls.push(getXmppWsUrl());
+
+  // Dev convenience: when app is opened on localhost, prefer the tailnet gateway,
+  // but still keep localhost as fallback if tailnet route is unavailable.
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    urls.unshift(XMPP_WS_FALLBACK_URL);
+    urls.push(getLocalBffWsUrl());
+  } else if (process.env.NEXT_PUBLIC_XMPP_WS_FALLBACK_URL) {
+    urls.push(process.env.NEXT_PUBLIC_XMPP_WS_FALLBACK_URL);
+  }
+
+  return Array.from(new Set(urls.filter(Boolean)));
+}
+
+function toHealthUrl(wsUrl: string): string {
+  try {
+    const u = new URL(wsUrl);
+    const httpProto = u.protocol === 'wss:' ? 'https:' : 'http:';
+    return `${httpProto}//${u.host}/health`;
+  } catch {
+    return BFF_HEALTH_URL;
+  }
+}
+
 export const XMPP_WS_URL = getXmppWsUrl();
+
+function getBffHealthUrl(): string {
+  if (typeof window === 'undefined') return 'http://localhost:4000/health';
+  const proto = window.location.protocol;
+  const hostname = window.location.hostname;
+  const bffPort = process.env.NEXT_PUBLIC_BFF_PORT || '4000';
+  return `${proto}//${hostname}:${bffPort}/health`;
+}
+
+const BFF_HEALTH_URL = getBffHealthUrl();
 
 // ─── Type definitions ────────────────────────────────────────────────────────
 
@@ -126,6 +173,50 @@ export class XMPPClient {
   private typingHandlers:          TypingHandler[]          = [];
   private statusHandlers:          StatusHandler[]          = [];
   private deliveryReceiptHandlers: DeliveryReceiptHandler[] = [];  private _myJid = '';
+  private lastConnErrorAt = 0;
+  private static healthState: Record<string, { ok: boolean; checkedAt: number }> = {};
+
+  private isConnBackendUnavailable(err: unknown): boolean {
+    const msg = String((err as Error | undefined)?.message ?? err ?? '').toLowerCase();
+    return msg.includes('econnerror') || msg.includes('backend unavailable') || msg.includes('connection refused');
+  }
+
+  private shouldLogConnWarning(): boolean {
+    const now = Date.now();
+    // Throttle repeated transient connection warnings to avoid console spam in dev.
+    if (now - this.lastConnErrorAt < 15000) return false;
+    this.lastConnErrorAt = now;
+    return true;
+  }
+
+  private async isBffReachable(healthUrl: string): Promise<boolean> {
+    const now = Date.now();
+    const cache = XMPPClient.healthState[healthUrl];
+    // Short cache avoids repeatedly probing /health during reconnect loops.
+    if (cache && now - cache.checkedAt < 10000) return cache.ok;
+
+    if (typeof fetch !== 'function') return true;
+
+    const timeoutMs = 1200;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeout = setTimeout(() => controller?.abort(), timeoutMs);
+
+    try {
+      const resp = await fetch(healthUrl, {
+        method: 'GET',
+        cache: 'no-store',
+        signal: controller?.signal,
+      });
+      const ok = resp.ok;
+      XMPPClient.healthState[healthUrl] = { ok, checkedAt: now };
+      return ok;
+    } catch {
+      XMPPClient.healthState[healthUrl] = { ok: false, checkedAt: now };
+      return false;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -134,40 +225,76 @@ export class XMPPClient {
       await this.disconnect();
     }
 
+    const wsUrls = getXmppWsUrls();
+    let bffUp = false;
+    for (const healthUrl of wsUrls.map(toHealthUrl)) {
+      if (await this.isBffReachable(healthUrl)) {
+        bffUp = true;
+        break;
+      }
+    }
+    if (!bffUp) {
+      throw new Error('backend unavailable: all bff health checks failed');
+    }
+
     // jid format: <uuid>@chat.trustinbox.local
     const [username] = jid.split('@');
 
-    // Capture the instance in a local variable so that event handlers
-    // always reference the correct client even if this.xmpp is reassigned
-    // or nulled by a concurrent disconnect() call.
-    const instance = createXmppClient({
-      service:  XMPP_WS_URL,
-      domain:   XMPP_DOMAIN,
-      username,
-      password,
-    });
-    this.xmpp = instance;
+    let lastErr: unknown = null;
+    for (const wsUrl of wsUrls) {
+      // Capture the instance in a local variable so that event handlers
+      // always reference the correct client even if this.xmpp is reassigned
+      // or nulled by a concurrent disconnect() call.
+      const instance = createXmppClient({
+        service: wsUrl,
+        domain: XMPP_DOMAIN,
+        username,
+        password,
+      });
+      this.xmpp = instance;
 
-    instance.on('stanza', (stanza: any) => this._onStanza(stanza));
+      instance.on('stanza', (stanza: any) => this._onStanza(stanza));
 
-    instance.on('online', ((jid: string) => {
-      this.connected = true;
-      this._myJid = bareJid(String(jid ?? ''));
-      this._notifyStatus(true);
-      // Send initial available presence
-      instance.send(xml('presence'));
-    }) as (...args: unknown[]) => void);
+      instance.on('online', ((jid: string) => {
+        this.connected = true;
+        this._myJid = bareJid(String(jid ?? ''));
+        this._notifyStatus(true);
+        // Send initial available presence
+        instance.send(xml('presence'));
+      }) as (...args: unknown[]) => void);
 
-    instance.on('offline', () => {
-      this.connected = false;
-      this._notifyStatus(false);
-    });
+      instance.on('offline', () => {
+        this.connected = false;
+        this._notifyStatus(false);
+      });
 
-    instance.on('error', ((err: Error) => {
-      console.error('[xmpp] error', err);
-    }) as (...args: unknown[]) => void);
+      instance.on('error', ((err: Error) => {
+        if (this.isConnBackendUnavailable(err)) {
+          if (this.shouldLogConnWarning()) {
+            console.warn('[xmpp] backend unavailable', err);
+          }
+          return;
+        }
+        console.error('[xmpp] error', err);
+      }) as (...args: unknown[]) => void);
 
-    await instance.start();
+      try {
+        await instance.start();
+        if (wsUrl !== XMPP_WS_URL) {
+          console.warn('[xmpp] connected via fallback ws url', wsUrl);
+        }
+        return;
+      } catch (err) {
+        lastErr = err;
+        this.xmpp = null;
+        this.connected = false;
+        if (this.shouldLogConnWarning()) {
+          console.warn('[xmpp] connect failed, trying next ws url', wsUrl, err);
+        }
+      }
+    }
+
+    throw lastErr instanceof Error ? lastErr : new Error('xmpp connect failed across all ws urls');
   }
 
   async disconnect(): Promise<void> {
