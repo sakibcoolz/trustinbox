@@ -35,3 +35,4 @@
 | 19 | Twin Sequence Diagrams | [19-twin-sequence-diagrams.md](19-twin-sequence-diagrams.md) | Provider ↔ Customer twin flows for all 12 features with observations |
 | 20 | End-to-End AI Architecture | [20-ai-architecture.md](20-ai-architecture.md) | Full AI system: Orchestrator, RAG, Spam, Categorizer, Summarizer, Tools, LLM routing, security |
 | 21 | Observations & Findings | [21-observations-and-findings.md](21-observations-and-findings.md) | Senior engineer review: strengths, tradeoffs, scaling considerations, security posture |
+| 22 | n8n & Bot Integration Architecture | [22-n8n-bot-integration-architecture.md](22-n8n-bot-integration-architecture.md) | Complete n8n workflow integration: data model, sync/async paths, HMAC security, lifecycle, examples |

@@ -41,7 +41,22 @@ for i in $(seq 1 15); do
   sleep 2
 done
 
-# ── 3b. Wait for n8n to be ready (best-effort, non-fatal) ───────────────────
+# ── 3b. Wait for ChromaDB to be ready (best-effort, non-fatal) ─────────────
+echo "⏳ Waiting for ChromaDB..."
+chroma_ready=false
+for i in $(seq 1 20); do
+  if curl -fsS -o /dev/null http://localhost:8000/api/v1/heartbeat 2>/dev/null; then
+    echo "   ChromaDB ready."
+    chroma_ready=true
+    break
+  fi
+  sleep 2
+done
+if [ "$chroma_ready" = false ]; then
+  echo "   WARN: ChromaDB not reachable on :8000 — knowledge search will use in-memory fallback." >&2
+fi
+
+# ── 3c. Wait for n8n to be ready (best-effort, non-fatal) ───────────────────
 echo "⏳ Waiting for n8n..."
 n8n_ready=false
 for i in $(seq 1 20); do
@@ -68,6 +83,9 @@ fi
 export N8N_BASE_URL="${N8N_BASE_URL:-http://localhost:5678}"
 export N8N_WEBHOOK_SECRET="${N8N_WEBHOOK_SECRET:-trustinbox_n8n_webhook_secret_dev}"
 export GATEWAY_PUBLIC_URL="${GATEWAY_PUBLIC_URL:-http://host.docker.internal:4000}"
+
+# ── 4c. ChromaDB / RAG defaults ─────────────────────────────────────────────
+export CHROMADB_URL="${CHROMADB_URL:-http://localhost:8000}"
 
 # ── 5. Kill any stale processes on our ports ────────────────────────────────
 PORTS="50051 50052 50053 50054 50055 50056 50057 50058 50059 50060 50061 50062 50063 4000 3000 6060 8080"
@@ -105,8 +123,9 @@ GRPC_PORT=50056 SERVICE_NAME=communication-service \
 echo "[communication-service]→ :50056"
 
 GRPC_PORT=50057 SERVICE_NAME=ai-service \
+  CHROMADB_URL="$CHROMADB_URL" \
   go run "$ROOT/services/ai-service/cmd/server" &
-echo "[ai-service]           → :50057"
+echo "[ai-service]           → :50057  (ChromaDB: $CHROMADB_URL)"
 
 GRPC_PORT=50058 SERVICE_NAME=worker-service \
   go run "$ROOT/services/worker-service/cmd/server" &
@@ -156,6 +175,7 @@ echo "│  provider-ui   http://localhost:6060          │"
 echo "│  hybrid-app    http://localhost:8080          │"
 echo "│  GraphQL       http://localhost:4000/graphql  │"
 echo "│  n8n editor    http://localhost:5678          │"
+echo "│  ChromaDB      http://localhost:8000          │"
 echo "│  Jaeger        http://localhost:16686         │"
 echo "│  MinIO         http://localhost:9001          │"
 echo "└──────────────────────────────────────────────┘"

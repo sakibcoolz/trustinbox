@@ -182,6 +182,22 @@ services:
       postgres:
         condition: service_healthy
 
+  # ─── ChromaDB — vector database for RAG knowledge retrieval ────────────────
+  chromadb:
+    image: chromadb/chroma:0.6.3
+    environment:
+      CHROMA_SERVER_ALLOW_RESET: "true"
+      ANONYMIZED_TELEMETRY: "false"
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadbdata:/chroma/chroma
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v1/heartbeat || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   ai-service:
     build:
       context: .
@@ -197,11 +213,16 @@ services:
       DB_PASSWORD: trustinbox_dev
       DB_NAME: trustinbox
       REDIS_ADDR: redis:6379
+      CHROMADB_URL: http://chromadb:8000
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DEFAULT_LLM_PROVIDER: ${DEFAULT_LLM_PROVIDER:-openai}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     ports:
       - "50057:50057"
     depends_on:
       postgres:
+        condition: service_healthy
+      chromadb:
         condition: service_healthy
 
   worker-service:
@@ -340,6 +361,8 @@ services:
       dockerfile: ../../infra/docker/next.Dockerfile
     environment:
       NEXT_PUBLIC_GRAPHQL_URL: http://graphql-gateway:4000/graphql
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: trustinbox-web
     ports:
       - "3000:3000"
     depends_on:
@@ -351,6 +374,8 @@ services:
       dockerfile: ../../infra/docker/next.Dockerfile
     environment:
       NEXT_PUBLIC_GRAPHQL_URL: http://graphql-gateway:4000/graphql
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: trustinbox-admin
     ports:
       - "3001:3001"
     depends_on:
@@ -362,6 +387,8 @@ services:
       dockerfile: ../../infra/docker/next.Dockerfile
     environment:
       NEXT_PUBLIC_GRAPHQL_URL: http://graphql-gateway:4000/graphql
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: trustinbox-provider
     ports:
       - "3002:3002"
     depends_on:
@@ -413,3 +440,4 @@ volumes:
   redisdata:
   miniodata:
   ejabberddata:
+  chromadbdata:

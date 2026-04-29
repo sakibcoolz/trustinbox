@@ -16,6 +16,8 @@ import (
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
+	grpcinterceptors "github.com/trustinbox/cornerstone/middleware"
+	"github.com/trustinbox/cornerstone/tracing"
 	pb "github.com/trustinbox/proto/gen/communication/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -28,6 +30,13 @@ func main() {
 	cfg := config.LoadServiceConfig("communication-service")
 	log := logger.New(cfg.ServiceName)
 	defer log.Sync()
+
+	// ─── OpenTelemetry tracing ─────────────────────────────
+	if tracerCleanup, err := tracing.InitTracer(cfg.ServiceName); err != nil {
+		log.Warn("tracing init failed; continuing without OTel traces", zap.Error(err))
+	} else {
+		defer tracerCleanup()
+	}
 
 	log.Info("starting communication service", zap.String("grpc_port", cfg.GRPCPort))
 
@@ -69,7 +78,13 @@ func main() {
 	commUC := usecase.NewCommunicationUseCase(callbackRepo, convRepo, msgRepo, spamRepo, docShareRepo, nil, publisher, log)
 	handler := grpcdelivery.NewCommunicationHandler(commUC)
 
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			grpcinterceptors.ContextPropagationUnaryInterceptor(),
+			grpcinterceptors.TracingUnaryInterceptor(cfg.ServiceName),
+			grpcinterceptors.LoggingUnaryInterceptor(log),
+		),
+	)
 	pb.RegisterCommunicationServiceServer(srv, handler)
 
 	healthSrv := health.NewServer()

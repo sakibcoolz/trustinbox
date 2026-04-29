@@ -48,14 +48,18 @@ func (r *userPrefRepo) GetDNDRules(ctx context.Context, userID string) ([]entity
 	for rows.Next() {
 		var rule entity.DNDRule
 		var scopeRef sql.NullString
+		var days []int64
 		if err := rows.Scan(
 			&rule.ID, &rule.UserID, &rule.ScopeType, &scopeRef,
-			&rule.StartTime, &rule.EndTime, pq.Array(&rule.DaysOfWeek), &rule.IsActive,
+			&rule.StartTime, &rule.EndTime, pq.Array(&days), &rule.IsActive,
 		); err != nil {
 			return nil, fmt.Errorf("scan dnd rule: %w", err)
 		}
 		if scopeRef.Valid {
 			rule.ScopeRefID = scopeRef.String
+		}
+		for _, d := range days {
+			rule.DaysOfWeek = append(rule.DaysOfWeek, int(d))
 		}
 		rules = append(rules, rule)
 	}

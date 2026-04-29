@@ -26,7 +26,8 @@ func (r *configRepo) Get(ctx context.Context, botID string) (*entity.BotConfigur
 	err := r.db.QueryRowContext(ctx,
 		`SELECT bot_id, tone, writing_style, supported_languages, working_hours_start, working_hours_end,
 		        working_days, max_turns_before_escalation, escalation_rules, human_handoff_policy,
-		        approval_policy, fallback_actions, compliance_restrictions, custom_system_prompt, temperature
+		        approval_policy, fallback_actions, compliance_restrictions, custom_system_prompt,
+		        temperature, ai_model, max_response_tokens
 		 FROM bot_configurations WHERE bot_id = $1`, botID,
 	).Scan(
 		&c.BotID, &c.Tone, &c.WritingStyle, pq.Array(&c.SupportedLanguages),
@@ -34,7 +35,7 @@ func (r *configRepo) Get(ctx context.Context, botID string) (*entity.BotConfigur
 		pq.Array(&workingDays), &c.MaxTurnsBeforeEscalation,
 		&c.EscalationRules, &c.HumanHandoffPolicy,
 		&c.ApprovalPolicy, &c.FallbackActions, &c.ComplianceRestrictions,
-		&c.CustomSystemPrompt, &c.Temperature,
+		&c.CustomSystemPrompt, &c.Temperature, &c.AIModel, &c.MaxResponseTokens,
 	)
 	if err == sql.ErrNoRows {
 		return nil, bizerr.NotFound("bot_configuration", botID)
@@ -57,8 +58,9 @@ func (r *configRepo) Upsert(ctx context.Context, config *entity.BotConfiguration
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO bot_configurations (bot_id, tone, writing_style, supported_languages, working_hours_start, working_hours_end,
 		        working_days, max_turns_before_escalation, escalation_rules, human_handoff_policy,
-		        approval_policy, fallback_actions, compliance_restrictions, custom_system_prompt, temperature, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
+		        approval_policy, fallback_actions, compliance_restrictions, custom_system_prompt,
+		        temperature, ai_model, max_response_tokens, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW())
 		 ON CONFLICT (bot_id) DO UPDATE SET
 		    tone = EXCLUDED.tone, writing_style = EXCLUDED.writing_style,
 		    supported_languages = EXCLUDED.supported_languages,
@@ -69,13 +71,14 @@ func (r *configRepo) Upsert(ctx context.Context, config *entity.BotConfiguration
 		    approval_policy = EXCLUDED.approval_policy, fallback_actions = EXCLUDED.fallback_actions,
 		    compliance_restrictions = EXCLUDED.compliance_restrictions,
 		    custom_system_prompt = EXCLUDED.custom_system_prompt, temperature = EXCLUDED.temperature,
+		    ai_model = EXCLUDED.ai_model, max_response_tokens = EXCLUDED.max_response_tokens,
 		    updated_at = NOW()`,
 		config.BotID, config.Tone, config.WritingStyle, pq.Array(config.SupportedLanguages),
 		config.WorkingHoursStart, config.WorkingHoursEnd,
 		pq.Array(workingDays), config.MaxTurnsBeforeEscalation,
 		config.EscalationRules, config.HumanHandoffPolicy,
 		config.ApprovalPolicy, config.FallbackActions, config.ComplianceRestrictions,
-		config.CustomSystemPrompt, config.Temperature,
+		config.CustomSystemPrompt, config.Temperature, config.AIModel, config.MaxResponseTokens,
 	)
 	if err != nil {
 		return fmt.Errorf("upsert bot configuration: %w", err)

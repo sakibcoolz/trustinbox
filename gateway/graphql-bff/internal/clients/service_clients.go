@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	grpcinterceptors "github.com/trustinbox/cornerstone/middleware"
 	analyticspb "github.com/trustinbox/proto/gen/analytics/v1"
 	authpb "github.com/trustinbox/proto/gen/auth/v1"
 	botpb "github.com/trustinbox/proto/gen/bot/v1"
@@ -62,7 +63,13 @@ func NewServiceClients(log *zap.Logger) (*ServiceClients, error) {
 		if addr == "" {
 			addr = d.defAddr
 		}
-		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.NewClient(addr,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithChainUnaryInterceptor(
+				grpcinterceptors.ContextPropagationUnaryClientInterceptor(),
+				grpcinterceptors.TracingUnaryClientInterceptor("graphql-bff"),
+			),
+		)
 		if err != nil {
 			sc.Close()
 			return nil, fmt.Errorf("dial %s at %s: %w", d.name, addr, err)

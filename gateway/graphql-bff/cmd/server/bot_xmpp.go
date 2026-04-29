@@ -174,7 +174,53 @@ func triggerBotReplyAsync(deps *chatDeps, svc *clients.ServiceClients, convID, u
 		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 		defer cancel()
 
-		inputJSON, _ := json.Marshal(map[string]string{"message": userMessage})
+		// ── Fetch recent conversation history (oldest-first, max 20 turns) ──
+		// We fetch 21 rows (DESC) and reverse, excluding the current user message
+		// which is passed separately as "message".
+		type historyEntry struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+		}
+		var history []historyEntry
+
+		rows, rowErr := deps.db.QueryContext(ctx,
+			`SELECT sender_type, content
+			   FROM messages
+			  WHERE conversation_id = $1
+			  ORDER BY created_at DESC
+			  LIMIT 20`, convID,
+		)
+		if rowErr != nil {
+			deps.log.Warn("bot reply: could not load history",
+				zap.Error(rowErr),
+				zap.String("conversation_id", convID),
+			)
+		} else {
+			defer rows.Close()
+			// Collected in DESC order; we'll reverse below
+			var reversed []historyEntry
+			for rows.Next() {
+				var senderType, content string
+				if err := rows.Scan(&senderType, &content); err != nil {
+					continue
+				}
+				role := "user"
+				if senderType == "AI" {
+					role = "assistant"
+				}
+				reversed = append(reversed, historyEntry{Role: role, Content: content})
+			}
+			// Reverse to chronological order
+			for i := len(reversed) - 1; i >= 0; i-- {
+				history = append(history, reversed[i])
+			}
+		}
+
+		inputPayload := map[string]interface{}{
+			"message": userMessage,
+			"history": history,
+		}
+		inputJSON, _ := json.Marshal(inputPayload)
 
 		resp, err := svc.Bot.ExecuteBotAction(ctx, &botpb.ExecuteBotActionRequest{
 			BotId:             botID,
@@ -289,7 +335,7 @@ func handleCreateBotConversation(deps *chatDeps, svc *clients.ServiceClients) ht
 
 		// Verify the bot exists and is ACTIVE; load name + spID for shadow row.
 		var (
-			botName sql.NullString
+			botName   sql.NullString
 			botStatus string
 		)
 		err = deps.db.QueryRowContext(ctx,

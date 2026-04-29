@@ -3,6 +3,8 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +14,11 @@ import (
 	"github.com/trustinbox/cornerstone/events"
 	"github.com/trustinbox/cornerstone/tracing"
 	aiv1 "github.com/trustinbox/proto/gen/ai/v1"
+	communicationv1 "github.com/trustinbox/proto/gen/communication/v1"
+	documentv1 "github.com/trustinbox/proto/gen/document/v1"
+	notificationv1 "github.com/trustinbox/proto/gen/notification/v1"
+	policyv1 "github.com/trustinbox/proto/gen/policy/v1"
+	userv1 "github.com/trustinbox/proto/gen/user/v1"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
@@ -57,6 +64,11 @@ type BotUseCase struct {
 	suspensionRepo repository.BotWorkflowSuspensionRepository
 	policy         PolicyChecker
 	aiClient       aiv1.AIServiceClient
+	userClient     userv1.UserServiceClient
+	notifClient    notificationv1.NotificationServiceClient
+	commClient     communicationv1.CommunicationServiceClient
+	policyClient   policyv1.PolicyServiceClient
+	docClient      documentv1.DocumentServiceClient
 	workflows      WorkflowDispatcher
 	resumeBaseURL  string
 	publisher      events.Publisher
@@ -75,6 +87,11 @@ func NewBotUseCase(
 	suspensionRepo repository.BotWorkflowSuspensionRepository,
 	policy PolicyChecker,
 	aiClient aiv1.AIServiceClient,
+	userClient userv1.UserServiceClient,
+	notifClient notificationv1.NotificationServiceClient,
+	commClient communicationv1.CommunicationServiceClient,
+	policyClient policyv1.PolicyServiceClient,
+	docClient documentv1.DocumentServiceClient,
 	workflows WorkflowDispatcher,
 	resumeBaseURL string,
 	publisher events.Publisher,
@@ -91,6 +108,11 @@ func NewBotUseCase(
 		suspensionRepo: suspensionRepo,
 		policy:         policy,
 		aiClient:       aiClient,
+		userClient:     userClient,
+		notifClient:    notifClient,
+		commClient:     commClient,
+		policyClient:   policyClient,
+		docClient:      docClient,
 		workflows:      workflows,
 		resumeBaseURL:  resumeBaseURL,
 		publisher:      publisher,
@@ -139,6 +161,8 @@ func (uc *BotUseCase) CreateBot(ctx context.Context, spID, name, purpose, depart
 		WorkingDays:              []int{1, 2, 3, 4, 5},
 		MaxTurnsBeforeEscalation: 10,
 		Temperature:              0.7,
+		AIModel:                  "gpt-4o-mini",
+		MaxResponseTokens:        1024,
 	}
 	if err := uc.configRepo.Upsert(ctx, config); err != nil {
 		return nil, bizerr.Internal("failed to create bot configuration", err)
@@ -342,8 +366,15 @@ func (uc *BotUseCase) ExecuteAction(ctx context.Context, botID, spID, conversati
 			return outputJSON, true, nil
 		}
 	default:
-		// TODO: route remaining tools through ai-service ExecuteTool
-		outputJSON = `{"status":"executed","tool":"` + toolName + `"}`
+		var toolErr error
+		outputJSON, toolErr = uc.dispatchTool(ctx, botID, spID, conversationID, userID, toolName, inputJSON)
+		if toolErr != nil {
+			actionLog.Success = false
+			actionLog.ErrorMessage = toolErr.Error()
+			actionLog.DurationMS = int(time.Since(start).Milliseconds())
+			uc.actionRepo.Create(ctx, actionLog)
+			return "", false, toolErr
+		}
 	}
 
 	actionLog.OutputSummary = truncate(outputJSON, 500)
@@ -367,42 +398,119 @@ func (uc *BotUseCase) ExecuteAction(ctx context.Context, botID, spID, conversati
 }
 
 // executeTestPrompt handles test_prompt actions by calling the AI service directly.
+// Input JSON shape: { "message": "...", "systemPrompt": "...", "history": [{"role":"user"|"assistant","content":"..."}] }
 func (uc *BotUseCase) executeTestPrompt(ctx context.Context, bot *entity.Bot, inputJSON string, start time.Time) (string, bool, error) {
 	if uc.aiClient == nil {
 		return "", false, bizerr.Internal("ai service not configured", nil)
 	}
 
-	// Parse input: { "message": "...", "systemPrompt": "..." }
+	// ─── Parse input ────────────────────────────────────────────────────────
 	var input struct {
 		Message      string `json:"message"`
 		SystemPrompt string `json:"systemPrompt"`
+		History      []struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+		} `json:"history"`
 	}
 	if err := json.Unmarshal([]byte(inputJSON), &input); err != nil {
 		return "", false, bizerr.InvalidInput("invalid test_prompt input: " + err.Error())
 	}
 
-	// If no system prompt in input, try the bot's configured system prompt
-	systemPrompt := input.SystemPrompt
-	if systemPrompt == "" {
-		cfg, err := uc.configRepo.Get(ctx, bot.ID)
-		if err == nil && cfg.CustomSystemPrompt != "" {
-			systemPrompt = cfg.CustomSystemPrompt
+	// ─── Resolve system prompt ───────────────────────────────────────────────
+	// Load bot configuration for model settings and custom system prompt.
+	cfg, cfgErr := uc.configRepo.Get(ctx, bot.ID)
+	if cfgErr != nil {
+		uc.log.Warn("bot configuration not found — using identity-only system prompt",
+			zap.String("bot_id", bot.ID),
+			zap.Error(cfgErr),
+		)
+	}
+
+	// Build a composite system prompt that always tells the LLM who the bot is.
+	// Layer order (highest specificity last so it can override):
+	//   1. Bot identity block  — name, purpose, department  (always present)
+	//   2. Tone / writing style from config
+	//   3. Custom system prompt from config (admin-authored persona instructions)
+	//   4. Caller-passed systemPrompt (test-panel override, appended last)
+	var promptParts []string
+
+	// 1. Identity block
+	identityLine := fmt.Sprintf("You are %s", bot.Name)
+	if bot.Department != "" {
+		identityLine += fmt.Sprintf(", operating in the %s department", bot.Department)
+	}
+	identityLine += "."
+	promptParts = append(promptParts, identityLine)
+	if bot.Purpose != "" {
+		promptParts = append(promptParts, fmt.Sprintf("Your purpose: %s", bot.Purpose))
+	}
+
+	// 2. Tone / style from config
+	if cfgErr == nil {
+		if cfg.Tone != "" {
+			promptParts = append(promptParts, fmt.Sprintf("Tone: %s.", cfg.Tone))
+		}
+		if cfg.WritingStyle != "" {
+			promptParts = append(promptParts, fmt.Sprintf("Writing style: %s.", cfg.WritingStyle))
+		}
+		// 3. Custom system prompt (detailed persona / instructions)
+		if cfg.CustomSystemPrompt != "" {
+			promptParts = append(promptParts, cfg.CustomSystemPrompt)
 		}
 	}
 
-	// Build ChatCompletion request
-	messages := []*aiv1.ChatMessage{}
+	// 4. Explicit override from caller (test-panel may pass one)
+	if input.SystemPrompt != "" {
+		promptParts = append(promptParts, input.SystemPrompt)
+	}
+
+	systemPrompt := strings.Join(promptParts, "\n\n")
+
+	// ─── Resolve model settings from config (with safe defaults) ────────────
+	provider := "openai"
+	model := "gpt-4o-mini"
+	maxTokens := 1024
+	temperature := 0.7
+
+	if cfgErr == nil {
+		if cfg.AIModel != "" {
+			model = cfg.AIModel
+		}
+		if cfg.MaxResponseTokens > 0 {
+			maxTokens = cfg.MaxResponseTokens
+		}
+		if cfg.Temperature > 0 {
+			temperature = cfg.Temperature
+		}
+	}
+
+	// ─── Build messages array: [system] + [history] + [current user] ────────
+	messages := make([]*aiv1.ChatMessage, 0, len(input.History)+2)
+
 	if systemPrompt != "" {
 		messages = append(messages, &aiv1.ChatMessage{Role: "system", Content: systemPrompt})
 	}
+
+	// History is already in oldest-first order (sent from frontend / XMPP fetcher)
+	for _, h := range input.History {
+		role := h.Role
+		// Normalise any unexpected role values to avoid API rejections
+		if role != "user" && role != "assistant" {
+			continue
+		}
+		messages = append(messages, &aiv1.ChatMessage{Role: role, Content: h.Content})
+	}
+
 	messages = append(messages, &aiv1.ChatMessage{Role: "user", Content: input.Message})
 
+	// ─── Call AI service ─────────────────────────────────────────────────────
 	resp, err := uc.aiClient.ChatCompletion(ctx, &aiv1.ChatCompletionRequest{
-		Provider:          "openai",
-		Model:             "gpt-4o-mini",
+		Provider:          provider,
+		Model:             model,
 		Messages:          messages,
-		Temperature:       0.7,
-		MaxTokens:         1024,
+		Temperature:       temperature,
+		MaxTokens:         int32(maxTokens),
 		BotId:             bot.ID,
 		ServiceProviderId: bot.ServiceProviderID,
 	})
@@ -411,7 +519,7 @@ func (uc *BotUseCase) executeTestPrompt(ctx context.Context, bot *entity.Bot, in
 		return "", false, bizerr.Internal("ai chat completion failed", err)
 	}
 
-	// Build response JSON matching frontend expectation: { "response": "..." }
+	// ─── Build response JSON matching frontend expectation ───────────────────
 	result := map[string]interface{}{
 		"response":    resp.GetContent(),
 		"model":       resp.GetModel(),
@@ -421,11 +529,12 @@ func (uc *BotUseCase) executeTestPrompt(ctx context.Context, bot *entity.Bot, in
 	outputBytes, _ := json.Marshal(result)
 	outputJSON := string(outputBytes)
 
-	// Update analytics
 	uc.statsRepo.IncrementActions(ctx, bot.ID)
 
 	uc.log.Info("test_prompt executed",
 		zap.String("bot_id", bot.ID),
+		zap.String("model", model),
+		zap.Int("history_turns", len(input.History)),
 		zap.Int("duration_ms", int(time.Since(start).Milliseconds())),
 	)
 

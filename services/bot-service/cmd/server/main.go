@@ -17,8 +17,15 @@ import (
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
+	grpcinterceptors "github.com/trustinbox/cornerstone/middleware"
+	"github.com/trustinbox/cornerstone/tracing"
 	aiv1 "github.com/trustinbox/proto/gen/ai/v1"
 	pb "github.com/trustinbox/proto/gen/bot/v1"
+	communicationv1 "github.com/trustinbox/proto/gen/communication/v1"
+	documentv1 "github.com/trustinbox/proto/gen/document/v1"
+	notificationv1 "github.com/trustinbox/proto/gen/notification/v1"
+	policyv1 "github.com/trustinbox/proto/gen/policy/v1"
+	userv1 "github.com/trustinbox/proto/gen/user/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -31,6 +38,13 @@ func main() {
 	cfg := config.LoadServiceConfig("bot-service")
 	log := logger.New(cfg.ServiceName)
 	defer log.Sync()
+
+	// ─── OpenTelemetry tracing ─────────────────────────────
+	if tracerCleanup, err := tracing.InitTracer(cfg.ServiceName); err != nil {
+		log.Warn("tracing init failed; continuing without OTel traces", zap.Error(err))
+	} else {
+		defer tracerCleanup()
+	}
 
 	log.Info("starting bot service", zap.String("grpc_port", cfg.GRPCPort))
 
@@ -74,6 +88,51 @@ func main() {
 	defer aiConn.Close()
 	aiClient := aiv1.NewAIServiceClient(aiConn)
 
+	// User service gRPC client
+	userAddr := config.GetEnv("USER_SERVICE_ADDR", "localhost:50052")
+	userConn, err := grpc.NewClient(userAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal("failed to connect to user-service", zap.Error(err))
+	}
+	defer userConn.Close()
+	userClient := userv1.NewUserServiceClient(userConn)
+
+	// Notification service gRPC client
+	notifAddr := config.GetEnv("NOTIFICATION_SERVICE_ADDR", "localhost:50055")
+	notifConn, err := grpc.NewClient(notifAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal("failed to connect to notification-service", zap.Error(err))
+	}
+	defer notifConn.Close()
+	notifClient := notificationv1.NewNotificationServiceClient(notifConn)
+
+	// Communication service gRPC client
+	commAddr := config.GetEnv("COMMUNICATION_SERVICE_ADDR", "localhost:50056")
+	commConn, err := grpc.NewClient(commAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal("failed to connect to communication-service", zap.Error(err))
+	}
+	defer commConn.Close()
+	commClient := communicationv1.NewCommunicationServiceClient(commConn)
+
+	// Policy service gRPC client
+	policyAddr := config.GetEnv("POLICY_SERVICE_ADDR", "localhost:50053")
+	policyConn, err := grpc.NewClient(policyAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal("failed to connect to policy-service", zap.Error(err))
+	}
+	defer policyConn.Close()
+	botPolicyClient := policyv1.NewPolicyServiceClient(policyConn)
+
+	// Document service gRPC client
+	docAddr := config.GetEnv("DOCUMENT_SERVICE_ADDR", "localhost:50062")
+	docConn, err := grpc.NewClient(docAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal("failed to connect to document-service", zap.Error(err))
+	}
+	defer docConn.Close()
+	docClient := documentv1.NewDocumentServiceClient(docConn)
+
 	// n8n workflow dispatcher (optional — disabled if N8N_BASE_URL is empty)
 	var workflowDispatcher usecase.WorkflowDispatcher
 	n8nBaseURL := config.GetEnv("N8N_BASE_URL", "")
@@ -94,7 +153,9 @@ func main() {
 	botUC := usecase.NewBotUseCase(
 		botRepo, configRepo, permRepo, sourceRepo, actionRepo, statsRepo,
 		workflowRepo, suspensionRepo,
-		nil, aiClient, workflowDispatcher, resumeBaseURL,
+		nil, aiClient,
+		userClient, notifClient, commClient, botPolicyClient, docClient,
+		workflowDispatcher, resumeBaseURL,
 		publisher, log,
 	)
 
@@ -106,7 +167,13 @@ func main() {
 		log.Fatal("failed to listen", zap.Error(err))
 	}
 
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			grpcinterceptors.ContextPropagationUnaryInterceptor(),
+			grpcinterceptors.TracingUnaryInterceptor(cfg.ServiceName),
+			grpcinterceptors.LoggingUnaryInterceptor(log),
+		),
+	)
 	pb.RegisterBotServiceServer(srv, handler)
 	healthSrv := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(srv, healthSrv)

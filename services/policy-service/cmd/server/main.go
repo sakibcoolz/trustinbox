@@ -13,6 +13,8 @@ import (
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
+	grpcinterceptors "github.com/trustinbox/cornerstone/middleware"
+	"github.com/trustinbox/cornerstone/tracing"
 	grpcdelivery "github.com/trustinbox/policy-service/internal/delivery/grpc"
 	"github.com/trustinbox/policy-service/internal/infra/postgres"
 	"github.com/trustinbox/policy-service/internal/usecase"
@@ -28,6 +30,13 @@ func main() {
 	cfg := config.LoadServiceConfig("policy-service")
 	log := logger.New(cfg.ServiceName)
 	defer log.Sync()
+
+	// ─── OpenTelemetry tracing ─────────────────────────────
+	if tracerCleanup, err := tracing.InitTracer(cfg.ServiceName); err != nil {
+		log.Warn("tracing init failed; continuing without OTel traces", zap.Error(err))
+	} else {
+		defer tracerCleanup()
+	}
 
 	log.Info("starting policy service",
 		zap.String("grpc_port", cfg.GRPCPort),
@@ -68,7 +77,13 @@ func main() {
 	evaluator := usecase.NewPolicyEvaluator(userRepo, spRepo, freqRepo, publisher, log)
 	handler := grpcdelivery.NewPolicyHandler(evaluator)
 
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			grpcinterceptors.ContextPropagationUnaryInterceptor(),
+			grpcinterceptors.TracingUnaryInterceptor(cfg.ServiceName),
+			grpcinterceptors.LoggingUnaryInterceptor(log),
+		),
+	)
 	pb.RegisterPolicyServiceServer(srv, handler)
 
 	healthSrv := health.NewServer()

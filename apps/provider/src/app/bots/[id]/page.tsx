@@ -43,13 +43,21 @@ function BotTestPanel({ systemPrompt, botId }: { systemPrompt: string; botId: st
     if (!input.trim()) return;
     const userMsg = input.trim();
     setInput('');
-    setMessages((prev) => [...prev, { role: 'user', text: userMsg }]);
+    const updatedMessages = [...messages, { role: 'user' as const, text: userMsg }];
+    setMessages(updatedMessages);
+
+    // Build history from prior turns (exclude the message we're about to send)
+    const history = messages.map((m) => ({
+      role: m.role === 'user' ? 'user' : 'assistant',
+      content: m.text,
+    }));
+
     try {
       const result = await execute({
         botId,
         serviceProviderId: spId,
         actionType: 'test_prompt',
-        inputJson: JSON.stringify({ message: userMsg, systemPrompt }),
+        inputJson: JSON.stringify({ message: userMsg, systemPrompt, history }),
       });
       const text = result?.outputJson ? JSON.parse(result.outputJson).response ?? 'No response' : 'No response';
       setMessages((prev) => [...prev, { role: 'bot', text }]);

@@ -22,6 +22,7 @@ import (
 	"github.com/trustinbox/cornerstone/auth/jwt"
 	"github.com/trustinbox/cornerstone/config"
 	logger "github.com/trustinbox/cornerstone/logging"
+	"github.com/trustinbox/cornerstone/tracing"
 	"github.com/trustinbox/graphql-bff/graph/generated"
 	"github.com/trustinbox/graphql-bff/graph/resolver"
 	"github.com/trustinbox/graphql-bff/internal/clients"
@@ -41,6 +42,13 @@ func main() {
 	cfg := config.LoadServiceConfig("graphql-bff")
 	log := logger.New(cfg.ServiceName)
 	defer log.Sync()
+
+	// ─── OpenTelemetry tracing ─────────────────────────────
+	if tracerCleanup, err := tracing.InitTracer(cfg.ServiceName); err != nil {
+		log.Warn("tracing init failed; continuing without OTel traces", zap.Error(err))
+	} else {
+		defer tracerCleanup()
+	}
 
 	log.Info("starting GraphQL gateway",
 		zap.String("http_port", cfg.HTTPPort),

@@ -13,6 +13,7 @@ import (
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
+	"github.com/trustinbox/cornerstone/tracing"
 	"github.com/trustinbox/worker-service/internal/clients"
 	"github.com/trustinbox/worker-service/internal/worker"
 	"go.uber.org/zap"
@@ -24,6 +25,13 @@ func main() {
 	cfg := config.LoadServiceConfig("worker-service")
 	log := logger.New(cfg.ServiceName)
 	defer log.Sync()
+
+	// ─── OpenTelemetry tracing ─────────────────────────────
+	if tracerCleanup, err := tracing.InitTracer(cfg.ServiceName); err != nil {
+		log.Warn("tracing init failed; continuing without OTel traces", zap.Error(err))
+	} else {
+		defer tracerCleanup()
+	}
 
 	log.Info("starting worker service")
 

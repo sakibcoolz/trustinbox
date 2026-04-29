@@ -119,6 +119,22 @@ services:
       prometheus:
         condition: service_healthy
 
+  # ─── ChromaDB — vector database for RAG knowledge retrieval ────────────────
+  chromadb:
+    image: chromadb/chroma:0.6.3
+    environment:
+      CHROMA_SERVER_ALLOW_RESET: "true"
+      ANONYMIZED_TELEMETRY: "false"
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadbdata:/chroma/chroma
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v1/heartbeat || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # n8n — workflow automation engine triggered by bots via execute_workflow tool.
   # Owner UI: http://localhost:5678  (login: admin / trustinbox_n8n_dev)
   # Webhook base URL used by bot-service: http://n8n:5678 (inside Docker)
@@ -171,3 +187,4 @@ volumes:
   prometheusdata:
   grafanadata:
   n8ndata:
+  chromadbdata:

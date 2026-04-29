@@ -9,10 +9,14 @@ import (
 
 	grpcdelivery "github.com/trustinbox/ai-service/internal/delivery/grpc"
 	"github.com/trustinbox/ai-service/internal/domain/entity"
+	"github.com/trustinbox/ai-service/internal/domain/repository"
+	chromainfra "github.com/trustinbox/ai-service/internal/infra/chromadb"
 	"github.com/trustinbox/ai-service/internal/infra/llm"
 	"github.com/trustinbox/ai-service/internal/usecase"
 	"github.com/trustinbox/cornerstone/config"
 	logger "github.com/trustinbox/cornerstone/logging"
+	grpcinterceptors "github.com/trustinbox/cornerstone/middleware"
+	"github.com/trustinbox/cornerstone/tracing"
 	pb "github.com/trustinbox/proto/gen/ai/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -25,6 +29,13 @@ func main() {
 	cfg := config.LoadServiceConfig("ai-service")
 	log := logger.New(cfg.ServiceName)
 	defer log.Sync()
+
+	// ─── OpenTelemetry tracing ─────────────────────────────
+	if tracerCleanup, err := tracing.InitTracer(cfg.ServiceName); err != nil {
+		log.Warn("tracing init failed; continuing without OTel traces", zap.Error(err))
+	} else {
+		defer tracerCleanup()
+	}
 
 	log.Info("starting AI service", zap.String("grpc_port", cfg.GRPCPort))
 
@@ -50,8 +61,22 @@ func main() {
 	usecase.RegisterDefaultTools(registry)
 	toolExecutor := usecase.NewToolExecutor(registry)
 
-	// Knowledge chunk repository (in-memory for now)
-	chunkRepo := NewInMemoryKnowledgeChunkRepo()
+	// Knowledge chunk repository — ChromaDB with OpenAI embeddings.
+	// Falls back to the in-memory store when CHROMADB_URL or OPENAI_API_KEY
+	// is not set so local development without ChromaDB continues to work.
+	chromaURL := config.GetEnv("CHROMADB_URL", "")
+	var chunkRepo repository.KnowledgeChunkRepository
+	if chromaURL != "" && openaiKey != "" {
+		chromaClient := chromainfra.NewClient(chromaURL, openaiKey, log)
+		chunkRepo = chromainfra.NewRepository(chromaClient, log)
+		log.Info("using ChromaDB for knowledge storage",
+			zap.String("chromadb_url", chromaURL),
+			zap.String("embedding_model", "text-embedding-3-small"),
+		)
+	} else {
+		chunkRepo = NewInMemoryKnowledgeChunkRepo()
+		log.Warn("CHROMADB_URL or OPENAI_API_KEY not set — using in-memory knowledge store (not suitable for production)")
+	}
 
 	// Sub-components
 	rag := usecase.NewRAGPipeline(chunkRepo, router)
@@ -70,7 +95,13 @@ func main() {
 		log.Fatal("failed to listen", zap.Error(err))
 	}
 
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			grpcinterceptors.ContextPropagationUnaryInterceptor(),
+			grpcinterceptors.TracingUnaryInterceptor(cfg.ServiceName),
+			grpcinterceptors.LoggingUnaryInterceptor(log),
+		),
+	)
 	pb.RegisterAIServiceServer(srv, handler)
 	healthSrv := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(srv, healthSrv)

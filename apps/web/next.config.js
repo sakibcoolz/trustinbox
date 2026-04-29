@@ -3,6 +3,10 @@ const GATEWAY_URL = process.env.GATEWAY_URL || 'http://localhost:4000';
 
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    // Required in Next.js 14 to enable the instrumentation.ts hook for OTel.
+    instrumentationHook: true,
+  },
   async rewrites() {
     return [
       // Proxy all REST API calls to the Go gateway.

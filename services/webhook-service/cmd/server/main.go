@@ -14,6 +14,8 @@ import (
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/events"
 	logger "github.com/trustinbox/cornerstone/logging"
+	grpcinterceptors "github.com/trustinbox/cornerstone/middleware"
+	"github.com/trustinbox/cornerstone/tracing"
 	pb "github.com/trustinbox/proto/gen/webhook/v1"
 	"github.com/trustinbox/webhook-service/internal/consumer"
 	grpcdelivery "github.com/trustinbox/webhook-service/internal/delivery/grpc"
@@ -31,6 +33,13 @@ func main() {
 	cfg := config.LoadServiceConfig("webhook-service")
 	log := logger.New(cfg.ServiceName)
 	defer log.Sync()
+
+	// ─── OpenTelemetry tracing ─────────────────────────────
+	if tracerCleanup, err := tracing.InitTracer(cfg.ServiceName); err != nil {
+		log.Warn("tracing init failed; continuing without OTel traces", zap.Error(err))
+	} else {
+		defer tracerCleanup()
+	}
 
 	log.Info("starting webhook service", zap.String("grpc_port", cfg.GRPCPort))
 
@@ -93,7 +102,13 @@ func main() {
 		log.Fatal("failed to listen", zap.Error(err))
 	}
 
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			grpcinterceptors.ContextPropagationUnaryInterceptor(),
+			grpcinterceptors.TracingUnaryInterceptor(cfg.ServiceName),
+			grpcinterceptors.LoggingUnaryInterceptor(log),
+		),
+	)
 	pb.RegisterWebhookServiceServer(srv, handler)
 	healthSrv := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(srv, healthSrv)

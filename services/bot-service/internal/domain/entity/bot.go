@@ -43,6 +43,8 @@ type BotConfiguration struct {
 	FallbackActions          string // JSON
 	ComplianceRestrictions   string // JSON
 	CustomSystemPrompt       string
+	AIModel                  string
+	MaxResponseTokens        int
 	Temperature              float64
 }
 

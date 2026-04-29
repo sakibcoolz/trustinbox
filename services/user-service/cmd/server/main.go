@@ -12,6 +12,8 @@ import (
 	"github.com/trustinbox/cornerstone/config"
 	"github.com/trustinbox/cornerstone/crypto"
 	logger "github.com/trustinbox/cornerstone/logging"
+	grpcinterceptors "github.com/trustinbox/cornerstone/middleware"
+	"github.com/trustinbox/cornerstone/tracing"
 	pb "github.com/trustinbox/proto/gen/user/v1"
 	grpcdelivery "github.com/trustinbox/user-service/internal/delivery/grpc"
 	"github.com/trustinbox/user-service/internal/infra/postgres"
@@ -27,6 +29,13 @@ func main() {
 	cfg := config.LoadServiceConfig("user-service")
 	log := logger.New(cfg.ServiceName)
 	defer log.Sync()
+
+	// ─── OpenTelemetry tracing ─────────────────────────────
+	if tracerCleanup, err := tracing.InitTracer(cfg.ServiceName); err != nil {
+		log.Warn("tracing init failed; continuing without OTel traces", zap.Error(err))
+	} else {
+		defer tracerCleanup()
+	}
 
 	log.Info("starting user service", zap.String("grpc_port", cfg.GRPCPort))
 
@@ -67,7 +76,13 @@ func main() {
 	userUC := usecase.NewUserUseCase(profileRepo, privacyRepo, dndRepo, availRepo, blockRepo, addressRepo, log)
 	handler := grpcdelivery.NewUserHandler(userUC)
 
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			grpcinterceptors.ContextPropagationUnaryInterceptor(),
+			grpcinterceptors.TracingUnaryInterceptor(cfg.ServiceName),
+			grpcinterceptors.LoggingUnaryInterceptor(log),
+		),
+	)
 	pb.RegisterUserServiceServer(srv, handler)
 
 	healthSrv := health.NewServer()
