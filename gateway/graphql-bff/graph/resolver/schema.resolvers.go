@@ -14,7 +14,6 @@ import (
 	"github.com/trustinbox/cornerstone/auth/requestctx"
 	"github.com/trustinbox/graphql-bff/graph/generated"
 	"github.com/trustinbox/graphql-bff/graph/model"
-	botpb "github.com/trustinbox/proto/gen/bot/v1"
 	commpb "github.com/trustinbox/proto/gen/communication/v1"
 	notifpb "github.com/trustinbox/proto/gen/notification/v1"
 	orgpb "github.com/trustinbox/proto/gen/organization/v1"
@@ -531,92 +530,6 @@ func (r *mutationResolver) CreateCallbackRequest(ctx context.Context, input mode
 	}, nil
 }
 
-// CreateBot is the resolver for the createBot field.
-func (r *mutationResolver) CreateBot(ctx context.Context, input model.CreateBotInput) (*model.Bot, error) {
-	panic(fmt.Errorf("not implemented: CreateBot - createBot"))
-}
-
-// UpdateBot is the resolver for the updateBot field.
-func (r *mutationResolver) UpdateBot(ctx context.Context, input model.UpdateBotInput) (*model.Bot, error) {
-	panic(fmt.Errorf("not implemented: UpdateBot - updateBot"))
-}
-
-// DeleteBot is the resolver for the deleteBot field.
-func (r *mutationResolver) DeleteBot(ctx context.Context, botID string, serviceProviderID string) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteBot - deleteBot"))
-}
-
-// UpdateBotConfiguration is the resolver for the updateBotConfiguration field.
-func (r *mutationResolver) UpdateBotConfiguration(ctx context.Context, input model.UpdateBotConfigurationInput) (*model.BotConfiguration, error) {
-	panic(fmt.Errorf("not implemented: UpdateBotConfiguration - updateBotConfiguration"))
-}
-
-// SetBotPermission is the resolver for the setBotPermission field.
-func (r *mutationResolver) SetBotPermission(ctx context.Context, input model.SetBotPermissionInput) (bool, error) {
-	panic(fmt.Errorf("not implemented: SetBotPermission - setBotPermission"))
-}
-
-// AddKnowledgeSource is the resolver for the addKnowledgeSource field.
-func (r *mutationResolver) AddKnowledgeSource(ctx context.Context, input model.AddKnowledgeSourceInput) (*model.KnowledgeSource, error) {
-	panic(fmt.Errorf("not implemented: AddKnowledgeSource - addKnowledgeSource"))
-}
-
-// RemoveKnowledgeSource is the resolver for the removeKnowledgeSource field.
-func (r *mutationResolver) RemoveKnowledgeSource(ctx context.Context, knowledgeSourceID string, botID string, serviceProviderID string) (bool, error) {
-	panic(fmt.Errorf("not implemented: RemoveKnowledgeSource - removeKnowledgeSource"))
-}
-
-// ExecuteBotAction is the resolver for the executeBotAction field.
-func (r *mutationResolver) ExecuteBotAction(ctx context.Context, input model.ExecuteBotActionInput) (*model.ExecuteBotActionResult, error) {
-	panic(fmt.Errorf("not implemented: ExecuteBotAction - executeBotAction"))
-}
-
-// ProvisionAgentSuite is the resolver for the provisionAgentSuite field.
-func (r *mutationResolver) ProvisionAgentSuite(ctx context.Context, serviceProviderID string, createdBySpUserID string) (*model.AgentSuite, error) {
-	resp, err := r.Clients.Bot.ProvisionAgentSuite(ctx, &botpb.ProvisionAgentSuiteRequest{
-		ServiceProviderId: serviceProviderID,
-		CreatedBySpUserId: createdBySpUserID,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return mapAgentSuiteFromProto(resp.Suite), nil
-}
-
-// DelegateToAgent is the resolver for the delegateToAgent field.
-func (r *mutationResolver) DelegateToAgent(ctx context.Context, input model.DelegateToAgentInput) (*model.DelegateToAgentResult, error) {
-	var convID string
-	if input.ConversationID != nil {
-		convID = *input.ConversationID
-	}
-	var actionType string
-	if input.ActionType != nil {
-		actionType = *input.ActionType
-	}
-	resp, err := r.Clients.Bot.DelegateToAgent(ctx, &botpb.DelegateToAgentRequest{
-		ManagerBotId:      input.ManagerBotID,
-		ServiceProviderId: input.ServiceProviderID,
-		UserId:            input.UserID,
-		ConversationId:    convID,
-		AgentType:         string(input.AgentType),
-		TaskInput:         input.TaskInput,
-		ActionType:        actionType,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &model.DelegateToAgentResult{
-		Success:         resp.Success,
-		OutputJSON:      ptrString(resp.OutputJson),
-		PolicyDecision:  ptrString(resp.PolicyDecision),
-		PolicyReason:    ptrString(resp.PolicyReason),
-		Escalated:       resp.Escalated,
-		DurationMs:      int(resp.DurationMs),
-		IntentDetected:  resp.IntentDetected,
-		ConfidenceScore: resp.ConfidenceScore,
-	}, nil
-}
-
 // CreateWebhookSubscription is the resolver for the createWebhookSubscription field.
 func (r *mutationResolver) CreateWebhookSubscription(ctx context.Context, input model.CreateWebhookSubscriptionInput) (*model.WebhookSubscription, error) {
 	panic(fmt.Errorf("not implemented: CreateWebhookSubscription - createWebhookSubscription"))
@@ -1025,128 +938,6 @@ func (r *queryResolver) CheckCommunicationPolicy(ctx context.Context, servicePro
 	panic(fmt.Errorf("not implemented: CheckCommunicationPolicy - checkCommunicationPolicy"))
 }
 
-// Bot is the resolver for the bot field.
-func (r *queryResolver) Bot(ctx context.Context, id string, serviceProviderID string) (*model.Bot, error) {
-	_, err := requireAnyAuthenticatedRole(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := r.Clients.Bot.GetBot(ctx, &botpb.GetBotRequest{
-		BotId:             id,
-		ServiceProviderId: serviceProviderID,
-	})
-	if err != nil {
-		r.Log.Error("failed to get bot", zap.Error(err), zap.String("bot_id", id), zap.String("service_provider_id", serviceProviderID))
-		return nil, fmt.Errorf("failed to get bot: %w", err)
-	}
-
-	// Per product rule #9, the GraphQL surface is consumer-facing and may only
-	// expose MANAGER bots. Sub-agents are reachable only via Manager-driven
-	// delegation on the backend.
-	if resp.GetAgentType() != "MANAGER" {
-		r.Log.Warn("consumer attempted to fetch non-manager bot via GraphQL",
-			zap.String("bot_id", id), zap.String("agent_type", resp.GetAgentType()))
-		return nil, fmt.Errorf("bot not found")
-	}
-
-	return mapBotFromProto(resp), nil
-}
-
-// Bots is the resolver for the bots field.
-func (r *queryResolver) Bots(ctx context.Context, serviceProviderID string, status *model.BotStatus, limit *int, offset *int) (*model.BotConnection, error) {
-	_, err := requireAnyAuthenticatedRole(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	statusFilter := ""
-	if status != nil {
-		statusFilter = status.String()
-	}
-
-	// Per product rule #9, this consumer-facing query is restricted to MANAGER
-	// bots only. Each service provider has exactly one MANAGER, so this returns
-	// at most one bot. Sub-agents are not exposed through the GraphQL surface.
-	resp, err := r.Clients.Bot.ListBots(ctx, &botpb.ListBotsRequest{
-		ServiceProviderId: serviceProviderID,
-		Status:            statusFilter,
-		AgentType:         "MANAGER",
-		Limit:             intOrDefault(limit, 20),
-		Offset:            intOrDefault(offset, 0),
-	})
-	if err != nil {
-		r.Log.Error("failed to list bots", zap.Error(err), zap.String("service_provider_id", serviceProviderID), zap.String("status", statusFilter))
-		return nil, fmt.Errorf("failed to list bots: %w", err)
-	}
-
-	return mapBotConnectionFromProto(resp), nil
-}
-
-// BotConfiguration is the resolver for the botConfiguration field.
-func (r *queryResolver) BotConfiguration(ctx context.Context, botID string, serviceProviderID string) (*model.BotConfiguration, error) {
-	panic(fmt.Errorf("not implemented: BotConfiguration - botConfiguration"))
-}
-
-// BotPermissions is the resolver for the botPermissions field.
-func (r *queryResolver) BotPermissions(ctx context.Context, botID string, serviceProviderID string) ([]*model.BotPermission, error) {
-	panic(fmt.Errorf("not implemented: BotPermissions - botPermissions"))
-}
-
-// BotKnowledgeSources is the resolver for the botKnowledgeSources field.
-func (r *queryResolver) BotKnowledgeSources(ctx context.Context, botID string, serviceProviderID string) ([]*model.KnowledgeSource, error) {
-	panic(fmt.Errorf("not implemented: BotKnowledgeSources - botKnowledgeSources"))
-}
-
-// BotActionLogs is the resolver for the botActionLogs field.
-func (r *queryResolver) BotActionLogs(ctx context.Context, botID string, serviceProviderID string, conversationID *string, limit *int, offset *int) (*model.BotActionLogConnection, error) {
-	panic(fmt.Errorf("not implemented: BotActionLogs - botActionLogs"))
-}
-
-// BotAnalytics is the resolver for the botAnalytics field.
-func (r *queryResolver) BotAnalytics(ctx context.Context, botID string, serviceProviderID string) (*model.BotAnalytics, error) {
-	panic(fmt.Errorf("not implemented: BotAnalytics - botAnalytics"))
-}
-
-// AgentSuite is the resolver for the agentSuite field.
-func (r *queryResolver) AgentSuite(ctx context.Context, serviceProviderID string) (*model.AgentSuite, error) {
-	resp, err := r.Clients.Bot.GetAgentSuite(ctx, &botpb.GetAgentSuiteRequest{
-		ServiceProviderId: serviceProviderID,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return mapAgentSuiteFromProto(resp.Suite), nil
-}
-
-// AgentDelegationLogs is the resolver for the agentDelegationLogs field.
-func (r *queryResolver) AgentDelegationLogs(ctx context.Context, managerBotID string, serviceProviderID string, limit *int, offset *int) (*model.AgentDelegationLogConnection, error) {
-	lim, off := int32(20), int32(0)
-	if limit != nil {
-		lim = int32(*limit)
-	}
-	if offset != nil {
-		off = int32(*offset)
-	}
-	resp, err := r.Clients.Bot.ListDelegationLogs(ctx, &botpb.ListDelegationLogsRequest{
-		ManagerBotId:      managerBotID,
-		ServiceProviderId: serviceProviderID,
-		Limit:             lim,
-		Offset:            off,
-	})
-	if err != nil {
-		return nil, err
-	}
-	nodes := make([]*model.AgentDelegationLog, len(resp.Logs))
-	for i, l := range resp.Logs {
-		nodes[i] = mapAgentDelegationLogFromProto(l)
-	}
-	return &model.AgentDelegationLogConnection{
-		Nodes:      nodes,
-		TotalCount: int(resp.Total),
-	}, nil
-}
-
 // IndustryProfile is the resolver for the industryProfile field.
 func (r *queryResolver) IndustryProfile(ctx context.Context, industryKey string) (*model.IndustryProfile, error) {
 	panic(fmt.Errorf("not implemented: IndustryProfile - industryProfile"))
@@ -1215,11 +1006,6 @@ func (r *queryResolver) CallbackAnalytics(ctx context.Context, serviceProviderID
 // CampaignAnalytics is the resolver for the campaignAnalytics field.
 func (r *queryResolver) CampaignAnalytics(ctx context.Context, serviceProviderID string, campaignID string, from *time.Time, to *time.Time) (*model.CampaignAnalytics, error) {
 	panic(fmt.Errorf("not implemented: CampaignAnalytics - campaignAnalytics"))
-}
-
-// BotPerformanceAnalytics is the resolver for the botPerformanceAnalytics field.
-func (r *queryResolver) BotPerformanceAnalytics(ctx context.Context, serviceProviderID string, botID string, from *time.Time, to *time.Time) (*model.BotPerformanceAnalytics, error) {
-	panic(fmt.Errorf("not implemented: BotPerformanceAnalytics - botPerformanceAnalytics"))
 }
 
 // TeamMembers is the resolver for the teamMembers field.
@@ -1817,11 +1603,6 @@ func (r *subscriptionResolver) ProviderMessageReceived(ctx context.Context, serv
 // ProviderWebhookDeliveryCompleted is the resolver for the providerWebhookDeliveryCompleted field.
 func (r *subscriptionResolver) ProviderWebhookDeliveryCompleted(ctx context.Context, serviceProviderID string) (<-chan *model.WebhookDelivery, error) {
 	panic(fmt.Errorf("not implemented: ProviderWebhookDeliveryCompleted - providerWebhookDeliveryCompleted"))
-}
-
-// ProviderBotActionExecuted is the resolver for the providerBotActionExecuted field.
-func (r *subscriptionResolver) ProviderBotActionExecuted(ctx context.Context, serviceProviderID string) (<-chan *model.BotActionLog, error) {
-	panic(fmt.Errorf("not implemented: ProviderBotActionExecuted - providerBotActionExecuted"))
 }
 
 // ProviderCampaignProgressUpdated is the resolver for the providerCampaignProgressUpdated field.

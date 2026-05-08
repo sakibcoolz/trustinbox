@@ -1,11 +1,10 @@
 'use client';
 
 import { Suspense, use, useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import { ChevronDown, Bot, User, Check, CheckCheck, Loader2 } from 'lucide-react';
+import { ChevronDown, User, Check, CheckCheck, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/Skeleton';
 import { ConversationHeader } from '@/components/conversations/ConversationHeader';
 import { ConversationInfoSidebar } from '@/components/conversations/ConversationInfoSidebar';
-import { AIInsightsPanel } from '@/components/conversations/AIInsightsPanel';
 import { AgentAssignDrawer } from '@/components/conversations/AgentAssignDrawer';
 import { MessageComposer } from '@/components/conversations/MessageComposer';
 import { FileAttachment } from '@/components/conversations/FileAttachment';
@@ -324,9 +323,6 @@ function ConversationDetailContent({ id }: { id: string }) {
         open={infoOpen}
         onClose={() => setInfoOpen(false)}
       />
-
-      {/* AI insights right rail */}
-      <AIInsightsPanel conversationId={id} />
 
       {/* Agent assign drawer */}
       <AgentAssignDrawer

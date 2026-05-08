@@ -335,42 +335,7 @@ input ReportSpamInput {
   details: String
 }
 
-# ============================================================
-# BOT ENUMS
-# ============================================================
 
-enum BotStatus {
-  DRAFT
-  ACTIVE
-  PAUSED
-  ARCHIVED
-}
-
-enum AgentType {
-  GENERAL
-  MANAGER
-  DOCUMENTATION_WRITER
-  CUSTOMER_SERVICE
-  APPOINTMENT_SCHEDULING
-  PAYMENT
-  ORDER_ACCEPTING
-  PRODUCT_SHOWCASE
-}
-
-enum KnowledgeSourceType {
-  DOCUMENT
-  URL
-  TEXT
-  FAQ
-  API
-}
-
-enum KnowledgeSourceStatus {
-  PENDING
-  PROCESSING
-  ACTIVE_SOURCE
-  FAILED
-}
 
 enum WebhookSubscriptionStatus {
   ACTIVE_SUBSCRIPTION
@@ -395,163 +360,6 @@ enum CampaignStatus {
 }
 
 # ============================================================
-# BOT TYPES
-# ============================================================
-
-type Bot {
-  id: ID!
-  serviceProviderId: ID!
-  name: String!
-  avatarUrl: String
-  purpose: String!
-  department: String
-  industryProfileId: ID
-  status: BotStatus!
-  createdBySpUserId: ID!
-  configuration: BotConfiguration
-  permissions: [BotPermission!]!
-  knowledgeSources: [KnowledgeSource!]!
-  analytics: BotAnalytics
-  agentType: AgentType!
-  managerBotId: ID
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
-type BotConnection {
-  nodes: [Bot!]!
-  totalCount: Int!
-}
-
-type BotConfiguration {
-  botId: ID!
-  tone: String
-  writingStyle: String
-  supportedLanguages: [String!]!
-  workingHoursStart: String
-  workingHoursEnd: String
-  workingDays: [Int!]!
-  maxTurnsBeforeEscalation: Int
-  escalationRulesJson: String
-  humanHandoffPolicyJson: String
-  approvalPolicyJson: String
-  fallbackActionsJson: String
-  complianceRestrictionsJson: String
-  customSystemPrompt: String
-  temperature: Float
-}
-
-type BotPermission {
-  id: ID!
-  botId: ID!
-  toolName: String!
-  isAllowed: Boolean!
-  constraintsJson: String
-}
-
-type KnowledgeSource {
-  id: ID!
-  botId: ID!
-  sourceType: KnowledgeSourceType!
-  name: String!
-  description: String
-  content: String
-  s3Key: String
-  fileType: String
-  fileSize: Int
-  chunkCount: Int
-  status: KnowledgeSourceStatus!
-  createdAt: DateTime!
-}
-
-type BotActionLog {
-  id: ID!
-  botId: ID!
-  conversationId: ID
-  userId: ID
-  actionType: String!
-  toolUsed: String
-  inputSummary: String
-  outputSummary: String
-  policyDecision: String
-  durationMs: Int
-  success: Boolean!
-  errorMessage: String
-  createdAt: DateTime!
-}
-
-type BotActionLogConnection {
-  nodes: [BotActionLog!]!
-  totalCount: Int!
-}
-
-type BotAnalytics {
-  botId: ID!
-  totalConversations: Int!
-  totalMessagesSent: Int!
-  totalMessagesReceived: Int!
-  totalActionsExecuted: Int!
-  totalEscalations: Int!
-  avgResponseTimeMs: Int!
-  escalationRate: Float!
-  resolutionRate: Float!
-  satisfactionScore: Float!
-  lastActiveAt: DateTime
-}
-
-type ExecuteBotActionResult {
-  success: Boolean!
-  outputJson: String
-  policyDecision: String
-  policyReason: String
-  escalated: Boolean!
-}
-
-# ─── Agent Suite Types ─────────────────────────────────────
-
-type AgentSuite {
-  id: ID!
-  serviceProviderId: ID!
-  managerBotId: ID!
-  status: String!
-  provisionedAt: DateTime!
-  manager: Bot
-  agents: [Bot!]!
-}
-
-type AgentDelegationLog {
-  id: ID!
-  managerBotId: ID!
-  targetBotId: ID!
-  userId: ID!
-  conversationId: ID
-  intentDetected: String!
-  confidenceScore: Float!
-  inputSummary: String!
-  outputSummary: String!
-  durationMs: Int!
-  success: Boolean!
-  errorMessage: String!
-  createdAt: DateTime!
-}
-
-type AgentDelegationLogConnection {
-  nodes: [AgentDelegationLog!]!
-  totalCount: Int!
-}
-
-type DelegateToAgentResult {
-  success: Boolean!
-  outputJson: String
-  policyDecision: String
-  policyReason: String
-  escalated: Boolean!
-  durationMs: Int!
-  intentDetected: String!
-  confidenceScore: Float!
-}
-
-# ============================================================
 # INDUSTRY PROFILE TYPES
 # ============================================================
 
@@ -564,7 +372,6 @@ type IndustryProfile {
   complianceHintsJson: String
   documentTypesJson: String
   callbackWorkflowsJson: String
-  botPromptPackJson: String
   dashboardPresetsJson: String
   analyticsPresetsJson: String
   isActive: Boolean!
@@ -708,8 +515,6 @@ type DashboardAnalytics {
   messagesReceived: Int!
   documentsShared: Int!
   campaignsLaunched: Int!
-  botActions: Int!
-  botEscalations: Int!
   spamReports: Int!
   policyDenials: Int!
   webhookDeliveries: Int!
@@ -728,7 +533,6 @@ type DailyAnalyticsEntry {
   callbacksApproved: Int!
   messagesSent: Int!
   documentsShared: Int!
-  botActions: Int!
   spamReports: Int!
   policyDenials: Int!
 }
@@ -762,98 +566,6 @@ type CampaignAnalytics {
   readRate: Float!
 }
 
-type BotPerformanceAnalytics {
-  totalConversations: Int!
-  totalMessages: Int!
-  totalActions: Int!
-  totalEscalations: Int!
-  escalationRate: Float!
-  avgResponseTimeMs: Float!
-  resolutionRate: Float!
-  satisfactionScore: Float!
-}
-
-# ============================================================
-# BOT INPUTS
-# ============================================================
-
-input CreateBotInput {
-  serviceProviderId: ID!
-  name: String!
-  purpose: String!
-  department: String
-  industryProfileId: ID
-  avatarUrl: String
-}
-
-input UpdateBotInput {
-  botId: ID!
-  serviceProviderId: ID!
-  name: String
-  purpose: String
-  department: String
-  avatarUrl: String
-  status: BotStatus
-}
-
-input UpdateBotConfigurationInput {
-  botId: ID!
-  serviceProviderId: ID!
-  tone: String
-  writingStyle: String
-  supportedLanguages: [String!]
-  workingHoursStart: String
-  workingHoursEnd: String
-  workingDays: [Int!]
-  maxTurnsBeforeEscalation: Int
-  escalationRulesJson: String
-  humanHandoffPolicyJson: String
-  approvalPolicyJson: String
-  fallbackActionsJson: String
-  complianceRestrictionsJson: String
-  customSystemPrompt: String
-  temperature: Float
-}
-
-input SetBotPermissionInput {
-  botId: ID!
-  serviceProviderId: ID!
-  toolName: String!
-  isAllowed: Boolean!
-  constraintsJson: String
-}
-
-input AddKnowledgeSourceInput {
-  botId: ID!
-  serviceProviderId: ID!
-  sourceType: KnowledgeSourceType!
-  name: String!
-  description: String
-  content: String
-  s3Key: String
-  fileType: String
-  fileSize: Int
-}
-
-input ExecuteBotActionInput {
-  botId: ID!
-  serviceProviderId: ID!
-  conversationId: ID!
-  userId: ID!
-  actionType: String!
-  toolName: String
-  inputJson: String
-}
-
-input DelegateToAgentInput {
-  managerBotId: ID!
-  serviceProviderId: ID!
-  userId: ID!
-  conversationId: ID
-  agentType: AgentType!
-  taskInput: String!
-  actionType: String
-}
 
 # ============================================================
 # WEBHOOK INPUTS
@@ -1069,32 +781,6 @@ type Query {
     channel: String!
   ): PolicyCheckResult!
 
-  # Bots
-  bot(id: ID!, serviceProviderId: ID!): Bot!
-  bots(
-    serviceProviderId: ID!
-    status: BotStatus
-    limit: Int
-    offset: Int
-  ): BotConnection!
-  botConfiguration(botId: ID!, serviceProviderId: ID!): BotConfiguration!
-  botPermissions(botId: ID!, serviceProviderId: ID!): [BotPermission!]!
-  botKnowledgeSources(botId: ID!, serviceProviderId: ID!): [KnowledgeSource!]!
-  botActionLogs(
-    botId: ID!
-    serviceProviderId: ID!
-    conversationId: ID
-    limit: Int
-    offset: Int
-  ): BotActionLogConnection!
-  botAnalytics(botId: ID!, serviceProviderId: ID!): BotAnalytics!
-  agentSuite(serviceProviderId: ID!): AgentSuite!
-  agentDelegationLogs(
-    managerBotId: ID!
-    serviceProviderId: ID!
-    limit: Int
-    offset: Int
-  ): AgentDelegationLogConnection!
 
   # Industry Profiles
   industryProfile(industryKey: String!): IndustryProfile!
@@ -1160,12 +846,6 @@ type Query {
     from: DateTime
     to: DateTime
   ): CampaignAnalytics!
-  botPerformanceAnalytics(
-    serviceProviderId: ID!
-    botId: ID!
-    from: DateTime
-    to: DateTime
-  ): BotPerformanceAnalytics!
 
   # Team Management
   teamMembers(
@@ -1294,17 +974,6 @@ type Mutation {
   sendNotification(input: SendNotificationInput!): Notification!
   createCallbackRequest(input: CreateCallbackRequestInput!): CallbackRequest!
 
-  # Bots
-  createBot(input: CreateBotInput!): Bot!
-  updateBot(input: UpdateBotInput!): Bot!
-  deleteBot(botId: ID!, serviceProviderId: ID!): Boolean!
-  updateBotConfiguration(input: UpdateBotConfigurationInput!): BotConfiguration!
-  setBotPermission(input: SetBotPermissionInput!): Boolean!
-  addKnowledgeSource(input: AddKnowledgeSourceInput!): KnowledgeSource!
-  removeKnowledgeSource(knowledgeSourceId: ID!, botId: ID!, serviceProviderId: ID!): Boolean!
-  executeBotAction(input: ExecuteBotActionInput!): ExecuteBotActionResult!
-  provisionAgentSuite(serviceProviderId: ID!, createdBySpUserId: ID!): AgentSuite!
-  delegateToAgent(input: DelegateToAgentInput!): DelegateToAgentResult!
 
   # Webhook Subscriptions
   createWebhookSubscription(input: CreateWebhookSubscriptionInput!): WebhookSubscription!
@@ -1352,6 +1021,5 @@ type Subscription {
   providerCallbackRequestCreated(serviceProviderId: ID!): CallbackRequest!
   providerMessageReceived(serviceProviderId: ID!): Message!
   providerWebhookDeliveryCompleted(serviceProviderId: ID!): WebhookDelivery!
-  providerBotActionExecuted(serviceProviderId: ID!): BotActionLog!
   providerCampaignProgressUpdated(serviceProviderId: ID!): Campaign!
 }

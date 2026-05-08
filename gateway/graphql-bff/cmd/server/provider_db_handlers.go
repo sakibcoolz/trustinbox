@@ -580,269 +580,6 @@ func dbListWebhookDeliveries(w http.ResponseWriter, r *http.Request, db *sql.DB,
 	})
 }
 
-// ─── Bots (DB-based reads) ────────────────────────────────
-
-func dbListBots(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, spID string) {
-	limit := queryInt(r, "limit", 25)
-	offset := queryInt(r, "offset", 0)
-	if limit > 100 {
-		limit = 100
-	}
-
-	qb := newQB(spID)
-	if v := r.URL.Query().Get("status"); v != "" {
-		qb.add("status = $%d", v)
-	}
-
-	var total int
-	if err := db.QueryRowContext(r.Context(),
-		"SELECT COUNT(*) FROM bots "+qb.whereClause(), qb.args...,
-	).Scan(&total); err != nil {
-		log.Error("count bots", zap.Error(err))
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
-		return
-	}
-
-	lo, args := qb.limitOffset(limit, offset)
-	q := `SELECT b.id, b.name, COALESCE(b.avatar_url,''), b.purpose,
-	             COALESCE(b.department,''), b.status, b.created_at, b.updated_at
-	      FROM bots b ` + qb.whereClause() +
-		` ORDER BY b.created_at DESC` + lo
-
-	rows, err := db.QueryContext(r.Context(), q, args...)
-	if err != nil {
-		log.Error("list bots", zap.Error(err))
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
-		return
-	}
-	defer rows.Close()
-
-	type botRow struct {
-		ID         string `json:"id"`
-		Name       string `json:"name"`
-		AvatarURL  string `json:"avatarUrl"`
-		Purpose    string `json:"purpose"`
-		Department string `json:"department"`
-		Status     string `json:"status"`
-		CreatedAt  string `json:"createdAt"`
-		UpdatedAt  string `json:"updatedAt"`
-	}
-
-	nodes := make([]botRow, 0)
-	for rows.Next() {
-		var b botRow
-		var createdAt, updatedAt time.Time
-		if err := rows.Scan(&b.ID, &b.Name, &b.AvatarURL, &b.Purpose,
-			&b.Department, &b.Status, &createdAt, &updatedAt); err != nil {
-			log.Error("scan bot", zap.Error(err))
-			continue
-		}
-		b.CreatedAt = createdAt.Format(time.RFC3339)
-		b.UpdatedAt = updatedAt.Format(time.RFC3339)
-		nodes = append(nodes, b)
-	}
-
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"nodes": nodes, "totalCount": total,
-	})
-}
-
-func dbGetBot(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, spID, id string) {
-	var b struct {
-		ID         string `json:"id"`
-		Name       string `json:"name"`
-		AvatarURL  string `json:"avatarUrl"`
-		Purpose    string `json:"purpose"`
-		Department string `json:"department"`
-		Status     string `json:"status"`
-		CreatedAt  string `json:"createdAt"`
-		UpdatedAt  string `json:"updatedAt"`
-	}
-	var createdAt, updatedAt time.Time
-	err := db.QueryRowContext(r.Context(),
-		`SELECT id, name, COALESCE(avatar_url,''), purpose,
-		        COALESCE(department,''), status, created_at, updated_at
-		 FROM bots WHERE id = $1 AND service_provider_id = $2`,
-		id, spID,
-	).Scan(&b.ID, &b.Name, &b.AvatarURL, &b.Purpose,
-		&b.Department, &b.Status, &createdAt, &updatedAt)
-	if err == sql.ErrNoRows {
-		writeJSON(w, http.StatusNotFound, errorResponse{Error: "bot not found"})
-		return
-	}
-	if err != nil {
-		log.Error("get bot", zap.Error(err))
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
-		return
-	}
-	b.CreatedAt = createdAt.Format(time.RFC3339)
-	b.UpdatedAt = updatedAt.Format(time.RFC3339)
-	writeJSON(w, http.StatusOK, b)
-}
-
-func dbGetBotConfig(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, spID, botID string) {
-	// Verify bot belongs to SP
-	var exists bool
-	if err := db.QueryRowContext(r.Context(),
-		`SELECT EXISTS(SELECT 1 FROM bots WHERE id = $1 AND service_provider_id = $2)`,
-		botID, spID,
-	).Scan(&exists); err != nil || !exists {
-		writeJSON(w, http.StatusNotFound, errorResponse{Error: "bot not found"})
-		return
-	}
-
-	var cfg struct {
-		BotID       string          `json:"botId"`
-		Tone        string          `json:"tone"`
-		Style       string          `json:"writingStyle"`
-		Temperature float64         `json:"temperature"`
-		MaxTurns    int             `json:"maxTurnsBeforeEscalation"`
-		Prompt      string          `json:"customSystemPrompt"`
-		Escalation  json.RawMessage `json:"escalationRules"`
-		Handoff     json.RawMessage `json:"humanHandoffPolicy"`
-		Fallback    json.RawMessage `json:"fallbackActions"`
-	}
-	var escRaw, handoffRaw, fallbackRaw []byte
-	var prompt sql.NullString
-	err := db.QueryRowContext(r.Context(),
-		`SELECT bot_id, tone, writing_style, COALESCE(temperature, 0.7),
-		        COALESCE(max_turns_before_escalation, 10),
-		        custom_system_prompt,
-		        COALESCE(escalation_rules, '[]'::jsonb),
-		        COALESCE(human_handoff_policy, '{}'::jsonb),
-		        COALESCE(fallback_actions, '[]'::jsonb)
-		 FROM bot_configurations WHERE bot_id = $1`, botID,
-	).Scan(&cfg.BotID, &cfg.Tone, &cfg.Style, &cfg.Temperature,
-		&cfg.MaxTurns, &prompt, &escRaw, &handoffRaw, &fallbackRaw)
-	if err == sql.ErrNoRows {
-		// Return defaults
-		cfg.BotID = botID
-		cfg.Tone = "professional"
-		cfg.Style = "concise"
-		cfg.Temperature = 0.7
-		cfg.MaxTurns = 10
-		cfg.Escalation = json.RawMessage("[]")
-		cfg.Handoff = json.RawMessage("{}")
-		cfg.Fallback = json.RawMessage("[]")
-		writeJSON(w, http.StatusOK, cfg)
-		return
-	}
-	if err != nil {
-		log.Error("get bot config", zap.Error(err))
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
-		return
-	}
-	if prompt.Valid {
-		cfg.Prompt = prompt.String
-	}
-	cfg.Escalation = json.RawMessage(escRaw)
-	cfg.Handoff = json.RawMessage(handoffRaw)
-	cfg.Fallback = json.RawMessage(fallbackRaw)
-	writeJSON(w, http.StatusOK, cfg)
-}
-
-func dbListBotActions(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, spID, botID string) {
-	limit := queryInt(r, "limit", 25)
-	offset := queryInt(r, "offset", 0)
-	if limit > 100 {
-		limit = 100
-	}
-
-	var total int
-	if err := db.QueryRowContext(r.Context(),
-		`SELECT COUNT(*) FROM bot_action_logs bal
-		 JOIN bots b ON b.id = bal.bot_id
-		 WHERE bal.bot_id = $1 AND b.service_provider_id = $2`,
-		botID, spID,
-	).Scan(&total); err != nil {
-		log.Error("count bot actions", zap.Error(err))
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
-		return
-	}
-
-	q := `SELECT bal.id, bal.action_type, COALESCE(bal.tool_used,''),
-	             COALESCE(bal.input_summary,''), COALESCE(bal.output_summary,''),
-	             bal.success, COALESCE(bal.error_message,''),
-	             COALESCE(bal.duration_ms, 0), bal.created_at
-	      FROM bot_action_logs bal
-	      JOIN bots b ON b.id = bal.bot_id
-	      WHERE bal.bot_id = $1 AND b.service_provider_id = $2
-	      ORDER BY bal.created_at DESC LIMIT $3 OFFSET $4`
-
-	rows, err := db.QueryContext(r.Context(), q, botID, spID, limit, offset)
-	if err != nil {
-		log.Error("list bot actions", zap.Error(err))
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
-		return
-	}
-	defer rows.Close()
-
-	type actionRow struct {
-		ID            string `json:"id"`
-		ActionType    string `json:"actionType"`
-		ToolUsed      string `json:"toolUsed"`
-		InputSummary  string `json:"inputSummary"`
-		OutputSummary string `json:"outputSummary"`
-		Success       bool   `json:"success"`
-		ErrorMessage  string `json:"errorMessage"`
-		DurationMs    int    `json:"durationMs"`
-		CreatedAt     string `json:"createdAt"`
-	}
-
-	nodes := make([]actionRow, 0)
-	for rows.Next() {
-		var a actionRow
-		var createdAt time.Time
-		if err := rows.Scan(&a.ID, &a.ActionType, &a.ToolUsed,
-			&a.InputSummary, &a.OutputSummary,
-			&a.Success, &a.ErrorMessage, &a.DurationMs, &createdAt); err != nil {
-			log.Error("scan bot action", zap.Error(err))
-			continue
-		}
-		a.CreatedAt = createdAt.Format(time.RFC3339)
-		nodes = append(nodes, a)
-	}
-
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"nodes": nodes, "totalCount": total,
-	})
-}
-
-func dbGetBotAnalytics(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, spID, botID string) {
-	var a struct {
-		TotalConversations int     `json:"totalConversations"`
-		TotalMsgSent       int     `json:"totalMessagesSent"`
-		TotalMsgRecv       int     `json:"totalMessagesReceived"`
-		TotalActions       int     `json:"totalActionsExecuted"`
-		TotalEscalations   int     `json:"totalEscalations"`
-		AvgResponseTime    int     `json:"avgResponseTimeMs"`
-		EscalationRate     float64 `json:"escalationRate"`
-		ResolutionRate     float64 `json:"resolutionRate"`
-	}
-	err := db.QueryRowContext(r.Context(),
-		`SELECT COALESCE(total_conversations,0), COALESCE(total_messages_sent,0),
-		        COALESCE(total_messages_received,0), COALESCE(total_actions_executed,0),
-		        COALESCE(total_escalations,0), COALESCE(avg_response_time_ms,0),
-		        COALESCE(escalation_rate,0), COALESCE(resolution_rate,0)
-		 FROM bot_analytics ba
-		 JOIN bots b ON b.id = ba.bot_id
-		 WHERE ba.bot_id = $1 AND b.service_provider_id = $2`,
-		botID, spID,
-	).Scan(&a.TotalConversations, &a.TotalMsgSent, &a.TotalMsgRecv,
-		&a.TotalActions, &a.TotalEscalations, &a.AvgResponseTime,
-		&a.EscalationRate, &a.ResolutionRate)
-	if err == sql.ErrNoRows {
-		writeJSON(w, http.StatusOK, a) // zeros
-		return
-	}
-	if err != nil {
-		log.Error("get bot analytics", zap.Error(err))
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
-		return
-	}
-	writeJSON(w, http.StatusOK, a)
-}
-
 // ─── Analytics (DB-based from analytics_daily) ────────────
 
 func dbAnalyticsDashboard(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, spID string) {
@@ -854,7 +591,6 @@ func dbAnalyticsDashboard(w http.ResponseWriter, r *http.Request, db *sql.DB, lo
 	var cbReq, cbApproved, cbRejected int
 	var msgSent, msgRecv int
 	var campaignsLaunched int
-	var botActions, botEscalations int
 	var policyEvals, policyDenials int
 
 	q := `SELECT
@@ -864,7 +600,6 @@ func dbAnalyticsDashboard(w http.ResponseWriter, r *http.Request, db *sql.DB, lo
 		COALESCE(SUM(callbacks_rejected),0),
 		COALESCE(SUM(messages_sent),0), COALESCE(SUM(messages_received),0),
 		COALESCE(SUM(campaigns_launched),0),
-		COALESCE(SUM(bot_actions_executed),0), COALESCE(SUM(bot_escalations),0),
 		COALESCE(SUM(policy_evaluations),0), COALESCE(SUM(policy_denials),0)
 	  FROM analytics_daily ` + dateWhere
 
@@ -873,7 +608,6 @@ func dbAnalyticsDashboard(w http.ResponseWriter, r *http.Request, db *sql.DB, lo
 		&cbReq, &cbApproved, &cbRejected,
 		&msgSent, &msgRecv,
 		&campaignsLaunched,
-		&botActions, &botEscalations,
 		&policyEvals, &policyDenials,
 	); err != nil && err != sql.ErrNoRows {
 		log.Error("analytics dashboard", zap.Error(err))
@@ -901,8 +635,6 @@ func dbAnalyticsDashboard(w http.ResponseWriter, r *http.Request, db *sql.DB, lo
 		"previousOpenConversations": 0,
 		"activeCampaigns":           campaignsLaunched,
 		"previousActiveCampaigns":   0,
-		"botInteractions":           botActions,
-		"previousBotInteractions":   0,
 		"readRate":                  readRate,
 		"campaignsLaunched":         campaignsLaunched,
 		"dailyDelivery":             []interface{}{},
@@ -1042,29 +774,6 @@ func dbAnalyticsCallbacks(w http.ResponseWriter, r *http.Request, db *sql.DB, lo
 		"totalRejected":  rejected,
 		"totalExpired":   expired,
 		"approvalRate":   safeRate(approved, requested),
-	})
-}
-
-func dbAnalyticsBots(w http.ResponseWriter, r *http.Request, db *sql.DB, log *zap.Logger, spID string) {
-	from := r.URL.Query().Get("from")
-	to := r.URL.Query().Get("to")
-	_ = r.URL.Query().Get("botId") // TODO: filter by botId
-
-	dateWhere, dateArgs := buildDateFilter(spID, from, to)
-	var actions, escalations int
-	q := `SELECT COALESCE(SUM(bot_actions_executed),0), COALESCE(SUM(bot_escalations),0)
-	      FROM analytics_daily ` + dateWhere
-
-	if err := db.QueryRowContext(r.Context(), q, dateArgs...).Scan(&actions, &escalations); err != nil && err != sql.ErrNoRows {
-		log.Error("analytics bots", zap.Error(err))
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "database error"})
-		return
-	}
-
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"totalActionsExecuted": actions,
-		"totalEscalations":     escalations,
-		"escalationRate":       safeRate(escalations, actions),
 	})
 }
 

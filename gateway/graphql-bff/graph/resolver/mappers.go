@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/trustinbox/graphql-bff/graph/model"
-	botpb "github.com/trustinbox/proto/gen/bot/v1"
 	commpb "github.com/trustinbox/proto/gen/communication/v1"
 	notifpb "github.com/trustinbox/proto/gen/notification/v1"
 	orgpb "github.com/trustinbox/proto/gen/organization/v1"
@@ -311,102 +310,4 @@ func mapServiceProviderConnectionFromProto(resp *orgpb.ListServiceProvidersRespo
 	}
 }
 
-// ─── Bot Mappers ──────────────────────────────────────────
 
-func mapBotStatusFromProto(status string) model.BotStatus {
-	s := model.BotStatus(status)
-	if s.IsValid() {
-		return s
-	}
-	return model.BotStatusDraft
-}
-
-func mapBotFromProto(b *botpb.Bot) *model.Bot {
-	if b == nil {
-		return nil
-	}
-
-	return &model.Bot{
-		ID:                b.Id,
-		ServiceProviderID: b.ServiceProviderId,
-		Name:              b.Name,
-		AvatarURL:         ptrString(b.AvatarUrl),
-		Purpose:           b.Purpose,
-		Department:        ptrString(b.Department),
-		IndustryProfileID: ptrString(b.IndustryProfileId),
-		Status:            mapBotStatusFromProto(b.Status),
-		CreatedBySpUserID: b.CreatedBySpUserId,
-		AgentType:         mapAgentTypeFromProto(b.AgentType),
-		ManagerBotID:      ptrString(b.ManagerBotId),
-		Permissions:       []*model.BotPermission{},
-		KnowledgeSources:  []*model.KnowledgeSource{},
-		CreatedAt:         timeFromTimestamp(b.CreatedAt),
-		UpdatedAt:         timeFromTimestamp(b.UpdatedAt),
-	}
-}
-
-func mapBotConnectionFromProto(resp *botpb.ListBotsResponse) *model.BotConnection {
-	nodes := make([]*model.Bot, len(resp.Bots))
-	for i, b := range resp.Bots {
-		nodes[i] = mapBotFromProto(b)
-	}
-
-	return &model.BotConnection{
-		Nodes:      nodes,
-		TotalCount: int(resp.Total),
-	}
-}
-
-func mapAgentTypeFromProto(agentType string) model.AgentType {
-	t := model.AgentType(agentType)
-	if t.IsValid() {
-		return t
-	}
-	return model.AgentTypeGeneral
-}
-
-func mapAgentSuiteFromProto(s *botpb.AgentSuite) *model.AgentSuite {
-	if s == nil {
-		return nil
-	}
-	suite := &model.AgentSuite{
-		ID:                s.Id,
-		ServiceProviderID: s.ServiceProviderId,
-		ManagerBotID:      s.ManagerBotId,
-		Status:            s.Status,
-		ProvisionedAt:     timeFromTimestamp(s.ProvisionedAt),
-		Agents:            []*model.Bot{},
-	}
-	if s.Manager != nil {
-		suite.Manager = mapBotFromProto(s.Manager)
-	}
-	for _, a := range s.Agents {
-		suite.Agents = append(suite.Agents, mapBotFromProto(a))
-	}
-	return suite
-}
-
-func mapAgentDelegationLogFromProto(l *botpb.AgentDelegationLog) *model.AgentDelegationLog {
-	if l == nil {
-		return nil
-	}
-	log := &model.AgentDelegationLog{
-		ID:              l.Id,
-		ManagerBotID:    l.ManagerBotId,
-		TargetBotID:     l.TargetBotId,
-		UserID:          l.UserId,
-		IntentDetected:  l.IntentDetected,
-		ConfidenceScore: l.ConfidenceScore,
-		InputSummary:    l.InputSummary,
-		OutputSummary:   l.OutputSummary,
-		DurationMs:      int(l.DurationMs),
-		Success:         l.Success,
-		ErrorMessage:    l.ErrorMessage,
-		CreatedAt:       timeFromTimestamp(l.CreatedAt),
-	}
-	if l.ConversationId != "" {
-		s := l.ConversationId
-		log.ConversationID = &s
-	}
-	return log
-}

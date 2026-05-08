@@ -595,17 +595,7 @@ func handleSendMessageREST(deps *chatDeps) http.HandlerFunc {
 			resp.ReplyToID = &req.ReplyToID
 		}
 
-		// If a bot is one of the participants, trigger an async AI reply.
-		// The reply is persisted as a sender_type='AI' message and broadcast
-		// over SSE — same delivery channel as a human reply, so the chat UI
-		// renders it without any special handling.
-		if deps.svc != nil && msgType == "TEXT" && req.Content != "" {
-			if botID, spID := findBotInConversation(ctx, deps.db, convID); botID != "" {
-				triggerBotReplyAsync(deps, deps.svc, convID, userID, botID, spID, req.Content)
-			}
-		}
-
-		writeJSON(w, http.StatusCreated, resp)
+writeJSON(w, http.StatusCreated, resp)
 	}
 }
 

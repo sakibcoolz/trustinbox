@@ -7,7 +7,6 @@ import (
 	grpcinterceptors "github.com/trustinbox/cornerstone/middleware"
 	analyticspb "github.com/trustinbox/proto/gen/analytics/v1"
 	authpb "github.com/trustinbox/proto/gen/auth/v1"
-	botpb "github.com/trustinbox/proto/gen/bot/v1"
 	commpb "github.com/trustinbox/proto/gen/communication/v1"
 	notifpb "github.com/trustinbox/proto/gen/notification/v1"
 	orgpb "github.com/trustinbox/proto/gen/organization/v1"
@@ -27,7 +26,6 @@ type ServiceClients struct {
 	Notification  notifpb.NotificationServiceClient
 	Communication commpb.CommunicationServiceClient
 	Organization  orgpb.ServiceProviderServiceClient
-	Bot           botpb.BotServiceClient
 	Webhook       webhookpb.WebhookServiceClient
 	Analytics     analyticspb.AnalyticsServiceClient
 
@@ -53,7 +51,6 @@ func NewServiceClients(log *zap.Logger) (*ServiceClients, error) {
 		{"NOTIFICATION_SERVICE_ADDR", "localhost:50055", "notification-service", func(c *grpc.ClientConn) { sc.Notification = notifpb.NewNotificationServiceClient(c) }},
 		{"COMMUNICATION_SERVICE_ADDR", "localhost:50056", "communication-service", func(c *grpc.ClientConn) { sc.Communication = commpb.NewCommunicationServiceClient(c) }},
 		{"ORG_SERVICE_ADDR", "localhost:50054", "organization-service", func(c *grpc.ClientConn) { sc.Organization = orgpb.NewServiceProviderServiceClient(c) }},
-		{"BOT_SERVICE_ADDR", "localhost:50059", "bot-service", func(c *grpc.ClientConn) { sc.Bot = botpb.NewBotServiceClient(c) }},
 		{"WEBHOOK_SERVICE_ADDR", "localhost:50060", "webhook-service", func(c *grpc.ClientConn) { sc.Webhook = webhookpb.NewWebhookServiceClient(c) }},
 		{"ANALYTICS_SERVICE_ADDR", "localhost:50061", "analytics-service", func(c *grpc.ClientConn) { sc.Analytics = analyticspb.NewAnalyticsServiceClient(c) }},
 	}
