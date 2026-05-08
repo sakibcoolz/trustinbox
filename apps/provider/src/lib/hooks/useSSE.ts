@@ -65,6 +65,11 @@ export function useSSE(
       'message_received',
       'webhook_delivery',
       'dashboard_update',
+      // AI Studio events
+      'bot_action_executed',
+      'agent_delegated',
+      'knowledge_indexed',
+      'conversation_summary_updated',
     ];
 
     for (const eventType of eventTypes) {

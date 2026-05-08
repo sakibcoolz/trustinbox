@@ -571,6 +571,52 @@ func (r *mutationResolver) ExecuteBotAction(ctx context.Context, input model.Exe
 	panic(fmt.Errorf("not implemented: ExecuteBotAction - executeBotAction"))
 }
 
+// ProvisionAgentSuite is the resolver for the provisionAgentSuite field.
+func (r *mutationResolver) ProvisionAgentSuite(ctx context.Context, serviceProviderID string, createdBySpUserID string) (*model.AgentSuite, error) {
+	resp, err := r.Clients.Bot.ProvisionAgentSuite(ctx, &botpb.ProvisionAgentSuiteRequest{
+		ServiceProviderId: serviceProviderID,
+		CreatedBySpUserId: createdBySpUserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return mapAgentSuiteFromProto(resp.Suite), nil
+}
+
+// DelegateToAgent is the resolver for the delegateToAgent field.
+func (r *mutationResolver) DelegateToAgent(ctx context.Context, input model.DelegateToAgentInput) (*model.DelegateToAgentResult, error) {
+	var convID string
+	if input.ConversationID != nil {
+		convID = *input.ConversationID
+	}
+	var actionType string
+	if input.ActionType != nil {
+		actionType = *input.ActionType
+	}
+	resp, err := r.Clients.Bot.DelegateToAgent(ctx, &botpb.DelegateToAgentRequest{
+		ManagerBotId:      input.ManagerBotID,
+		ServiceProviderId: input.ServiceProviderID,
+		UserId:            input.UserID,
+		ConversationId:    convID,
+		AgentType:         string(input.AgentType),
+		TaskInput:         input.TaskInput,
+		ActionType:        actionType,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &model.DelegateToAgentResult{
+		Success:         resp.Success,
+		OutputJSON:      ptrString(resp.OutputJson),
+		PolicyDecision:  ptrString(resp.PolicyDecision),
+		PolicyReason:    ptrString(resp.PolicyReason),
+		Escalated:       resp.Escalated,
+		DurationMs:      int(resp.DurationMs),
+		IntentDetected:  resp.IntentDetected,
+		ConfidenceScore: resp.ConfidenceScore,
+	}, nil
+}
+
 // CreateWebhookSubscription is the resolver for the createWebhookSubscription field.
 func (r *mutationResolver) CreateWebhookSubscription(ctx context.Context, input model.CreateWebhookSubscriptionInput) (*model.WebhookSubscription, error) {
 	panic(fmt.Errorf("not implemented: CreateWebhookSubscription - createWebhookSubscription"))
@@ -995,6 +1041,15 @@ func (r *queryResolver) Bot(ctx context.Context, id string, serviceProviderID st
 		return nil, fmt.Errorf("failed to get bot: %w", err)
 	}
 
+	// Per product rule #9, the GraphQL surface is consumer-facing and may only
+	// expose MANAGER bots. Sub-agents are reachable only via Manager-driven
+	// delegation on the backend.
+	if resp.GetAgentType() != "MANAGER" {
+		r.Log.Warn("consumer attempted to fetch non-manager bot via GraphQL",
+			zap.String("bot_id", id), zap.String("agent_type", resp.GetAgentType()))
+		return nil, fmt.Errorf("bot not found")
+	}
+
 	return mapBotFromProto(resp), nil
 }
 
@@ -1010,9 +1065,13 @@ func (r *queryResolver) Bots(ctx context.Context, serviceProviderID string, stat
 		statusFilter = status.String()
 	}
 
+	// Per product rule #9, this consumer-facing query is restricted to MANAGER
+	// bots only. Each service provider has exactly one MANAGER, so this returns
+	// at most one bot. Sub-agents are not exposed through the GraphQL surface.
 	resp, err := r.Clients.Bot.ListBots(ctx, &botpb.ListBotsRequest{
 		ServiceProviderId: serviceProviderID,
 		Status:            statusFilter,
+		AgentType:         "MANAGER",
 		Limit:             intOrDefault(limit, 20),
 		Offset:            intOrDefault(offset, 0),
 	})
@@ -1047,6 +1106,45 @@ func (r *queryResolver) BotActionLogs(ctx context.Context, botID string, service
 // BotAnalytics is the resolver for the botAnalytics field.
 func (r *queryResolver) BotAnalytics(ctx context.Context, botID string, serviceProviderID string) (*model.BotAnalytics, error) {
 	panic(fmt.Errorf("not implemented: BotAnalytics - botAnalytics"))
+}
+
+// AgentSuite is the resolver for the agentSuite field.
+func (r *queryResolver) AgentSuite(ctx context.Context, serviceProviderID string) (*model.AgentSuite, error) {
+	resp, err := r.Clients.Bot.GetAgentSuite(ctx, &botpb.GetAgentSuiteRequest{
+		ServiceProviderId: serviceProviderID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return mapAgentSuiteFromProto(resp.Suite), nil
+}
+
+// AgentDelegationLogs is the resolver for the agentDelegationLogs field.
+func (r *queryResolver) AgentDelegationLogs(ctx context.Context, managerBotID string, serviceProviderID string, limit *int, offset *int) (*model.AgentDelegationLogConnection, error) {
+	lim, off := int32(20), int32(0)
+	if limit != nil {
+		lim = int32(*limit)
+	}
+	if offset != nil {
+		off = int32(*offset)
+	}
+	resp, err := r.Clients.Bot.ListDelegationLogs(ctx, &botpb.ListDelegationLogsRequest{
+		ManagerBotId:      managerBotID,
+		ServiceProviderId: serviceProviderID,
+		Limit:             lim,
+		Offset:            off,
+	})
+	if err != nil {
+		return nil, err
+	}
+	nodes := make([]*model.AgentDelegationLog, len(resp.Logs))
+	for i, l := range resp.Logs {
+		nodes[i] = mapAgentDelegationLogFromProto(l)
+	}
+	return &model.AgentDelegationLogConnection{
+		Nodes:      nodes,
+		TotalCount: int(resp.Total),
+	}, nil
 }
 
 // IndustryProfile is the resolver for the industryProfile field.

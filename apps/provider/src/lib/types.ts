@@ -1,86 +1,3 @@
-// ─── Bot Types & Constants ──────────────────────────────
-
-export type BotStatus = 'ACTIVE' | 'DRAFT' | 'PAUSED' | 'ARCHIVED';
-
-export interface BotAnalytics {
-  totalConversations: number;
-  totalEscalations: number;
-  escalationRate: number;
-  lastActiveAt?: string;
-}
-
-export interface Bot {
-  id: string;
-  serviceProviderId: string;
-  name: string;
-  avatarUrl?: string;
-  purpose: string;
-  department?: string;
-  industryProfileId?: string;
-  status: BotStatus;
-  createdAt: string;
-  updatedAt: string;
-  analytics?: BotAnalytics;
-}
-
-export interface BotConfiguration {
-  aiModel: string;
-  temperature: number;
-  maxResponseTokens: number;
-  tone: string;
-  writingStyle: string;
-  systemPrompt: string;
-}
-
-export interface BotPermission {
-  toolName: string;
-  enabled: boolean;
-}
-
-export interface BotActionLog {
-  id: string;
-  actionType: string;
-  toolUsed: string;
-  policyDecision: string;
-  duration: number;
-  success: boolean;
-  timestamp: string;
-  details?: string;
-}
-
-export interface KnowledgeSource {
-  id: string;
-  type: string;
-  name: string;
-  status: string;
-  size?: number;
-  chunks?: number;
-  createdAt: string;
-}
-
-export function getStatusConfig(status: BotStatus) {
-  switch (status) {
-    case 'ACTIVE': return { label: 'Active', className: 'bg-status-success/10 text-status-success' };
-    case 'DRAFT': return { label: 'Draft', className: 'bg-text-muted/10 text-text-muted' };
-    case 'PAUSED': return { label: 'Paused', className: 'bg-status-warning/10 text-status-warning' };
-    case 'ARCHIVED': return { label: 'Archived', className: 'bg-text-secondary/10 text-text-secondary' };
-    default: return { label: status, className: 'bg-text-muted/10 text-text-muted' };
-  }
-}
-
-export const ALLOWED_BOT_TOOLS = [
-  { name: 'get_customer_profile', label: 'View Customer Profile', description: 'Access customer data and history' },
-  { name: 'search_knowledge_base', label: 'Search Knowledge Base', description: 'Search indexed knowledge sources' },
-  { name: 'evaluate_policy', label: 'Evaluate Policy', description: 'Check communication policies' },
-  { name: 'send_notification', label: 'Send Notification', description: 'Send notifications to customers' },
-  { name: 'schedule_callback', label: 'Schedule Callback', description: 'Schedule callback appointments' },
-  { name: 'share_document', label: 'Share Document', description: 'Share documents with customers' },
-  { name: 'create_ticket', label: 'Create Ticket', description: 'Create support tickets' },
-  { name: 'update_ticket', label: 'Update Ticket', description: 'Update existing tickets' },
-  { name: 'escalate_to_human', label: 'Escalate to Human', description: 'Hand off to a human agent' },
-  { name: 'check_account_status', label: 'Check Account Status', description: 'View account balance and status' },
-] as const;
-
 // ─── Notification Types ─────────────────────────────────
 
 export type NotificationStatus = 'DELIVERED' | 'PENDING' | 'FAILED' | 'BLOCKED' | 'RATE_LIMITED';
@@ -305,3 +222,135 @@ export const ROLE_COLORS: Record<TeamRole, string> = {
   AGENT: 'text-accent-blue',
   ANALYST: 'text-accent-purple',
 };
+
+// ─── AI Studio Types ────────────────────────────────────
+
+export type BotStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'ARCHIVED';
+
+export type AgentType =
+  | 'GENERAL'
+  | 'MANAGER'
+  | 'DOCUMENTATION_WRITER'
+  | 'CUSTOMER_SERVICE'
+  | 'APPOINTMENT_SCHEDULING'
+  | 'PAYMENT'
+  | 'ORDER_ACCEPTING'
+  | 'PRODUCT_SHOWCASE';
+
+export const AGENT_TYPE_LABELS: Record<AgentType, string> = {
+  GENERAL: 'General',
+  MANAGER: 'Manager',
+  DOCUMENTATION_WRITER: 'Docs Writer',
+  CUSTOMER_SERVICE: 'Customer Service',
+  APPOINTMENT_SCHEDULING: 'Appointments',
+  PAYMENT: 'Payments',
+  ORDER_ACCEPTING: 'Orders',
+  PRODUCT_SHOWCASE: 'Product Showcase',
+};
+
+export interface Bot {
+  id: string;
+  name: string;
+  description?: string;
+  status: BotStatus;
+  agentType: AgentType;
+  managerBotId?: string;
+  model: string;
+  provider: string; // openai | anthropic | ...
+  totalInteractions: number;
+  lastActiveAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PolicyDecision = 'ALLOW' | 'DENY';
+
+export type PIIType = 'EMAIL' | 'PHONE' | 'SSN' | 'CREDIT_CARD' | 'NI_NUMBER';
+
+export interface BotActionLog {
+  id: string;
+  botId: string;
+  serviceProviderId: string;
+  conversationId?: string;
+  threadId?: string;
+  userId?: string;
+  actionType: string;
+  toolUsed: string;
+  inputSummary: string;  // already PII-redacted by backend
+  outputSummary: string; // already PII-redacted by backend
+  policyDecision: PolicyDecision;
+  policyReason?: string;
+  durationMs: number;
+  success: boolean;
+  errorMessage?: string;
+  createdAt: string;
+}
+
+export interface AgentDelegationLog {
+  id: string;
+  managerBotId: string;
+  targetBotId: string;
+  userId?: string;
+  conversationId?: string;
+  serviceProviderId: string;
+  threadId: string;
+  delegationDepth: number; // 0..3 (3 is the cap)
+  intentDetected?: string;
+  confidenceScore: number;
+  inputSummary: string;
+  outputSummary: string;
+  durationMs: number;
+  success: boolean;
+  errorMessage?: string;
+  createdAt: string;
+}
+
+export interface KnowledgeSource {
+  id: string;
+  botId: string;
+  name: string;
+  type: 'PDF' | 'TEXT' | 'MARKDOWN';
+  status: 'INDEXING' | 'READY' | 'FAILED';
+  chunkCount: number;
+  embeddingModel: string;
+  collectionName: string; // e.g. trustinbox_bot_<id>
+  sizeBytes: number;
+  errorMessage?: string;
+  lastIndexedAt?: string;
+  createdAt: string;
+}
+
+export interface KnowledgeChunk {
+  chunkId: string;
+  sourceId: string;
+  sourceName: string;
+  content: string;
+  relevanceScore: number;
+  metadata: Record<string, string>;
+}
+
+export interface ConversationAIInsights {
+  conversationId: string;
+  summary?: string;
+  summaryGeneratedAt?: string;
+  detectedCategories: string[];
+  spamScore: number;
+  botActionCount: number;
+  lastBotActionAt?: string;
+}
+
+export function getBotStatusVariant(status: BotStatus) {
+  switch (status) {
+    case 'ACTIVE': return { label: 'Active', className: 'bg-status-success/10 text-status-success' };
+    case 'DRAFT': return { label: 'Draft', className: 'bg-text-muted/10 text-text-muted' };
+    case 'PAUSED': return { label: 'Paused', className: 'bg-status-warning/10 text-status-warning' };
+    case 'ARCHIVED': return { label: 'Archived', className: 'bg-text-muted/10 text-text-muted' };
+    default: return { label: status, className: 'bg-text-muted/10 text-text-muted' };
+  }
+}
+
+export function getDelegationDepthVariant(depth: number) {
+  if (depth >= 3) return { label: `Depth ${depth} (max)`, className: 'bg-status-error/10 text-status-error' };
+  if (depth >= 2) return { label: `Depth ${depth}`, className: 'bg-status-warning/10 text-status-warning' };
+  return { label: `Depth ${depth}`, className: 'bg-bg-hover text-text-secondary' };
+}

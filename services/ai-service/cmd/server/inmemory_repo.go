@@ -22,7 +22,7 @@ func NewInMemoryKnowledgeChunkRepo() *InMemoryKnowledgeChunkRepo {
 	}
 }
 
-func (r *InMemoryKnowledgeChunkRepo) Search(ctx context.Context, botID, query string, topK int, minScore float64) ([]entity.KnowledgeChunk, int, error) {
+func (r *InMemoryKnowledgeChunkRepo) Search(ctx context.Context, serviceProviderID, botID, query string, topK int, minScore float64) ([]entity.KnowledgeChunk, int, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 

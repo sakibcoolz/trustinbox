@@ -27,6 +27,7 @@ func NewRAGPipeline(chunkRepo repository.KnowledgeChunkRepository, router *llm.R
 func (r *RAGPipeline) Query(ctx context.Context, req *entity.RAGQueryRequest) (*entity.RAGQueryResponse, error) {
 	ctx, span := tracing.StartSpan(ctx, "ai-service", "RAGPipeline.Query",
 		attribute.String("bot_id", req.BotID),
+		attribute.String("service_provider_id", req.ServiceProviderID),
 		attribute.Int("top_k", req.TopK),
 	)
 	defer span.End()
@@ -40,7 +41,7 @@ func (r *RAGPipeline) Query(ctx context.Context, req *entity.RAGQueryRequest) (*
 		minScore = 0.7
 	}
 
-	chunks, total, err := r.chunkRepo.Search(ctx, req.BotID, req.Query, topK, minScore)
+	chunks, total, err := r.chunkRepo.Search(ctx, req.ServiceProviderID, req.BotID, req.Query, topK, minScore)
 	if err != nil {
 		tracing.SetError(ctx, err)
 		return nil, fmt.Errorf("knowledge search failed: %w", err)

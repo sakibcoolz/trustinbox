@@ -35,8 +35,11 @@ type Bot struct {
 	CreatedBySpUserId string                 `protobuf:"bytes,9,opt,name=created_by_sp_user_id,json=createdBySpUserId,proto3" json:"created_by_sp_user_id,omitempty"`
 	CreatedAt         *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt         *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Agent suite fields
+	AgentType     string `protobuf:"bytes,12,opt,name=agent_type,json=agentType,proto3" json:"agent_type,omitempty"`            // GENERAL, MANAGER, DOCUMENTATION_WRITER, CUSTOMER_SERVICE, APPOINTMENT_SCHEDULING, PAYMENT, ORDER_ACCEPTING, PRODUCT_SHOWCASE
+	ManagerBotId  string `protobuf:"bytes,13,opt,name=manager_bot_id,json=managerBotId,proto3" json:"manager_bot_id,omitempty"` // set on sub-agents; empty on GENERAL/MANAGER bots
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Bot) Reset() {
@@ -144,6 +147,20 @@ func (x *Bot) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *Bot) GetAgentType() string {
+	if x != nil {
+		return x.AgentType
+	}
+	return ""
+}
+
+func (x *Bot) GetManagerBotId() string {
+	if x != nil {
+		return x.ManagerBotId
+	}
+	return ""
 }
 
 type CreateBotRequest struct {
@@ -388,8 +405,12 @@ type ListBotsRequest struct {
 	Status            string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	Limit             int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
 	Offset            int32                  `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Optional filter: GENERAL | MANAGER | CUSTOMER_SERVICE | ...
+	// Provider-portal callers may pass empty to list every agent_type;
+	// consumer-facing callers MUST pass "MANAGER".
+	AgentType     string `protobuf:"bytes,5,opt,name=agent_type,json=agentType,proto3" json:"agent_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListBotsRequest) Reset() {
@@ -450,6 +471,13 @@ func (x *ListBotsRequest) GetOffset() int32 {
 	return 0
 }
 
+func (x *ListBotsRequest) GetAgentType() string {
+	if x != nil {
+		return x.AgentType
+	}
+	return ""
+}
+
 type ListBotsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Bots          []*Bot                 `protobuf:"bytes,1,rep,name=bots,proto3" json:"bots,omitempty"`
@@ -502,6 +530,50 @@ func (x *ListBotsResponse) GetTotal() int32 {
 	return 0
 }
 
+type GetManagerBotRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ServiceProviderId string                 `protobuf:"bytes,1,opt,name=service_provider_id,json=serviceProviderId,proto3" json:"service_provider_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GetManagerBotRequest) Reset() {
+	*x = GetManagerBotRequest{}
+	mi := &file_bot_v1_bot_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetManagerBotRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetManagerBotRequest) ProtoMessage() {}
+
+func (x *GetManagerBotRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bot_v1_bot_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetManagerBotRequest.ProtoReflect.Descriptor instead.
+func (*GetManagerBotRequest) Descriptor() ([]byte, []int) {
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetManagerBotRequest) GetServiceProviderId() string {
+	if x != nil {
+		return x.ServiceProviderId
+	}
+	return ""
+}
+
 type DeleteBotRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	BotId             string                 `protobuf:"bytes,1,opt,name=bot_id,json=botId,proto3" json:"bot_id,omitempty"`
@@ -512,7 +584,7 @@ type DeleteBotRequest struct {
 
 func (x *DeleteBotRequest) Reset() {
 	*x = DeleteBotRequest{}
-	mi := &file_bot_v1_bot_proto_msgTypes[6]
+	mi := &file_bot_v1_bot_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -524,7 +596,7 @@ func (x *DeleteBotRequest) String() string {
 func (*DeleteBotRequest) ProtoMessage() {}
 
 func (x *DeleteBotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[6]
+	mi := &file_bot_v1_bot_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -537,7 +609,7 @@ func (x *DeleteBotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteBotRequest.ProtoReflect.Descriptor instead.
 func (*DeleteBotRequest) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{6}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DeleteBotRequest) GetBotId() string {
@@ -563,7 +635,7 @@ type DeleteBotResponse struct {
 
 func (x *DeleteBotResponse) Reset() {
 	*x = DeleteBotResponse{}
-	mi := &file_bot_v1_bot_proto_msgTypes[7]
+	mi := &file_bot_v1_bot_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -575,7 +647,7 @@ func (x *DeleteBotResponse) String() string {
 func (*DeleteBotResponse) ProtoMessage() {}
 
 func (x *DeleteBotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[7]
+	mi := &file_bot_v1_bot_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -588,7 +660,7 @@ func (x *DeleteBotResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteBotResponse.ProtoReflect.Descriptor instead.
 func (*DeleteBotResponse) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{7}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *DeleteBotResponse) GetSuccess() bool {
@@ -621,7 +693,7 @@ type BotConfiguration struct {
 
 func (x *BotConfiguration) Reset() {
 	*x = BotConfiguration{}
-	mi := &file_bot_v1_bot_proto_msgTypes[8]
+	mi := &file_bot_v1_bot_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -633,7 +705,7 @@ func (x *BotConfiguration) String() string {
 func (*BotConfiguration) ProtoMessage() {}
 
 func (x *BotConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[8]
+	mi := &file_bot_v1_bot_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -646,7 +718,7 @@ func (x *BotConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BotConfiguration.ProtoReflect.Descriptor instead.
 func (*BotConfiguration) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{8}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *BotConfiguration) GetBotId() string {
@@ -764,7 +836,7 @@ type GetBotConfigurationRequest struct {
 
 func (x *GetBotConfigurationRequest) Reset() {
 	*x = GetBotConfigurationRequest{}
-	mi := &file_bot_v1_bot_proto_msgTypes[9]
+	mi := &file_bot_v1_bot_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -776,7 +848,7 @@ func (x *GetBotConfigurationRequest) String() string {
 func (*GetBotConfigurationRequest) ProtoMessage() {}
 
 func (x *GetBotConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[9]
+	mi := &file_bot_v1_bot_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -789,7 +861,7 @@ func (x *GetBotConfigurationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBotConfigurationRequest.ProtoReflect.Descriptor instead.
 func (*GetBotConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{9}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetBotConfigurationRequest) GetBotId() string {
@@ -817,7 +889,7 @@ type UpdateBotConfigurationRequest struct {
 
 func (x *UpdateBotConfigurationRequest) Reset() {
 	*x = UpdateBotConfigurationRequest{}
-	mi := &file_bot_v1_bot_proto_msgTypes[10]
+	mi := &file_bot_v1_bot_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -829,7 +901,7 @@ func (x *UpdateBotConfigurationRequest) String() string {
 func (*UpdateBotConfigurationRequest) ProtoMessage() {}
 
 func (x *UpdateBotConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[10]
+	mi := &file_bot_v1_bot_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -842,7 +914,7 @@ func (x *UpdateBotConfigurationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateBotConfigurationRequest.ProtoReflect.Descriptor instead.
 func (*UpdateBotConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{10}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateBotConfigurationRequest) GetBotId() string {
@@ -879,7 +951,7 @@ type BotPermission struct {
 
 func (x *BotPermission) Reset() {
 	*x = BotPermission{}
-	mi := &file_bot_v1_bot_proto_msgTypes[11]
+	mi := &file_bot_v1_bot_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -891,7 +963,7 @@ func (x *BotPermission) String() string {
 func (*BotPermission) ProtoMessage() {}
 
 func (x *BotPermission) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[11]
+	mi := &file_bot_v1_bot_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -904,7 +976,7 @@ func (x *BotPermission) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BotPermission.ProtoReflect.Descriptor instead.
 func (*BotPermission) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{11}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *BotPermission) GetId() string {
@@ -955,7 +1027,7 @@ type SetBotPermissionRequest struct {
 
 func (x *SetBotPermissionRequest) Reset() {
 	*x = SetBotPermissionRequest{}
-	mi := &file_bot_v1_bot_proto_msgTypes[12]
+	mi := &file_bot_v1_bot_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -967,7 +1039,7 @@ func (x *SetBotPermissionRequest) String() string {
 func (*SetBotPermissionRequest) ProtoMessage() {}
 
 func (x *SetBotPermissionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[12]
+	mi := &file_bot_v1_bot_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -980,7 +1052,7 @@ func (x *SetBotPermissionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetBotPermissionRequest.ProtoReflect.Descriptor instead.
 func (*SetBotPermissionRequest) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{12}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SetBotPermissionRequest) GetBotId() string {
@@ -1027,7 +1099,7 @@ type SetBotPermissionResponse struct {
 
 func (x *SetBotPermissionResponse) Reset() {
 	*x = SetBotPermissionResponse{}
-	mi := &file_bot_v1_bot_proto_msgTypes[13]
+	mi := &file_bot_v1_bot_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1039,7 +1111,7 @@ func (x *SetBotPermissionResponse) String() string {
 func (*SetBotPermissionResponse) ProtoMessage() {}
 
 func (x *SetBotPermissionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[13]
+	mi := &file_bot_v1_bot_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1052,7 +1124,7 @@ func (x *SetBotPermissionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetBotPermissionResponse.ProtoReflect.Descriptor instead.
 func (*SetBotPermissionResponse) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{13}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SetBotPermissionResponse) GetSuccess() bool {
@@ -1072,7 +1144,7 @@ type ListBotPermissionsRequest struct {
 
 func (x *ListBotPermissionsRequest) Reset() {
 	*x = ListBotPermissionsRequest{}
-	mi := &file_bot_v1_bot_proto_msgTypes[14]
+	mi := &file_bot_v1_bot_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1084,7 +1156,7 @@ func (x *ListBotPermissionsRequest) String() string {
 func (*ListBotPermissionsRequest) ProtoMessage() {}
 
 func (x *ListBotPermissionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[14]
+	mi := &file_bot_v1_bot_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1097,7 +1169,7 @@ func (x *ListBotPermissionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBotPermissionsRequest.ProtoReflect.Descriptor instead.
 func (*ListBotPermissionsRequest) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{14}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListBotPermissionsRequest) GetBotId() string {
@@ -1123,7 +1195,7 @@ type ListBotPermissionsResponse struct {
 
 func (x *ListBotPermissionsResponse) Reset() {
 	*x = ListBotPermissionsResponse{}
-	mi := &file_bot_v1_bot_proto_msgTypes[15]
+	mi := &file_bot_v1_bot_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1135,7 +1207,7 @@ func (x *ListBotPermissionsResponse) String() string {
 func (*ListBotPermissionsResponse) ProtoMessage() {}
 
 func (x *ListBotPermissionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[15]
+	mi := &file_bot_v1_bot_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1148,7 +1220,7 @@ func (x *ListBotPermissionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBotPermissionsResponse.ProtoReflect.Descriptor instead.
 func (*ListBotPermissionsResponse) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{15}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListBotPermissionsResponse) GetPermissions() []*BotPermission {
@@ -1178,7 +1250,7 @@ type KnowledgeSource struct {
 
 func (x *KnowledgeSource) Reset() {
 	*x = KnowledgeSource{}
-	mi := &file_bot_v1_bot_proto_msgTypes[16]
+	mi := &file_bot_v1_bot_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1190,7 +1262,7 @@ func (x *KnowledgeSource) String() string {
 func (*KnowledgeSource) ProtoMessage() {}
 
 func (x *KnowledgeSource) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[16]
+	mi := &file_bot_v1_bot_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1203,7 +1275,7 @@ func (x *KnowledgeSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KnowledgeSource.ProtoReflect.Descriptor instead.
 func (*KnowledgeSource) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{16}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *KnowledgeSource) GetId() string {
@@ -1307,7 +1379,7 @@ type AddKnowledgeSourceRequest struct {
 
 func (x *AddKnowledgeSourceRequest) Reset() {
 	*x = AddKnowledgeSourceRequest{}
-	mi := &file_bot_v1_bot_proto_msgTypes[17]
+	mi := &file_bot_v1_bot_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1319,7 +1391,7 @@ func (x *AddKnowledgeSourceRequest) String() string {
 func (*AddKnowledgeSourceRequest) ProtoMessage() {}
 
 func (x *AddKnowledgeSourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[17]
+	mi := &file_bot_v1_bot_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1332,7 +1404,7 @@ func (x *AddKnowledgeSourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddKnowledgeSourceRequest.ProtoReflect.Descriptor instead.
 func (*AddKnowledgeSourceRequest) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{17}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *AddKnowledgeSourceRequest) GetBotId() string {
@@ -1409,7 +1481,7 @@ type RemoveKnowledgeSourceRequest struct {
 
 func (x *RemoveKnowledgeSourceRequest) Reset() {
 	*x = RemoveKnowledgeSourceRequest{}
-	mi := &file_bot_v1_bot_proto_msgTypes[18]
+	mi := &file_bot_v1_bot_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1421,7 +1493,7 @@ func (x *RemoveKnowledgeSourceRequest) String() string {
 func (*RemoveKnowledgeSourceRequest) ProtoMessage() {}
 
 func (x *RemoveKnowledgeSourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[18]
+	mi := &file_bot_v1_bot_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1434,7 +1506,7 @@ func (x *RemoveKnowledgeSourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveKnowledgeSourceRequest.ProtoReflect.Descriptor instead.
 func (*RemoveKnowledgeSourceRequest) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{18}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *RemoveKnowledgeSourceRequest) GetKnowledgeSourceId() string {
@@ -1467,7 +1539,7 @@ type RemoveKnowledgeSourceResponse struct {
 
 func (x *RemoveKnowledgeSourceResponse) Reset() {
 	*x = RemoveKnowledgeSourceResponse{}
-	mi := &file_bot_v1_bot_proto_msgTypes[19]
+	mi := &file_bot_v1_bot_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1479,7 +1551,7 @@ func (x *RemoveKnowledgeSourceResponse) String() string {
 func (*RemoveKnowledgeSourceResponse) ProtoMessage() {}
 
 func (x *RemoveKnowledgeSourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[19]
+	mi := &file_bot_v1_bot_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1492,7 +1564,7 @@ func (x *RemoveKnowledgeSourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveKnowledgeSourceResponse.ProtoReflect.Descriptor instead.
 func (*RemoveKnowledgeSourceResponse) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{19}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *RemoveKnowledgeSourceResponse) GetSuccess() bool {
@@ -1512,7 +1584,7 @@ type ListKnowledgeSourcesRequest struct {
 
 func (x *ListKnowledgeSourcesRequest) Reset() {
 	*x = ListKnowledgeSourcesRequest{}
-	mi := &file_bot_v1_bot_proto_msgTypes[20]
+	mi := &file_bot_v1_bot_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1524,7 +1596,7 @@ func (x *ListKnowledgeSourcesRequest) String() string {
 func (*ListKnowledgeSourcesRequest) ProtoMessage() {}
 
 func (x *ListKnowledgeSourcesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[20]
+	mi := &file_bot_v1_bot_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1537,7 +1609,7 @@ func (x *ListKnowledgeSourcesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListKnowledgeSourcesRequest.ProtoReflect.Descriptor instead.
 func (*ListKnowledgeSourcesRequest) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{20}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListKnowledgeSourcesRequest) GetBotId() string {
@@ -1563,7 +1635,7 @@ type ListKnowledgeSourcesResponse struct {
 
 func (x *ListKnowledgeSourcesResponse) Reset() {
 	*x = ListKnowledgeSourcesResponse{}
-	mi := &file_bot_v1_bot_proto_msgTypes[21]
+	mi := &file_bot_v1_bot_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1575,7 +1647,7 @@ func (x *ListKnowledgeSourcesResponse) String() string {
 func (*ListKnowledgeSourcesResponse) ProtoMessage() {}
 
 func (x *ListKnowledgeSourcesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[21]
+	mi := &file_bot_v1_bot_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1588,7 +1660,7 @@ func (x *ListKnowledgeSourcesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListKnowledgeSourcesResponse.ProtoReflect.Descriptor instead.
 func (*ListKnowledgeSourcesResponse) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{21}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ListKnowledgeSourcesResponse) GetSources() []*KnowledgeSource {
@@ -1613,7 +1685,7 @@ type ExecuteBotActionRequest struct {
 
 func (x *ExecuteBotActionRequest) Reset() {
 	*x = ExecuteBotActionRequest{}
-	mi := &file_bot_v1_bot_proto_msgTypes[22]
+	mi := &file_bot_v1_bot_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1625,7 +1697,7 @@ func (x *ExecuteBotActionRequest) String() string {
 func (*ExecuteBotActionRequest) ProtoMessage() {}
 
 func (x *ExecuteBotActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[22]
+	mi := &file_bot_v1_bot_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1638,7 +1710,7 @@ func (x *ExecuteBotActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteBotActionRequest.ProtoReflect.Descriptor instead.
 func (*ExecuteBotActionRequest) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{22}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ExecuteBotActionRequest) GetBotId() string {
@@ -1703,7 +1775,7 @@ type ExecuteBotActionResponse struct {
 
 func (x *ExecuteBotActionResponse) Reset() {
 	*x = ExecuteBotActionResponse{}
-	mi := &file_bot_v1_bot_proto_msgTypes[23]
+	mi := &file_bot_v1_bot_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1715,7 +1787,7 @@ func (x *ExecuteBotActionResponse) String() string {
 func (*ExecuteBotActionResponse) ProtoMessage() {}
 
 func (x *ExecuteBotActionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[23]
+	mi := &file_bot_v1_bot_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1728,7 +1800,7 @@ func (x *ExecuteBotActionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteBotActionResponse.ProtoReflect.Descriptor instead.
 func (*ExecuteBotActionResponse) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{23}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ExecuteBotActionResponse) GetSuccess() bool {
@@ -1787,7 +1859,7 @@ type BotActionLog struct {
 
 func (x *BotActionLog) Reset() {
 	*x = BotActionLog{}
-	mi := &file_bot_v1_bot_proto_msgTypes[24]
+	mi := &file_bot_v1_bot_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1799,7 +1871,7 @@ func (x *BotActionLog) String() string {
 func (*BotActionLog) ProtoMessage() {}
 
 func (x *BotActionLog) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[24]
+	mi := &file_bot_v1_bot_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1812,7 +1884,7 @@ func (x *BotActionLog) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BotActionLog.ProtoReflect.Descriptor instead.
 func (*BotActionLog) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{24}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *BotActionLog) GetId() string {
@@ -1919,7 +1991,7 @@ type ListBotActionLogsRequest struct {
 
 func (x *ListBotActionLogsRequest) Reset() {
 	*x = ListBotActionLogsRequest{}
-	mi := &file_bot_v1_bot_proto_msgTypes[25]
+	mi := &file_bot_v1_bot_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1931,7 +2003,7 @@ func (x *ListBotActionLogsRequest) String() string {
 func (*ListBotActionLogsRequest) ProtoMessage() {}
 
 func (x *ListBotActionLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[25]
+	mi := &file_bot_v1_bot_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1944,7 +2016,7 @@ func (x *ListBotActionLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBotActionLogsRequest.ProtoReflect.Descriptor instead.
 func (*ListBotActionLogsRequest) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{25}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListBotActionLogsRequest) GetBotId() string {
@@ -1992,7 +2064,7 @@ type ListBotActionLogsResponse struct {
 
 func (x *ListBotActionLogsResponse) Reset() {
 	*x = ListBotActionLogsResponse{}
-	mi := &file_bot_v1_bot_proto_msgTypes[26]
+	mi := &file_bot_v1_bot_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2004,7 +2076,7 @@ func (x *ListBotActionLogsResponse) String() string {
 func (*ListBotActionLogsResponse) ProtoMessage() {}
 
 func (x *ListBotActionLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[26]
+	mi := &file_bot_v1_bot_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2017,7 +2089,7 @@ func (x *ListBotActionLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBotActionLogsResponse.ProtoReflect.Descriptor instead.
 func (*ListBotActionLogsResponse) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{26}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ListBotActionLogsResponse) GetLogs() []*BotActionLog {
@@ -2053,7 +2125,7 @@ type BotAnalytics struct {
 
 func (x *BotAnalytics) Reset() {
 	*x = BotAnalytics{}
-	mi := &file_bot_v1_bot_proto_msgTypes[27]
+	mi := &file_bot_v1_bot_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2065,7 +2137,7 @@ func (x *BotAnalytics) String() string {
 func (*BotAnalytics) ProtoMessage() {}
 
 func (x *BotAnalytics) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[27]
+	mi := &file_bot_v1_bot_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2078,7 +2150,7 @@ func (x *BotAnalytics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BotAnalytics.ProtoReflect.Descriptor instead.
 func (*BotAnalytics) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{27}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *BotAnalytics) GetBotId() string {
@@ -2168,7 +2240,7 @@ type GetBotAnalyticsRequest struct {
 
 func (x *GetBotAnalyticsRequest) Reset() {
 	*x = GetBotAnalyticsRequest{}
-	mi := &file_bot_v1_bot_proto_msgTypes[28]
+	mi := &file_bot_v1_bot_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2180,7 +2252,7 @@ func (x *GetBotAnalyticsRequest) String() string {
 func (*GetBotAnalyticsRequest) ProtoMessage() {}
 
 func (x *GetBotAnalyticsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bot_v1_bot_proto_msgTypes[28]
+	mi := &file_bot_v1_bot_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2193,7 +2265,7 @@ func (x *GetBotAnalyticsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBotAnalyticsRequest.ProtoReflect.Descriptor instead.
 func (*GetBotAnalyticsRequest) Descriptor() ([]byte, []int) {
-	return file_bot_v1_bot_proto_rawDescGZIP(), []int{28}
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetBotAnalyticsRequest) GetBotId() string {
@@ -2210,11 +2282,739 @@ func (x *GetBotAnalyticsRequest) GetServiceProviderId() string {
 	return ""
 }
 
+type AgentSuite struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ServiceProviderId string                 `protobuf:"bytes,2,opt,name=service_provider_id,json=serviceProviderId,proto3" json:"service_provider_id,omitempty"`
+	ManagerBotId      string                 `protobuf:"bytes,3,opt,name=manager_bot_id,json=managerBotId,proto3" json:"manager_bot_id,omitempty"`
+	Status            string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"` // ACTIVE, PAUSED, DEACTIVATED
+	ProvisionedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=provisioned_at,json=provisionedAt,proto3" json:"provisioned_at,omitempty"`
+	Manager           *Bot                   `protobuf:"bytes,6,opt,name=manager,proto3" json:"manager,omitempty"`
+	Agents            []*Bot                 `protobuf:"bytes,7,rep,name=agents,proto3" json:"agents,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *AgentSuite) Reset() {
+	*x = AgentSuite{}
+	mi := &file_bot_v1_bot_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentSuite) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentSuite) ProtoMessage() {}
+
+func (x *AgentSuite) ProtoReflect() protoreflect.Message {
+	mi := &file_bot_v1_bot_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentSuite.ProtoReflect.Descriptor instead.
+func (*AgentSuite) Descriptor() ([]byte, []int) {
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *AgentSuite) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AgentSuite) GetServiceProviderId() string {
+	if x != nil {
+		return x.ServiceProviderId
+	}
+	return ""
+}
+
+func (x *AgentSuite) GetManagerBotId() string {
+	if x != nil {
+		return x.ManagerBotId
+	}
+	return ""
+}
+
+func (x *AgentSuite) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *AgentSuite) GetProvisionedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ProvisionedAt
+	}
+	return nil
+}
+
+func (x *AgentSuite) GetManager() *Bot {
+	if x != nil {
+		return x.Manager
+	}
+	return nil
+}
+
+func (x *AgentSuite) GetAgents() []*Bot {
+	if x != nil {
+		return x.Agents
+	}
+	return nil
+}
+
+type ProvisionAgentSuiteRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ServiceProviderId string                 `protobuf:"bytes,1,opt,name=service_provider_id,json=serviceProviderId,proto3" json:"service_provider_id,omitempty"`
+	CreatedBySpUserId string                 `protobuf:"bytes,2,opt,name=created_by_sp_user_id,json=createdBySpUserId,proto3" json:"created_by_sp_user_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ProvisionAgentSuiteRequest) Reset() {
+	*x = ProvisionAgentSuiteRequest{}
+	mi := &file_bot_v1_bot_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProvisionAgentSuiteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProvisionAgentSuiteRequest) ProtoMessage() {}
+
+func (x *ProvisionAgentSuiteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bot_v1_bot_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProvisionAgentSuiteRequest.ProtoReflect.Descriptor instead.
+func (*ProvisionAgentSuiteRequest) Descriptor() ([]byte, []int) {
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *ProvisionAgentSuiteRequest) GetServiceProviderId() string {
+	if x != nil {
+		return x.ServiceProviderId
+	}
+	return ""
+}
+
+func (x *ProvisionAgentSuiteRequest) GetCreatedBySpUserId() string {
+	if x != nil {
+		return x.CreatedBySpUserId
+	}
+	return ""
+}
+
+type ProvisionAgentSuiteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Suite         *AgentSuite            `protobuf:"bytes,1,opt,name=suite,proto3" json:"suite,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProvisionAgentSuiteResponse) Reset() {
+	*x = ProvisionAgentSuiteResponse{}
+	mi := &file_bot_v1_bot_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProvisionAgentSuiteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProvisionAgentSuiteResponse) ProtoMessage() {}
+
+func (x *ProvisionAgentSuiteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bot_v1_bot_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProvisionAgentSuiteResponse.ProtoReflect.Descriptor instead.
+func (*ProvisionAgentSuiteResponse) Descriptor() ([]byte, []int) {
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *ProvisionAgentSuiteResponse) GetSuite() *AgentSuite {
+	if x != nil {
+		return x.Suite
+	}
+	return nil
+}
+
+type GetAgentSuiteRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ServiceProviderId string                 `protobuf:"bytes,1,opt,name=service_provider_id,json=serviceProviderId,proto3" json:"service_provider_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GetAgentSuiteRequest) Reset() {
+	*x = GetAgentSuiteRequest{}
+	mi := &file_bot_v1_bot_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAgentSuiteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAgentSuiteRequest) ProtoMessage() {}
+
+func (x *GetAgentSuiteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bot_v1_bot_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAgentSuiteRequest.ProtoReflect.Descriptor instead.
+func (*GetAgentSuiteRequest) Descriptor() ([]byte, []int) {
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *GetAgentSuiteRequest) GetServiceProviderId() string {
+	if x != nil {
+		return x.ServiceProviderId
+	}
+	return ""
+}
+
+type GetAgentSuiteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Suite         *AgentSuite            `protobuf:"bytes,1,opt,name=suite,proto3" json:"suite,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAgentSuiteResponse) Reset() {
+	*x = GetAgentSuiteResponse{}
+	mi := &file_bot_v1_bot_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAgentSuiteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAgentSuiteResponse) ProtoMessage() {}
+
+func (x *GetAgentSuiteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bot_v1_bot_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAgentSuiteResponse.ProtoReflect.Descriptor instead.
+func (*GetAgentSuiteResponse) Descriptor() ([]byte, []int) {
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *GetAgentSuiteResponse) GetSuite() *AgentSuite {
+	if x != nil {
+		return x.Suite
+	}
+	return nil
+}
+
+type AgentDelegationLog struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ManagerBotId    string                 `protobuf:"bytes,2,opt,name=manager_bot_id,json=managerBotId,proto3" json:"manager_bot_id,omitempty"`
+	TargetBotId     string                 `protobuf:"bytes,3,opt,name=target_bot_id,json=targetBotId,proto3" json:"target_bot_id,omitempty"`
+	UserId          string                 `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ConversationId  string                 `protobuf:"bytes,5,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	IntentDetected  string                 `protobuf:"bytes,6,opt,name=intent_detected,json=intentDetected,proto3" json:"intent_detected,omitempty"`
+	ConfidenceScore float64                `protobuf:"fixed64,7,opt,name=confidence_score,json=confidenceScore,proto3" json:"confidence_score,omitempty"`
+	InputSummary    string                 `protobuf:"bytes,8,opt,name=input_summary,json=inputSummary,proto3" json:"input_summary,omitempty"`
+	OutputSummary   string                 `protobuf:"bytes,9,opt,name=output_summary,json=outputSummary,proto3" json:"output_summary,omitempty"`
+	DurationMs      int32                  `protobuf:"varint,10,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	Success         bool                   `protobuf:"varint,11,opt,name=success,proto3" json:"success,omitempty"`
+	ErrorMessage    string                 `protobuf:"bytes,12,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *AgentDelegationLog) Reset() {
+	*x = AgentDelegationLog{}
+	mi := &file_bot_v1_bot_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentDelegationLog) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentDelegationLog) ProtoMessage() {}
+
+func (x *AgentDelegationLog) ProtoReflect() protoreflect.Message {
+	mi := &file_bot_v1_bot_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentDelegationLog.ProtoReflect.Descriptor instead.
+func (*AgentDelegationLog) Descriptor() ([]byte, []int) {
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *AgentDelegationLog) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AgentDelegationLog) GetManagerBotId() string {
+	if x != nil {
+		return x.ManagerBotId
+	}
+	return ""
+}
+
+func (x *AgentDelegationLog) GetTargetBotId() string {
+	if x != nil {
+		return x.TargetBotId
+	}
+	return ""
+}
+
+func (x *AgentDelegationLog) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *AgentDelegationLog) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+func (x *AgentDelegationLog) GetIntentDetected() string {
+	if x != nil {
+		return x.IntentDetected
+	}
+	return ""
+}
+
+func (x *AgentDelegationLog) GetConfidenceScore() float64 {
+	if x != nil {
+		return x.ConfidenceScore
+	}
+	return 0
+}
+
+func (x *AgentDelegationLog) GetInputSummary() string {
+	if x != nil {
+		return x.InputSummary
+	}
+	return ""
+}
+
+func (x *AgentDelegationLog) GetOutputSummary() string {
+	if x != nil {
+		return x.OutputSummary
+	}
+	return ""
+}
+
+func (x *AgentDelegationLog) GetDurationMs() int32 {
+	if x != nil {
+		return x.DurationMs
+	}
+	return 0
+}
+
+func (x *AgentDelegationLog) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *AgentDelegationLog) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+func (x *AgentDelegationLog) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+type DelegateToAgentRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ManagerBotId      string                 `protobuf:"bytes,1,opt,name=manager_bot_id,json=managerBotId,proto3" json:"manager_bot_id,omitempty"`
+	ServiceProviderId string                 `protobuf:"bytes,2,opt,name=service_provider_id,json=serviceProviderId,proto3" json:"service_provider_id,omitempty"`
+	UserId            string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ConversationId    string                 `protobuf:"bytes,4,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	AgentType         string                 `protobuf:"bytes,5,opt,name=agent_type,json=agentType,proto3" json:"agent_type,omitempty"` // target agent type (e.g. CUSTOMER_SERVICE)
+	TaskInput         string                 `protobuf:"bytes,6,opt,name=task_input,json=taskInput,proto3" json:"task_input,omitempty"` // user's original message / task description
+	ActionType        string                 `protobuf:"bytes,7,opt,name=action_type,json=actionType,proto3" json:"action_type,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *DelegateToAgentRequest) Reset() {
+	*x = DelegateToAgentRequest{}
+	mi := &file_bot_v1_bot_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DelegateToAgentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DelegateToAgentRequest) ProtoMessage() {}
+
+func (x *DelegateToAgentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bot_v1_bot_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DelegateToAgentRequest.ProtoReflect.Descriptor instead.
+func (*DelegateToAgentRequest) Descriptor() ([]byte, []int) {
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *DelegateToAgentRequest) GetManagerBotId() string {
+	if x != nil {
+		return x.ManagerBotId
+	}
+	return ""
+}
+
+func (x *DelegateToAgentRequest) GetServiceProviderId() string {
+	if x != nil {
+		return x.ServiceProviderId
+	}
+	return ""
+}
+
+func (x *DelegateToAgentRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *DelegateToAgentRequest) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+func (x *DelegateToAgentRequest) GetAgentType() string {
+	if x != nil {
+		return x.AgentType
+	}
+	return ""
+}
+
+func (x *DelegateToAgentRequest) GetTaskInput() string {
+	if x != nil {
+		return x.TaskInput
+	}
+	return ""
+}
+
+func (x *DelegateToAgentRequest) GetActionType() string {
+	if x != nil {
+		return x.ActionType
+	}
+	return ""
+}
+
+type DelegateToAgentResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Success         bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	OutputJson      string                 `protobuf:"bytes,2,opt,name=output_json,json=outputJson,proto3" json:"output_json,omitempty"`
+	PolicyDecision  string                 `protobuf:"bytes,3,opt,name=policy_decision,json=policyDecision,proto3" json:"policy_decision,omitempty"`
+	PolicyReason    string                 `protobuf:"bytes,4,opt,name=policy_reason,json=policyReason,proto3" json:"policy_reason,omitempty"`
+	Escalated       bool                   `protobuf:"varint,5,opt,name=escalated,proto3" json:"escalated,omitempty"`
+	DurationMs      int32                  `protobuf:"varint,6,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	IntentDetected  string                 `protobuf:"bytes,7,opt,name=intent_detected,json=intentDetected,proto3" json:"intent_detected,omitempty"`
+	ConfidenceScore float64                `protobuf:"fixed64,8,opt,name=confidence_score,json=confidenceScore,proto3" json:"confidence_score,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *DelegateToAgentResponse) Reset() {
+	*x = DelegateToAgentResponse{}
+	mi := &file_bot_v1_bot_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DelegateToAgentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DelegateToAgentResponse) ProtoMessage() {}
+
+func (x *DelegateToAgentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bot_v1_bot_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DelegateToAgentResponse.ProtoReflect.Descriptor instead.
+func (*DelegateToAgentResponse) Descriptor() ([]byte, []int) {
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *DelegateToAgentResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *DelegateToAgentResponse) GetOutputJson() string {
+	if x != nil {
+		return x.OutputJson
+	}
+	return ""
+}
+
+func (x *DelegateToAgentResponse) GetPolicyDecision() string {
+	if x != nil {
+		return x.PolicyDecision
+	}
+	return ""
+}
+
+func (x *DelegateToAgentResponse) GetPolicyReason() string {
+	if x != nil {
+		return x.PolicyReason
+	}
+	return ""
+}
+
+func (x *DelegateToAgentResponse) GetEscalated() bool {
+	if x != nil {
+		return x.Escalated
+	}
+	return false
+}
+
+func (x *DelegateToAgentResponse) GetDurationMs() int32 {
+	if x != nil {
+		return x.DurationMs
+	}
+	return 0
+}
+
+func (x *DelegateToAgentResponse) GetIntentDetected() string {
+	if x != nil {
+		return x.IntentDetected
+	}
+	return ""
+}
+
+func (x *DelegateToAgentResponse) GetConfidenceScore() float64 {
+	if x != nil {
+		return x.ConfidenceScore
+	}
+	return 0
+}
+
+type ListDelegationLogsRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ManagerBotId      string                 `protobuf:"bytes,1,opt,name=manager_bot_id,json=managerBotId,proto3" json:"manager_bot_id,omitempty"`
+	ServiceProviderId string                 `protobuf:"bytes,2,opt,name=service_provider_id,json=serviceProviderId,proto3" json:"service_provider_id,omitempty"`
+	Limit             int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset            int32                  `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ListDelegationLogsRequest) Reset() {
+	*x = ListDelegationLogsRequest{}
+	mi := &file_bot_v1_bot_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDelegationLogsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDelegationLogsRequest) ProtoMessage() {}
+
+func (x *ListDelegationLogsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bot_v1_bot_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDelegationLogsRequest.ProtoReflect.Descriptor instead.
+func (*ListDelegationLogsRequest) Descriptor() ([]byte, []int) {
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *ListDelegationLogsRequest) GetManagerBotId() string {
+	if x != nil {
+		return x.ManagerBotId
+	}
+	return ""
+}
+
+func (x *ListDelegationLogsRequest) GetServiceProviderId() string {
+	if x != nil {
+		return x.ServiceProviderId
+	}
+	return ""
+}
+
+func (x *ListDelegationLogsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListDelegationLogsRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type ListDelegationLogsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Logs          []*AgentDelegationLog  `protobuf:"bytes,1,rep,name=logs,proto3" json:"logs,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDelegationLogsResponse) Reset() {
+	*x = ListDelegationLogsResponse{}
+	mi := &file_bot_v1_bot_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDelegationLogsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDelegationLogsResponse) ProtoMessage() {}
+
+func (x *ListDelegationLogsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bot_v1_bot_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDelegationLogsResponse.ProtoReflect.Descriptor instead.
+func (*ListDelegationLogsResponse) Descriptor() ([]byte, []int) {
+	return file_bot_v1_bot_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *ListDelegationLogsResponse) GetLogs() []*AgentDelegationLog {
+	if x != nil {
+		return x.Logs
+	}
+	return nil
+}
+
+func (x *ListDelegationLogsResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
 var File_bot_v1_bot_proto protoreflect.FileDescriptor
 
 const file_bot_v1_bot_proto_rawDesc = "" +
 	"\n" +
-	"\x10bot/v1/bot.proto\x12\x06bot.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa2\x03\n" +
+	"\x10bot/v1/bot.proto\x12\x06bot.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe7\x03\n" +
 	"\x03Bot\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
 	"\x13service_provider_id\x18\x02 \x01(\tR\x11serviceProviderId\x12\x12\n" +
@@ -2232,7 +3032,10 @@ const file_bot_v1_bot_proto_rawDesc = "" +
 	"created_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x91\x02\n" +
+	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1d\n" +
+	"\n" +
+	"agent_type\x18\f \x01(\tR\tagentType\x12$\n" +
+	"\x0emanager_bot_id\x18\r \x01(\tR\fmanagerBotId\"\x91\x02\n" +
 	"\x10CreateBotRequest\x12.\n" +
 	"\x13service_provider_id\x18\x01 \x01(\tR\x11serviceProviderId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
@@ -2257,15 +3060,19 @@ const file_bot_v1_bot_proto_rawDesc = "" +
 	"department\x12\x1d\n" +
 	"\n" +
 	"avatar_url\x18\x06 \x01(\tR\tavatarUrl\x12\x16\n" +
-	"\x06status\x18\a \x01(\tR\x06status\"\x87\x01\n" +
+	"\x06status\x18\a \x01(\tR\x06status\"\xa6\x01\n" +
 	"\x0fListBotsRequest\x12.\n" +
 	"\x13service_provider_id\x18\x01 \x01(\tR\x11serviceProviderId\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x16\n" +
-	"\x06offset\x18\x04 \x01(\x05R\x06offset\"I\n" +
+	"\x06offset\x18\x04 \x01(\x05R\x06offset\x12\x1d\n" +
+	"\n" +
+	"agent_type\x18\x05 \x01(\tR\tagentType\"I\n" +
 	"\x10ListBotsResponse\x12\x1f\n" +
 	"\x04bots\x18\x01 \x03(\v2\v.bot.v1.BotR\x04bots\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"Y\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"F\n" +
+	"\x14GetManagerBotRequest\x12.\n" +
+	"\x13service_provider_id\x18\x01 \x01(\tR\x11serviceProviderId\"Y\n" +
 	"\x10DeleteBotRequest\x12\x15\n" +
 	"\x06bot_id\x18\x01 \x01(\tR\x05botId\x12.\n" +
 	"\x13service_provider_id\x18\x02 \x01(\tR\x11serviceProviderId\"-\n" +
@@ -2414,14 +3221,80 @@ const file_bot_v1_bot_proto_rawDesc = "" +
 	"\x0elast_active_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\flastActiveAt\"_\n" +
 	"\x16GetBotAnalyticsRequest\x12\x15\n" +
 	"\x06bot_id\x18\x01 \x01(\tR\x05botId\x12.\n" +
-	"\x13service_provider_id\x18\x02 \x01(\tR\x11serviceProviderId2\x9c\t\n" +
+	"\x13service_provider_id\x18\x02 \x01(\tR\x11serviceProviderId\"\x99\x02\n" +
+	"\n" +
+	"AgentSuite\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
+	"\x13service_provider_id\x18\x02 \x01(\tR\x11serviceProviderId\x12$\n" +
+	"\x0emanager_bot_id\x18\x03 \x01(\tR\fmanagerBotId\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x12A\n" +
+	"\x0eprovisioned_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\rprovisionedAt\x12%\n" +
+	"\amanager\x18\x06 \x01(\v2\v.bot.v1.BotR\amanager\x12#\n" +
+	"\x06agents\x18\a \x03(\v2\v.bot.v1.BotR\x06agents\"~\n" +
+	"\x1aProvisionAgentSuiteRequest\x12.\n" +
+	"\x13service_provider_id\x18\x01 \x01(\tR\x11serviceProviderId\x120\n" +
+	"\x15created_by_sp_user_id\x18\x02 \x01(\tR\x11createdBySpUserId\"G\n" +
+	"\x1bProvisionAgentSuiteResponse\x12(\n" +
+	"\x05suite\x18\x01 \x01(\v2\x12.bot.v1.AgentSuiteR\x05suite\"F\n" +
+	"\x14GetAgentSuiteRequest\x12.\n" +
+	"\x13service_provider_id\x18\x01 \x01(\tR\x11serviceProviderId\"A\n" +
+	"\x15GetAgentSuiteResponse\x12(\n" +
+	"\x05suite\x18\x01 \x01(\v2\x12.bot.v1.AgentSuiteR\x05suite\"\xeb\x03\n" +
+	"\x12AgentDelegationLog\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12$\n" +
+	"\x0emanager_bot_id\x18\x02 \x01(\tR\fmanagerBotId\x12\"\n" +
+	"\rtarget_bot_id\x18\x03 \x01(\tR\vtargetBotId\x12\x17\n" +
+	"\auser_id\x18\x04 \x01(\tR\x06userId\x12'\n" +
+	"\x0fconversation_id\x18\x05 \x01(\tR\x0econversationId\x12'\n" +
+	"\x0fintent_detected\x18\x06 \x01(\tR\x0eintentDetected\x12)\n" +
+	"\x10confidence_score\x18\a \x01(\x01R\x0fconfidenceScore\x12#\n" +
+	"\rinput_summary\x18\b \x01(\tR\finputSummary\x12%\n" +
+	"\x0eoutput_summary\x18\t \x01(\tR\routputSummary\x12\x1f\n" +
+	"\vduration_ms\x18\n" +
+	" \x01(\x05R\n" +
+	"durationMs\x12\x18\n" +
+	"\asuccess\x18\v \x01(\bR\asuccess\x12#\n" +
+	"\rerror_message\x18\f \x01(\tR\ferrorMessage\x129\n" +
+	"\n" +
+	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x8f\x02\n" +
+	"\x16DelegateToAgentRequest\x12$\n" +
+	"\x0emanager_bot_id\x18\x01 \x01(\tR\fmanagerBotId\x12.\n" +
+	"\x13service_provider_id\x18\x02 \x01(\tR\x11serviceProviderId\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\x12'\n" +
+	"\x0fconversation_id\x18\x04 \x01(\tR\x0econversationId\x12\x1d\n" +
+	"\n" +
+	"agent_type\x18\x05 \x01(\tR\tagentType\x12\x1d\n" +
+	"\n" +
+	"task_input\x18\x06 \x01(\tR\ttaskInput\x12\x1f\n" +
+	"\vaction_type\x18\a \x01(\tR\n" +
+	"actionType\"\xb5\x02\n" +
+	"\x17DelegateToAgentResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x1f\n" +
+	"\voutput_json\x18\x02 \x01(\tR\n" +
+	"outputJson\x12'\n" +
+	"\x0fpolicy_decision\x18\x03 \x01(\tR\x0epolicyDecision\x12#\n" +
+	"\rpolicy_reason\x18\x04 \x01(\tR\fpolicyReason\x12\x1c\n" +
+	"\tescalated\x18\x05 \x01(\bR\tescalated\x12\x1f\n" +
+	"\vduration_ms\x18\x06 \x01(\x05R\n" +
+	"durationMs\x12'\n" +
+	"\x0fintent_detected\x18\a \x01(\tR\x0eintentDetected\x12)\n" +
+	"\x10confidence_score\x18\b \x01(\x01R\x0fconfidenceScore\"\x9f\x01\n" +
+	"\x19ListDelegationLogsRequest\x12$\n" +
+	"\x0emanager_bot_id\x18\x01 \x01(\tR\fmanagerBotId\x12.\n" +
+	"\x13service_provider_id\x18\x02 \x01(\tR\x11serviceProviderId\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x04 \x01(\x05R\x06offset\"b\n" +
+	"\x1aListDelegationLogsResponse\x12.\n" +
+	"\x04logs\x18\x01 \x03(\v2\x1a.bot.v1.AgentDelegationLogR\x04logs\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total2\xb7\f\n" +
 	"\n" +
 	"BotService\x122\n" +
 	"\tCreateBot\x12\x18.bot.v1.CreateBotRequest\x1a\v.bot.v1.Bot\x12,\n" +
 	"\x06GetBot\x12\x15.bot.v1.GetBotRequest\x1a\v.bot.v1.Bot\x122\n" +
 	"\tUpdateBot\x12\x18.bot.v1.UpdateBotRequest\x1a\v.bot.v1.Bot\x12=\n" +
 	"\bListBots\x12\x17.bot.v1.ListBotsRequest\x1a\x18.bot.v1.ListBotsResponse\x12@\n" +
-	"\tDeleteBot\x12\x18.bot.v1.DeleteBotRequest\x1a\x19.bot.v1.DeleteBotResponse\x12S\n" +
+	"\tDeleteBot\x12\x18.bot.v1.DeleteBotRequest\x1a\x19.bot.v1.DeleteBotResponse\x12:\n" +
+	"\rGetManagerBot\x12\x1c.bot.v1.GetManagerBotRequest\x1a\v.bot.v1.Bot\x12S\n" +
 	"\x13GetBotConfiguration\x12\".bot.v1.GetBotConfigurationRequest\x1a\x18.bot.v1.BotConfiguration\x12Y\n" +
 	"\x16UpdateBotConfiguration\x12%.bot.v1.UpdateBotConfigurationRequest\x1a\x18.bot.v1.BotConfiguration\x12U\n" +
 	"\x10SetBotPermission\x12\x1f.bot.v1.SetBotPermissionRequest\x1a .bot.v1.SetBotPermissionResponse\x12[\n" +
@@ -2431,7 +3304,11 @@ const file_bot_v1_bot_proto_rawDesc = "" +
 	"\x14ListKnowledgeSources\x12#.bot.v1.ListKnowledgeSourcesRequest\x1a$.bot.v1.ListKnowledgeSourcesResponse\x12U\n" +
 	"\x10ExecuteBotAction\x12\x1f.bot.v1.ExecuteBotActionRequest\x1a .bot.v1.ExecuteBotActionResponse\x12X\n" +
 	"\x11ListBotActionLogs\x12 .bot.v1.ListBotActionLogsRequest\x1a!.bot.v1.ListBotActionLogsResponse\x12G\n" +
-	"\x0fGetBotAnalytics\x12\x1e.bot.v1.GetBotAnalyticsRequest\x1a\x14.bot.v1.BotAnalyticsB.Z,github.com/trustinbox/proto/gen/bot/v1;botv1b\x06proto3"
+	"\x0fGetBotAnalytics\x12\x1e.bot.v1.GetBotAnalyticsRequest\x1a\x14.bot.v1.BotAnalytics\x12^\n" +
+	"\x13ProvisionAgentSuite\x12\".bot.v1.ProvisionAgentSuiteRequest\x1a#.bot.v1.ProvisionAgentSuiteResponse\x12L\n" +
+	"\rGetAgentSuite\x12\x1c.bot.v1.GetAgentSuiteRequest\x1a\x1d.bot.v1.GetAgentSuiteResponse\x12R\n" +
+	"\x0fDelegateToAgent\x12\x1e.bot.v1.DelegateToAgentRequest\x1a\x1f.bot.v1.DelegateToAgentResponse\x12[\n" +
+	"\x12ListDelegationLogs\x12!.bot.v1.ListDelegationLogsRequest\x1a\".bot.v1.ListDelegationLogsResponseB.Z,github.com/trustinbox/proto/gen/bot/v1;botv1b\x06proto3"
 
 var (
 	file_bot_v1_bot_proto_rawDescOnce sync.Once
@@ -2445,7 +3322,7 @@ func file_bot_v1_bot_proto_rawDescGZIP() []byte {
 	return file_bot_v1_bot_proto_rawDescData
 }
 
-var file_bot_v1_bot_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_bot_v1_bot_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_bot_v1_bot_proto_goTypes = []any{
 	(*Bot)(nil),                           // 0: bot.v1.Bot
 	(*CreateBotRequest)(nil),              // 1: bot.v1.CreateBotRequest
@@ -2453,77 +3330,105 @@ var file_bot_v1_bot_proto_goTypes = []any{
 	(*UpdateBotRequest)(nil),              // 3: bot.v1.UpdateBotRequest
 	(*ListBotsRequest)(nil),               // 4: bot.v1.ListBotsRequest
 	(*ListBotsResponse)(nil),              // 5: bot.v1.ListBotsResponse
-	(*DeleteBotRequest)(nil),              // 6: bot.v1.DeleteBotRequest
-	(*DeleteBotResponse)(nil),             // 7: bot.v1.DeleteBotResponse
-	(*BotConfiguration)(nil),              // 8: bot.v1.BotConfiguration
-	(*GetBotConfigurationRequest)(nil),    // 9: bot.v1.GetBotConfigurationRequest
-	(*UpdateBotConfigurationRequest)(nil), // 10: bot.v1.UpdateBotConfigurationRequest
-	(*BotPermission)(nil),                 // 11: bot.v1.BotPermission
-	(*SetBotPermissionRequest)(nil),       // 12: bot.v1.SetBotPermissionRequest
-	(*SetBotPermissionResponse)(nil),      // 13: bot.v1.SetBotPermissionResponse
-	(*ListBotPermissionsRequest)(nil),     // 14: bot.v1.ListBotPermissionsRequest
-	(*ListBotPermissionsResponse)(nil),    // 15: bot.v1.ListBotPermissionsResponse
-	(*KnowledgeSource)(nil),               // 16: bot.v1.KnowledgeSource
-	(*AddKnowledgeSourceRequest)(nil),     // 17: bot.v1.AddKnowledgeSourceRequest
-	(*RemoveKnowledgeSourceRequest)(nil),  // 18: bot.v1.RemoveKnowledgeSourceRequest
-	(*RemoveKnowledgeSourceResponse)(nil), // 19: bot.v1.RemoveKnowledgeSourceResponse
-	(*ListKnowledgeSourcesRequest)(nil),   // 20: bot.v1.ListKnowledgeSourcesRequest
-	(*ListKnowledgeSourcesResponse)(nil),  // 21: bot.v1.ListKnowledgeSourcesResponse
-	(*ExecuteBotActionRequest)(nil),       // 22: bot.v1.ExecuteBotActionRequest
-	(*ExecuteBotActionResponse)(nil),      // 23: bot.v1.ExecuteBotActionResponse
-	(*BotActionLog)(nil),                  // 24: bot.v1.BotActionLog
-	(*ListBotActionLogsRequest)(nil),      // 25: bot.v1.ListBotActionLogsRequest
-	(*ListBotActionLogsResponse)(nil),     // 26: bot.v1.ListBotActionLogsResponse
-	(*BotAnalytics)(nil),                  // 27: bot.v1.BotAnalytics
-	(*GetBotAnalyticsRequest)(nil),        // 28: bot.v1.GetBotAnalyticsRequest
-	(*timestamppb.Timestamp)(nil),         // 29: google.protobuf.Timestamp
+	(*GetManagerBotRequest)(nil),          // 6: bot.v1.GetManagerBotRequest
+	(*DeleteBotRequest)(nil),              // 7: bot.v1.DeleteBotRequest
+	(*DeleteBotResponse)(nil),             // 8: bot.v1.DeleteBotResponse
+	(*BotConfiguration)(nil),              // 9: bot.v1.BotConfiguration
+	(*GetBotConfigurationRequest)(nil),    // 10: bot.v1.GetBotConfigurationRequest
+	(*UpdateBotConfigurationRequest)(nil), // 11: bot.v1.UpdateBotConfigurationRequest
+	(*BotPermission)(nil),                 // 12: bot.v1.BotPermission
+	(*SetBotPermissionRequest)(nil),       // 13: bot.v1.SetBotPermissionRequest
+	(*SetBotPermissionResponse)(nil),      // 14: bot.v1.SetBotPermissionResponse
+	(*ListBotPermissionsRequest)(nil),     // 15: bot.v1.ListBotPermissionsRequest
+	(*ListBotPermissionsResponse)(nil),    // 16: bot.v1.ListBotPermissionsResponse
+	(*KnowledgeSource)(nil),               // 17: bot.v1.KnowledgeSource
+	(*AddKnowledgeSourceRequest)(nil),     // 18: bot.v1.AddKnowledgeSourceRequest
+	(*RemoveKnowledgeSourceRequest)(nil),  // 19: bot.v1.RemoveKnowledgeSourceRequest
+	(*RemoveKnowledgeSourceResponse)(nil), // 20: bot.v1.RemoveKnowledgeSourceResponse
+	(*ListKnowledgeSourcesRequest)(nil),   // 21: bot.v1.ListKnowledgeSourcesRequest
+	(*ListKnowledgeSourcesResponse)(nil),  // 22: bot.v1.ListKnowledgeSourcesResponse
+	(*ExecuteBotActionRequest)(nil),       // 23: bot.v1.ExecuteBotActionRequest
+	(*ExecuteBotActionResponse)(nil),      // 24: bot.v1.ExecuteBotActionResponse
+	(*BotActionLog)(nil),                  // 25: bot.v1.BotActionLog
+	(*ListBotActionLogsRequest)(nil),      // 26: bot.v1.ListBotActionLogsRequest
+	(*ListBotActionLogsResponse)(nil),     // 27: bot.v1.ListBotActionLogsResponse
+	(*BotAnalytics)(nil),                  // 28: bot.v1.BotAnalytics
+	(*GetBotAnalyticsRequest)(nil),        // 29: bot.v1.GetBotAnalyticsRequest
+	(*AgentSuite)(nil),                    // 30: bot.v1.AgentSuite
+	(*ProvisionAgentSuiteRequest)(nil),    // 31: bot.v1.ProvisionAgentSuiteRequest
+	(*ProvisionAgentSuiteResponse)(nil),   // 32: bot.v1.ProvisionAgentSuiteResponse
+	(*GetAgentSuiteRequest)(nil),          // 33: bot.v1.GetAgentSuiteRequest
+	(*GetAgentSuiteResponse)(nil),         // 34: bot.v1.GetAgentSuiteResponse
+	(*AgentDelegationLog)(nil),            // 35: bot.v1.AgentDelegationLog
+	(*DelegateToAgentRequest)(nil),        // 36: bot.v1.DelegateToAgentRequest
+	(*DelegateToAgentResponse)(nil),       // 37: bot.v1.DelegateToAgentResponse
+	(*ListDelegationLogsRequest)(nil),     // 38: bot.v1.ListDelegationLogsRequest
+	(*ListDelegationLogsResponse)(nil),    // 39: bot.v1.ListDelegationLogsResponse
+	(*timestamppb.Timestamp)(nil),         // 40: google.protobuf.Timestamp
 }
 var file_bot_v1_bot_proto_depIdxs = []int32{
-	29, // 0: bot.v1.Bot.created_at:type_name -> google.protobuf.Timestamp
-	29, // 1: bot.v1.Bot.updated_at:type_name -> google.protobuf.Timestamp
+	40, // 0: bot.v1.Bot.created_at:type_name -> google.protobuf.Timestamp
+	40, // 1: bot.v1.Bot.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: bot.v1.ListBotsResponse.bots:type_name -> bot.v1.Bot
-	8,  // 3: bot.v1.UpdateBotConfigurationRequest.configuration:type_name -> bot.v1.BotConfiguration
-	11, // 4: bot.v1.ListBotPermissionsResponse.permissions:type_name -> bot.v1.BotPermission
-	29, // 5: bot.v1.KnowledgeSource.created_at:type_name -> google.protobuf.Timestamp
-	16, // 6: bot.v1.ListKnowledgeSourcesResponse.sources:type_name -> bot.v1.KnowledgeSource
-	29, // 7: bot.v1.BotActionLog.created_at:type_name -> google.protobuf.Timestamp
-	24, // 8: bot.v1.ListBotActionLogsResponse.logs:type_name -> bot.v1.BotActionLog
-	29, // 9: bot.v1.BotAnalytics.last_active_at:type_name -> google.protobuf.Timestamp
-	1,  // 10: bot.v1.BotService.CreateBot:input_type -> bot.v1.CreateBotRequest
-	2,  // 11: bot.v1.BotService.GetBot:input_type -> bot.v1.GetBotRequest
-	3,  // 12: bot.v1.BotService.UpdateBot:input_type -> bot.v1.UpdateBotRequest
-	4,  // 13: bot.v1.BotService.ListBots:input_type -> bot.v1.ListBotsRequest
-	6,  // 14: bot.v1.BotService.DeleteBot:input_type -> bot.v1.DeleteBotRequest
-	9,  // 15: bot.v1.BotService.GetBotConfiguration:input_type -> bot.v1.GetBotConfigurationRequest
-	10, // 16: bot.v1.BotService.UpdateBotConfiguration:input_type -> bot.v1.UpdateBotConfigurationRequest
-	12, // 17: bot.v1.BotService.SetBotPermission:input_type -> bot.v1.SetBotPermissionRequest
-	14, // 18: bot.v1.BotService.ListBotPermissions:input_type -> bot.v1.ListBotPermissionsRequest
-	17, // 19: bot.v1.BotService.AddKnowledgeSource:input_type -> bot.v1.AddKnowledgeSourceRequest
-	18, // 20: bot.v1.BotService.RemoveKnowledgeSource:input_type -> bot.v1.RemoveKnowledgeSourceRequest
-	20, // 21: bot.v1.BotService.ListKnowledgeSources:input_type -> bot.v1.ListKnowledgeSourcesRequest
-	22, // 22: bot.v1.BotService.ExecuteBotAction:input_type -> bot.v1.ExecuteBotActionRequest
-	25, // 23: bot.v1.BotService.ListBotActionLogs:input_type -> bot.v1.ListBotActionLogsRequest
-	28, // 24: bot.v1.BotService.GetBotAnalytics:input_type -> bot.v1.GetBotAnalyticsRequest
-	0,  // 25: bot.v1.BotService.CreateBot:output_type -> bot.v1.Bot
-	0,  // 26: bot.v1.BotService.GetBot:output_type -> bot.v1.Bot
-	0,  // 27: bot.v1.BotService.UpdateBot:output_type -> bot.v1.Bot
-	5,  // 28: bot.v1.BotService.ListBots:output_type -> bot.v1.ListBotsResponse
-	7,  // 29: bot.v1.BotService.DeleteBot:output_type -> bot.v1.DeleteBotResponse
-	8,  // 30: bot.v1.BotService.GetBotConfiguration:output_type -> bot.v1.BotConfiguration
-	8,  // 31: bot.v1.BotService.UpdateBotConfiguration:output_type -> bot.v1.BotConfiguration
-	13, // 32: bot.v1.BotService.SetBotPermission:output_type -> bot.v1.SetBotPermissionResponse
-	15, // 33: bot.v1.BotService.ListBotPermissions:output_type -> bot.v1.ListBotPermissionsResponse
-	16, // 34: bot.v1.BotService.AddKnowledgeSource:output_type -> bot.v1.KnowledgeSource
-	19, // 35: bot.v1.BotService.RemoveKnowledgeSource:output_type -> bot.v1.RemoveKnowledgeSourceResponse
-	21, // 36: bot.v1.BotService.ListKnowledgeSources:output_type -> bot.v1.ListKnowledgeSourcesResponse
-	23, // 37: bot.v1.BotService.ExecuteBotAction:output_type -> bot.v1.ExecuteBotActionResponse
-	26, // 38: bot.v1.BotService.ListBotActionLogs:output_type -> bot.v1.ListBotActionLogsResponse
-	27, // 39: bot.v1.BotService.GetBotAnalytics:output_type -> bot.v1.BotAnalytics
-	25, // [25:40] is the sub-list for method output_type
-	10, // [10:25] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	9,  // 3: bot.v1.UpdateBotConfigurationRequest.configuration:type_name -> bot.v1.BotConfiguration
+	12, // 4: bot.v1.ListBotPermissionsResponse.permissions:type_name -> bot.v1.BotPermission
+	40, // 5: bot.v1.KnowledgeSource.created_at:type_name -> google.protobuf.Timestamp
+	17, // 6: bot.v1.ListKnowledgeSourcesResponse.sources:type_name -> bot.v1.KnowledgeSource
+	40, // 7: bot.v1.BotActionLog.created_at:type_name -> google.protobuf.Timestamp
+	25, // 8: bot.v1.ListBotActionLogsResponse.logs:type_name -> bot.v1.BotActionLog
+	40, // 9: bot.v1.BotAnalytics.last_active_at:type_name -> google.protobuf.Timestamp
+	40, // 10: bot.v1.AgentSuite.provisioned_at:type_name -> google.protobuf.Timestamp
+	0,  // 11: bot.v1.AgentSuite.manager:type_name -> bot.v1.Bot
+	0,  // 12: bot.v1.AgentSuite.agents:type_name -> bot.v1.Bot
+	30, // 13: bot.v1.ProvisionAgentSuiteResponse.suite:type_name -> bot.v1.AgentSuite
+	30, // 14: bot.v1.GetAgentSuiteResponse.suite:type_name -> bot.v1.AgentSuite
+	40, // 15: bot.v1.AgentDelegationLog.created_at:type_name -> google.protobuf.Timestamp
+	35, // 16: bot.v1.ListDelegationLogsResponse.logs:type_name -> bot.v1.AgentDelegationLog
+	1,  // 17: bot.v1.BotService.CreateBot:input_type -> bot.v1.CreateBotRequest
+	2,  // 18: bot.v1.BotService.GetBot:input_type -> bot.v1.GetBotRequest
+	3,  // 19: bot.v1.BotService.UpdateBot:input_type -> bot.v1.UpdateBotRequest
+	4,  // 20: bot.v1.BotService.ListBots:input_type -> bot.v1.ListBotsRequest
+	7,  // 21: bot.v1.BotService.DeleteBot:input_type -> bot.v1.DeleteBotRequest
+	6,  // 22: bot.v1.BotService.GetManagerBot:input_type -> bot.v1.GetManagerBotRequest
+	10, // 23: bot.v1.BotService.GetBotConfiguration:input_type -> bot.v1.GetBotConfigurationRequest
+	11, // 24: bot.v1.BotService.UpdateBotConfiguration:input_type -> bot.v1.UpdateBotConfigurationRequest
+	13, // 25: bot.v1.BotService.SetBotPermission:input_type -> bot.v1.SetBotPermissionRequest
+	15, // 26: bot.v1.BotService.ListBotPermissions:input_type -> bot.v1.ListBotPermissionsRequest
+	18, // 27: bot.v1.BotService.AddKnowledgeSource:input_type -> bot.v1.AddKnowledgeSourceRequest
+	19, // 28: bot.v1.BotService.RemoveKnowledgeSource:input_type -> bot.v1.RemoveKnowledgeSourceRequest
+	21, // 29: bot.v1.BotService.ListKnowledgeSources:input_type -> bot.v1.ListKnowledgeSourcesRequest
+	23, // 30: bot.v1.BotService.ExecuteBotAction:input_type -> bot.v1.ExecuteBotActionRequest
+	26, // 31: bot.v1.BotService.ListBotActionLogs:input_type -> bot.v1.ListBotActionLogsRequest
+	29, // 32: bot.v1.BotService.GetBotAnalytics:input_type -> bot.v1.GetBotAnalyticsRequest
+	31, // 33: bot.v1.BotService.ProvisionAgentSuite:input_type -> bot.v1.ProvisionAgentSuiteRequest
+	33, // 34: bot.v1.BotService.GetAgentSuite:input_type -> bot.v1.GetAgentSuiteRequest
+	36, // 35: bot.v1.BotService.DelegateToAgent:input_type -> bot.v1.DelegateToAgentRequest
+	38, // 36: bot.v1.BotService.ListDelegationLogs:input_type -> bot.v1.ListDelegationLogsRequest
+	0,  // 37: bot.v1.BotService.CreateBot:output_type -> bot.v1.Bot
+	0,  // 38: bot.v1.BotService.GetBot:output_type -> bot.v1.Bot
+	0,  // 39: bot.v1.BotService.UpdateBot:output_type -> bot.v1.Bot
+	5,  // 40: bot.v1.BotService.ListBots:output_type -> bot.v1.ListBotsResponse
+	8,  // 41: bot.v1.BotService.DeleteBot:output_type -> bot.v1.DeleteBotResponse
+	0,  // 42: bot.v1.BotService.GetManagerBot:output_type -> bot.v1.Bot
+	9,  // 43: bot.v1.BotService.GetBotConfiguration:output_type -> bot.v1.BotConfiguration
+	9,  // 44: bot.v1.BotService.UpdateBotConfiguration:output_type -> bot.v1.BotConfiguration
+	14, // 45: bot.v1.BotService.SetBotPermission:output_type -> bot.v1.SetBotPermissionResponse
+	16, // 46: bot.v1.BotService.ListBotPermissions:output_type -> bot.v1.ListBotPermissionsResponse
+	17, // 47: bot.v1.BotService.AddKnowledgeSource:output_type -> bot.v1.KnowledgeSource
+	20, // 48: bot.v1.BotService.RemoveKnowledgeSource:output_type -> bot.v1.RemoveKnowledgeSourceResponse
+	22, // 49: bot.v1.BotService.ListKnowledgeSources:output_type -> bot.v1.ListKnowledgeSourcesResponse
+	24, // 50: bot.v1.BotService.ExecuteBotAction:output_type -> bot.v1.ExecuteBotActionResponse
+	27, // 51: bot.v1.BotService.ListBotActionLogs:output_type -> bot.v1.ListBotActionLogsResponse
+	28, // 52: bot.v1.BotService.GetBotAnalytics:output_type -> bot.v1.BotAnalytics
+	32, // 53: bot.v1.BotService.ProvisionAgentSuite:output_type -> bot.v1.ProvisionAgentSuiteResponse
+	34, // 54: bot.v1.BotService.GetAgentSuite:output_type -> bot.v1.GetAgentSuiteResponse
+	37, // 55: bot.v1.BotService.DelegateToAgent:output_type -> bot.v1.DelegateToAgentResponse
+	39, // 56: bot.v1.BotService.ListDelegationLogs:output_type -> bot.v1.ListDelegationLogsResponse
+	37, // [37:57] is the sub-list for method output_type
+	17, // [17:37] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_bot_v1_bot_proto_init() }
@@ -2537,7 +3442,7 @@ func file_bot_v1_bot_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bot_v1_bot_proto_rawDesc), len(file_bot_v1_bot_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   29,
+			NumMessages:   40,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

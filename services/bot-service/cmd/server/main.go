@@ -67,6 +67,8 @@ func main() {
 	statsRepo := postgres.NewBotAnalyticsRepository(db)
 	workflowRepo := postgres.NewBotWorkflowConfigRepository(db)
 	suspensionRepo := postgres.NewBotWorkflowSuspensionRepository(db)
+	agentSuiteRepo := postgres.NewAgentSuiteRepository(db)
+	delegationRepo := postgres.NewAgentDelegationRepository(db)
 
 	// Redis for event publishing
 	redisOpts, err := redis.ParseURL(cfg.RedisURL)
@@ -153,6 +155,7 @@ func main() {
 	botUC := usecase.NewBotUseCase(
 		botRepo, configRepo, permRepo, sourceRepo, actionRepo, statsRepo,
 		workflowRepo, suspensionRepo,
+		agentSuiteRepo, delegationRepo,
 		nil, aiClient,
 		userClient, notifClient, commClient, botPolicyClient, docClient,
 		workflowDispatcher, resumeBaseURL,

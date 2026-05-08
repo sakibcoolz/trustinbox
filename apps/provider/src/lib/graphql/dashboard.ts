@@ -43,8 +43,6 @@ export interface DashboardAnalytics {
   previousOpenConversations: number;
   activeCampaigns: number;
   previousActiveCampaigns: number;
-  botInteractions: number;
-  previousBotInteractions: number;
 
   dailyDelivery: DailyDeliveryEntry[];
   policyBreakdown: PolicyBreakdown;

@@ -333,14 +333,18 @@ func handleCreateBotConversation(deps *chatDeps, svc *clients.ServiceClients) ht
 
 		ctx := r.Context()
 
-		// Verify the bot exists and is ACTIVE; load name + spID for shadow row.
+		// Verify the bot exists, is ACTIVE, and is the SP's MANAGER bot.
+		// Per product rule #9, consumer apps may only open conversations with
+		// MANAGER bots; sub-agents are reachable only via Manager-driven
+		// delegation on the backend.
 		var (
 			botName   sql.NullString
 			botStatus string
+			agentType string
 		)
 		err = deps.db.QueryRowContext(ctx,
-			`SELECT name, status FROM bots WHERE id = $1`, body.BotID,
-		).Scan(&botName, &botStatus)
+			`SELECT name, status, agent_type FROM bots WHERE id = $1`, body.BotID,
+		).Scan(&botName, &botStatus, &agentType)
 		if err == sql.ErrNoRows {
 			writeJSON(w, http.StatusNotFound, errorResponse{Error: "bot not found"})
 			return
@@ -352,6 +356,12 @@ func handleCreateBotConversation(deps *chatDeps, svc *clients.ServiceClients) ht
 		}
 		if botStatus != "ACTIVE" {
 			writeJSON(w, http.StatusForbidden, errorResponse{Error: "bot is not active"})
+			return
+		}
+		if agentType != "MANAGER" {
+			deps.log.Warn("consumer attempted to open conversation with non-manager bot",
+				zap.String("bot_id", body.BotID), zap.String("agent_type", agentType), zap.String("user_id", userID))
+			writeJSON(w, http.StatusForbidden, errorResponse{Error: "consumer apps may only converse with the service provider's manager bot"})
 			return
 		}
 

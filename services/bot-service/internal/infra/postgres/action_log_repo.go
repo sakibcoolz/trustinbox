@@ -20,9 +20,9 @@ func NewBotActionLogRepository(db *sql.DB) repository.BotActionLogRepository {
 
 func (r *actionLogRepo) Create(ctx context.Context, log *entity.BotActionLog) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO bot_action_logs (id, bot_id, conversation_id, user_id, action_type, tool_used, input_summary, output_summary, policy_decision, policy_reason, duration_ms, success, error_message, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
-		log.ID, log.BotID, nullStr(log.ConversationID), nullStr(log.UserID),
+		`INSERT INTO bot_action_logs (id, bot_id, service_provider_id, conversation_id, user_id, thread_id, action_type, tool_used, input_summary, output_summary, policy_decision, policy_reason, duration_ms, success, error_message, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+		log.ID, log.BotID, nullStr(log.ServiceProviderID), nullStr(log.ConversationID), nullStr(log.UserID), nullStr(log.ThreadID),
 		log.ActionType, log.ToolUsed, log.InputSummary, log.OutputSummary,
 		log.PolicyDecision, log.PolicyReason, log.DurationMS,
 		log.Success, log.ErrorMessage, log.CreatedAt,
@@ -40,7 +40,7 @@ func (r *actionLogRepo) ListByBot(ctx context.Context, botID string, limit, offs
 	}
 
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, bot_id, conversation_id, user_id, action_type, tool_used, input_summary, output_summary, policy_decision, policy_reason, duration_ms, success, error_message, created_at
+		`SELECT id, bot_id, service_provider_id, conversation_id, user_id, thread_id, action_type, tool_used, input_summary, output_summary, policy_decision, policy_reason, duration_ms, success, error_message, created_at
 		 FROM bot_action_logs WHERE bot_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
 		botID, limit, offset,
 	)
@@ -63,7 +63,7 @@ func (r *actionLogRepo) ListByConversation(ctx context.Context, conversationID s
 	}
 
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, bot_id, conversation_id, user_id, action_type, tool_used, input_summary, output_summary, policy_decision, policy_reason, duration_ms, success, error_message, created_at
+		`SELECT id, bot_id, service_provider_id, conversation_id, user_id, thread_id, action_type, tool_used, input_summary, output_summary, policy_decision, policy_reason, duration_ms, success, error_message, created_at
 		 FROM bot_action_logs WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
 		conversationID, limit, offset,
 	)
@@ -83,15 +83,17 @@ func scanActionLogs(rows *sql.Rows) ([]*entity.BotActionLog, error) {
 	var logs []*entity.BotActionLog
 	for rows.Next() {
 		var l entity.BotActionLog
-		var convID, userID sql.NullString
-		if err := rows.Scan(&l.ID, &l.BotID, &convID, &userID,
+		var spID, convID, userID, threadID sql.NullString
+		if err := rows.Scan(&l.ID, &l.BotID, &spID, &convID, &userID, &threadID,
 			&l.ActionType, &l.ToolUsed, &l.InputSummary, &l.OutputSummary,
 			&l.PolicyDecision, &l.PolicyReason, &l.DurationMS,
 			&l.Success, &l.ErrorMessage, &l.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan action log: %w", err)
 		}
+		l.ServiceProviderID = spID.String
 		l.ConversationID = convID.String
 		l.UserID = userID.String
+		l.ThreadID = threadID.String
 		logs = append(logs, &l)
 	}
 	return logs, rows.Err()

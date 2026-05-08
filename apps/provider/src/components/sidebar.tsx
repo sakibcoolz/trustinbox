@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Users, Bot, Megaphone, Webhook, BarChart3, Settings,
+  LayoutDashboard, Users, Megaphone, Webhook, BarChart3, Settings,
   Bell, MessageSquare, PhoneCall, FileText, Shield, Plug,
   BookOpen, Image, UserCog, PanelLeftClose, PanelLeftOpen,
+  Bot, Library, ScrollText,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission, type Permission, type Role } from '@/lib/roles';
@@ -31,13 +32,18 @@ const mainNav: NavItem[] = [
   { label: 'Callbacks', href: '/callbacks', icon: PhoneCall, requiredPermission: 'callbacks:view' },
   { label: 'Documents', href: '/documents', icon: FileText, requiredPermission: 'documents:view' },
   { label: 'Campaigns', href: '/campaigns', icon: Megaphone, requiredPermission: 'campaigns:view' },
-  { label: 'Bots', href: '/bots', icon: Bot, requiredPermission: 'bots:view' },
 ];
 
 const cmsNav: NavItem[] = [
   { label: 'Content', href: '/cms', icon: BookOpen },
   { label: 'Media Library', href: '/cms/media', icon: Image },
   { label: 'CMS Roles', href: '/cms/roles', icon: UserCog },
+];
+
+const aiNav: NavItem[] = [
+  { label: 'Bots', href: '/ai/bots', icon: Bot, requiredPermission: 'ai:view' },
+  { label: 'Knowledge', href: '/ai/knowledge', icon: Library, requiredPermission: 'ai:view' },
+  { label: 'Action Audit', href: '/ai/audit', icon: ScrollText, requiredPermission: 'ai:audit:view' },
 ];
 
 const bottomNav: NavItem[] = [
@@ -130,6 +136,10 @@ export default function SidebarWrapper() {
         {!collapsed && <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-muted">Content</p>}
         {collapsed && <div className="h-3" />}
         {cmsNav.map((item) => <NavItemComponent key={item.href} item={item} />)}
+
+        {!collapsed && <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-muted">AI Studio</p>}
+        {collapsed && <div className="h-3" />}
+        {filterNav(aiNav).map((item) => <NavItemComponent key={item.href} item={item} />)}
 
         {!collapsed && <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-muted">Platform</p>}
         {collapsed && <div className="h-3" />}

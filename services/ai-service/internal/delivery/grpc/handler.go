@@ -5,6 +5,7 @@ import (
 
 	"github.com/trustinbox/ai-service/internal/domain/entity"
 	"github.com/trustinbox/ai-service/internal/usecase"
+	bizerr "github.com/trustinbox/cornerstone/errors"
 	pb "github.com/trustinbox/proto/gen/ai/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -116,12 +117,16 @@ func (h *AIHandler) QueryKnowledge(ctx context.Context, req *pb.QueryKnowledgeRe
 	if req.GetQuery() == "" {
 		return nil, status.Error(codes.InvalidArgument, "query is required")
 	}
+	if req.GetServiceProviderId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "service_provider_id is required")
+	}
 
 	domainReq := &entity.RAGQueryRequest{
-		BotID:    req.GetBotId(),
-		Query:    req.GetQuery(),
-		TopK:     int(req.GetTopK()),
-		MinScore: req.GetMinScore(),
+		BotID:             req.GetBotId(),
+		ServiceProviderID: req.GetServiceProviderId(),
+		Query:             req.GetQuery(),
+		TopK:              int(req.GetTopK()),
+		MinScore:          req.GetMinScore(),
 	}
 
 	resp, err := h.orch.QueryKnowledge(ctx, domainReq)
@@ -165,10 +170,11 @@ func (h *AIHandler) SummarizeConversation(ctx context.Context, req *pb.Summarize
 	}
 
 	domainReq := &entity.SummarizeRequest{
-		BotID:          req.GetBotId(),
-		ConversationID: req.GetConversationId(),
-		Messages:       msgs,
-		SummaryType:    entity.SummaryType(req.GetSummaryType()),
+		BotID:             req.GetBotId(),
+		ServiceProviderID: req.GetServiceProviderId(),
+		ConversationID:    req.GetConversationId(),
+		Messages:          msgs,
+		SummaryType:       entity.SummaryType(req.GetSummaryType()),
 	}
 
 	resp, err := h.orch.SummarizeConversation(ctx, domainReq)
@@ -258,12 +264,23 @@ func (h *AIHandler) DetectSpam(ctx context.Context, req *pb.DetectSpamRequest) (
 	}, nil
 }
 
-// mapError converts internal errors to gRPC status errors.
+// mapError converts internal business errors to gRPC status errors.
 func mapError(err error) error {
 	if err == nil {
 		return nil
 	}
-	return status.Error(codes.Internal, err.Error())
+	switch {
+	case bizerr.IsNotFound(err):
+		return status.Error(codes.NotFound, err.Error())
+	case bizerr.IsInvalidInput(err):
+		return status.Error(codes.InvalidArgument, err.Error())
+	case bizerr.IsForbidden(err):
+		return status.Error(codes.PermissionDenied, err.Error())
+	case bizerr.IsPolicyDenied(err):
+		return status.Error(codes.PermissionDenied, err.Error())
+	default:
+		return status.Error(codes.Internal, err.Error())
+	}
 }
 
 // timestamppb is used for proto timestamp conversions.

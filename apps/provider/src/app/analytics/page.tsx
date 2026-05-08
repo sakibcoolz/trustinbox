@@ -16,7 +16,6 @@ import {
   type CallbackAnalyticsData,
   type DailyAnalyticsEntry,
 } from '@/lib/graphql/analytics';
-import { useBots, type Bot } from '@/lib/graphql/bots';
 import { useCampaigns, type Campaign } from '@/lib/graphql/campaigns';
 import { buildCsvString, downloadCsv, sanitizeCsvField } from '@/lib/utils/csv-export';
 import { TrendChart } from '@/components/analytics/TrendChart';
@@ -55,8 +54,8 @@ function TableSkeleton() {
 function SummaryCards({ data, loading }: { data?: AnalyticsOverviewData; loading: boolean }) {
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {Array.from({ length: 6 }, (_, i) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {Array.from({ length: 5 }, (_, i) => (
           <div key={i} className="bg-bg-card border border-border-primary rounded-xl p-4 text-center animate-pulse">
             <div className="h-3 w-20 mx-auto bg-border-primary rounded" />
             <div className="h-6 w-14 mx-auto bg-border-primary rounded mt-2" />
@@ -72,11 +71,10 @@ function SummaryCards({ data, loading }: { data?: AnalyticsOverviewData; loading
     { label: 'Notifications', value: data?.notificationsSent?.toLocaleString() ?? '0', color: 'text-accent-blue' },
     { label: 'Callbacks', value: data?.callbacksRequested?.toLocaleString() ?? '0', color: 'text-accent-purple' },
     { label: 'Campaigns', value: data?.campaignsLaunched?.toLocaleString() ?? '0', color: 'text-status-warning' },
-    { label: 'Bot Actions', value: data?.botActions?.toLocaleString() ?? '0', color: 'text-accent-teal' },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
       {cards.map((card) => (
         <div key={card.label} className="bg-bg-card border border-border-primary rounded-xl p-4 text-center">
           <p className="text-xs text-text-muted">{card.label}</p>
@@ -275,74 +273,14 @@ function CampaignAnalyticsPanel({ dateVars, overview }: { dateVars: AnalyticsDat
   );
 }
 
-// ─── Bot Panel (11.5) ────────────────────────────────────────────────────────
-
-function BotAnalyticsPanel({ dateVars, overview }: { dateVars: AnalyticsDateVars; overview?: AnalyticsOverviewData }) {
-  const { data: botsData, loading } = useBots({ serviceProviderId: dateVars.serviceProviderId, status: 'ACTIVE', limit: 5 });
-  const bots = botsData?.bots?.nodes ?? [];
-
-  const botActions = overview?.botActions ?? 0;
-  const botEscalations = overview?.botEscalations ?? 0;
-  const handoffRate = botActions > 0 ? ((botEscalations / botActions) * 100).toFixed(1) : '0';
-
-  return (
-    <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-4">
-      <h3 className="text-sm font-semibold">Bot Analytics</h3>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="text-center">
-          <p className="text-xs text-text-muted">Actions</p>
-          <p className="text-lg font-semibold mt-0.5 text-accent-teal">{botActions.toLocaleString()}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-xs text-text-muted">Escalations</p>
-          <p className="text-lg font-semibold mt-0.5 text-status-warning">{botEscalations.toLocaleString()}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-xs text-text-muted">Handoff Rate</p>
-          <p className="text-lg font-semibold mt-0.5 text-accent-purple">{handoffRate}%</p>
-        </div>
-      </div>
-
-      {/* Top bots ranking */}
-      <div className="space-y-2">
-        <p className="text-xs text-text-muted">Top Performing Bots</p>
-        {loading ? (
-          <div className="space-y-2 animate-pulse">
-            {Array.from({ length: 3 }, (_, i) => (
-              <div key={i} className="h-8 bg-border-primary/50 rounded" />
-            ))}
-          </div>
-        ) : (
-          <>
-            {bots.map((bot: Bot, i: number) => (
-              <div key={bot.id} className="flex items-center gap-3 py-2">
-                <span className="text-xs text-text-muted w-4">{i + 1}</span>
-                <div className="w-7 h-7 rounded-full bg-accent-purple/20 flex items-center justify-center text-xs font-medium text-accent-purple">
-                  {bot.name[0]}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{bot.name}</p>
-                  <p className="text-xs text-text-muted">{bot.purpose}</p>
-                </div>
-                <a href={`/bots/${bot.id}`} className="text-xs text-accent-blue hover:underline shrink-0">View</a>
-              </div>
-            ))}
-            {bots.length === 0 && (
-              <p className="text-xs text-text-muted py-4 text-center">No active bots</p>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ─── Policy Panel (11.6) ─────────────────────────────────────────────────────
 
 function PolicyAnalyticsPanel({ overview }: { overview?: AnalyticsOverviewData }) {
   if (!overview) return <PanelSkeleton />;
 
-  const { policyDenials, spamReports, notificationsSent } = overview;
+  const policyDenials = overview.policyDenials ?? 0;
+  const spamReports = overview.spamReports ?? 0;
+  const notificationsSent = overview.notificationsSent ?? 0;
   const total = notificationsSent + policyDenials;
   const allowed = notificationsSent;
   const blocked = policyDenials;
@@ -448,7 +386,6 @@ const DAILY_COLUMNS: { key: SortKey; label: string }[] = [
   { key: 'callbacksRequested', label: 'Callbacks' },
   { key: 'callbacksApproved', label: 'CB Approved' },
   { key: 'messagesSent', label: 'Messages' },
-  { key: 'botActions', label: 'Bot Actions' },
   { key: 'policyDenials', label: 'Denials' },
   { key: 'spamReports', label: 'Spam' },
 ];
@@ -524,7 +461,6 @@ function DailyAnalyticsTable({ data, loading }: { data?: DailyAnalyticsEntry[]; 
                 <td className="py-2 px-3 text-xs">{entry.callbacksRequested.toLocaleString()}</td>
                 <td className="py-2 px-3 text-xs">{entry.callbacksApproved.toLocaleString()}</td>
                 <td className="py-2 px-3 text-xs">{entry.messagesSent.toLocaleString()}</td>
-                <td className="py-2 px-3 text-xs">{entry.botActions.toLocaleString()}</td>
                 <td className="py-2 px-3 text-xs">{entry.policyDenials.toLocaleString()}</td>
                 <td className={`py-2 px-3 text-xs ${entry.spamReports > 0 ? 'text-status-error font-medium' : ''}`}>
                   {entry.spamReports.toLocaleString()}
@@ -557,7 +493,7 @@ function ExportButton({ dateVars, dailyData }: { dateVars: AnalyticsDateVars; da
     const headers = [
       'Date', 'Notifications Sent', 'Delivered', 'Read',
       'Callbacks Requested', 'Callbacks Approved',
-      'Messages Sent', 'Bot Actions', 'Policy Denials', 'Spam Reports',
+      'Messages Sent', 'Policy Denials', 'Spam Reports',
     ];
 
     const rows = (dailyData ?? []).map((entry) => [
@@ -568,7 +504,6 @@ function ExportButton({ dateVars, dailyData }: { dateVars: AnalyticsDateVars; da
       String(entry.callbacksRequested),
       String(entry.callbacksApproved),
       String(entry.messagesSent),
-      String(entry.botActions),
       String(entry.policyDenials),
       String(entry.spamReports),
     ]);
@@ -662,7 +597,6 @@ function AnalyticsPageContent() {
         <NotificationAnalyticsPanel dateVars={dateVars} />
         <CallbackAnalyticsPanel dateVars={dateVars} />
         <CampaignAnalyticsPanel dateVars={dateVars} overview={overview} />
-        <BotAnalyticsPanel dateVars={dateVars} overview={overview} />
       </div>
 
       {/* Policy Panel (full width) */}

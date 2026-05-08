@@ -95,10 +95,11 @@ type KnowledgeChunk struct {
 
 // RAGQueryRequest holds the input for a RAG knowledge query.
 type RAGQueryRequest struct {
-	BotID    string
-	Query    string
-	TopK     int
-	MinScore float64
+	BotID             string
+	ServiceProviderID string
+	Query             string
+	TopK              int
+	MinScore          float64
 }
 
 // RAGQueryResponse holds the result of a RAG knowledge query.
@@ -126,10 +127,11 @@ const (
 
 // SummarizeRequest holds the input for conversation summarization.
 type SummarizeRequest struct {
-	BotID          string
-	ConversationID string
-	Messages       []ConversationMessage
-	SummaryType    SummaryType
+	BotID             string
+	ServiceProviderID string
+	ConversationID    string
+	Messages          []ConversationMessage
+	SummaryType       SummaryType
 }
 
 // SummarizeResponse holds the summarization output.

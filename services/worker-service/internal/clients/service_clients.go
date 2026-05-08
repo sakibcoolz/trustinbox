@@ -3,6 +3,7 @@ package clients
 import (
 	"os"
 
+	botpb "github.com/trustinbox/proto/gen/bot/v1"
 	commpb "github.com/trustinbox/proto/gen/communication/v1"
 	notifpb "github.com/trustinbox/proto/gen/notification/v1"
 	"go.uber.org/zap"
@@ -14,6 +15,7 @@ import (
 type ServiceClients struct {
 	Notification  notifpb.NotificationServiceClient
 	Communication commpb.CommunicationServiceClient
+	Bot           botpb.BotServiceClient
 
 	conns []*grpc.ClientConn
 }
@@ -36,11 +38,16 @@ func NewServiceClients(log *zap.Logger) (*ServiceClients, error) {
 	if err != nil {
 		return nil, err
 	}
+	botConn, err := dial("BOT_SERVICE_ADDR", "localhost:50059")
+	if err != nil {
+		return nil, err
+	}
 
 	return &ServiceClients{
 		Notification:  notifpb.NewNotificationServiceClient(notifConn),
 		Communication: commpb.NewCommunicationServiceClient(commConn),
-		conns:         []*grpc.ClientConn{notifConn, commConn},
+		Bot:           botpb.NewBotServiceClient(botConn),
+		conns:         []*grpc.ClientConn{notifConn, commConn, botConn},
 	}, nil
 }
 

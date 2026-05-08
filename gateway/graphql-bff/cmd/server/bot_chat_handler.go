@@ -62,21 +62,42 @@ func handleCustomerBotChat(svc *clients.ServiceClients, db *sql.DB, tokenSvc *jw
 			return
 		}
 
-		// Resolve the SP ID: use the value from the request, or fall back to the
-		// bot's own service_provider_id column in the DB.
-		spID := body.ServiceProviderID
-		if spID == "" {
-			if err := db.QueryRowContext(r.Context(),
-				`SELECT service_provider_id FROM bots WHERE id = $1 AND status = 'ACTIVE'`, botID,
-			).Scan(&spID); err != nil {
-				if err == sql.ErrNoRows {
-					writeJSON(w, http.StatusNotFound, errorResponse{Error: "bot not found or not active"})
-					return
-				}
-				log.Error("bot lookup failed", zap.Error(err), zap.String("bot_id", botID))
-				writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
+		// Resolve the SP ID and verify the bot is the SP's MANAGER.
+		// Per product rule #9, consumer apps may only chat with MANAGER bots;
+		// sub-agents are reachable solely via Manager-driven delegation on the
+		// backend.
+		var (
+			botSPID   string
+			agentType string
+			botStatus string
+		)
+		if err := db.QueryRowContext(r.Context(),
+			`SELECT service_provider_id, agent_type, status FROM bots WHERE id = $1`, botID,
+		).Scan(&botSPID, &agentType, &botStatus); err != nil {
+			if err == sql.ErrNoRows {
+				writeJSON(w, http.StatusNotFound, errorResponse{Error: "bot not found"})
 				return
 			}
+			log.Error("bot lookup failed", zap.Error(err), zap.String("bot_id", botID))
+			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
+			return
+		}
+		if botStatus != "ACTIVE" {
+			writeJSON(w, http.StatusNotFound, errorResponse{Error: "bot not active"})
+			return
+		}
+		if agentType != "MANAGER" {
+			log.Warn("consumer attempted to chat with non-manager bot",
+				zap.String("bot_id", botID), zap.String("agent_type", agentType), zap.String("user_id", userID))
+			writeJSON(w, http.StatusForbidden, errorResponse{Error: "consumer apps may only chat with the service provider's manager bot"})
+			return
+		}
+		spID := body.ServiceProviderID
+		if spID == "" {
+			spID = botSPID
+		} else if spID != botSPID {
+			writeJSON(w, http.StatusBadRequest, errorResponse{Error: "service provider mismatch"})
+			return
 		}
 
 		// Build the inputJSON expected by the bot-service test_prompt handler.

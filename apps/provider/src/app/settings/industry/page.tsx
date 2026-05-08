@@ -34,8 +34,6 @@ function getIndustryIcon(key: string) {
 interface ComplianceHint { name: string; description: string; required: boolean; }
 interface DocumentType { name: string; description: string; required: boolean; }
 interface CallbackWorkflow { name: string; description: string; }
-interface BotTemplate { name: string; description: string; purpose: string; }
-
 // Communication overrides (editable)
 interface CommOverrides {
   maxDailyNotifications: string;
@@ -146,8 +144,6 @@ export default function IndustrySettingsPage() {
   const complianceHints = useMemo(() => safeParseJson<ComplianceHint[]>(activeProfile?.complianceHintsJson, []), [activeProfile]);
   const documentTypes = useMemo(() => safeParseJson<DocumentType[]>(activeProfile?.documentTypesJson, []), [activeProfile]);
   const callbackWorkflows = useMemo(() => safeParseJson<CallbackWorkflow[]>(activeProfile?.callbackWorkflowsJson, []), [activeProfile]);
-  const botTemplates = useMemo(() => safeParseJson<BotTemplate[]>(activeProfile?.botPromptPackJson, []), [activeProfile]);
-
   const isSwitching = selectedKey !== currentKey && currentKey !== '';
   const overridesDirty = JSON.stringify(commOverrides) !== savedOverrides;
 
@@ -440,23 +436,6 @@ export default function IndustrySettingsPage() {
               </div>
             )}
 
-            {/* Bot Templates (read-only) */}
-            {botTemplates.length > 0 && (
-              <div className="bg-bg-card border border-border-primary rounded-xl p-6 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold">Bot Prompt Templates</h3>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent-blue/10 text-accent-blue font-medium">Industry default</span>
-                </div>
-                <div className="space-y-2">
-                  {botTemplates.map((tmpl, i) => (
-                    <div key={i} className="px-3 py-2.5 bg-bg-input border border-border-secondary rounded-lg">
-                      <p className="text-sm font-medium">{tmpl.name}</p>
-                      <p className="text-xs text-text-muted">{tmpl.description || tmpl.purpose}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Preview Panel (15.7) */}
@@ -479,10 +458,6 @@ export default function IndustrySettingsPage() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-text-muted">Callback Workflows</span>
                   <span className="font-medium">{callbackWorkflows.length}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-text-muted">Bot Templates</span>
-                  <span className="font-medium">{botTemplates.length}</span>
                 </div>
               </div>
 

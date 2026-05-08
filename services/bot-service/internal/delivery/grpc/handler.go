@@ -57,7 +57,7 @@ func (h *BotHandler) UpdateBot(ctx context.Context, req *pb.UpdateBotRequest) (*
 
 func (h *BotHandler) ListBots(ctx context.Context, req *pb.ListBotsRequest) (*pb.ListBotsResponse, error) {
 	bots, total, err := h.uc.ListBots(ctx,
-		req.GetServiceProviderId(), req.GetStatus(),
+		req.GetServiceProviderId(), req.GetStatus(), req.GetAgentType(),
 		int(req.GetLimit()), int(req.GetOffset()),
 	)
 	if err != nil {
@@ -68,6 +68,16 @@ func (h *BotHandler) ListBots(ctx context.Context, req *pb.ListBotsRequest) (*pb
 		pbBots[i] = botToProto(b)
 	}
 	return &pb.ListBotsResponse{Bots: pbBots, Total: int32(total)}, nil
+}
+
+// GetManagerBot returns the SP's MANAGER bot. Per product rule #9 this is the
+// only AI surface exposed to consumer apps (web, hybrid).
+func (h *BotHandler) GetManagerBot(ctx context.Context, req *pb.GetManagerBotRequest) (*pb.Bot, error) {
+	bot, err := h.uc.GetManagerBot(ctx, req.GetServiceProviderId())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return botToProto(bot), nil
 }
 
 func (h *BotHandler) DeleteBot(ctx context.Context, req *pb.DeleteBotRequest) (*pb.DeleteBotResponse, error) {
@@ -210,6 +220,8 @@ func botToProto(b *entity.Bot) *pb.Bot {
 		CreatedBySpUserId: b.CreatedBySPUserID,
 		CreatedAt:         timestamppb.New(b.CreatedAt),
 		UpdatedAt:         timestamppb.New(b.UpdatedAt),
+		AgentType:         string(b.AgentType),
+		ManagerBotId:      b.ManagerBotID,
 	}
 }
 
@@ -343,5 +355,106 @@ func mapError(err error) error {
 		return status.Error(codes.PermissionDenied, err.Error())
 	default:
 		return status.Error(codes.Internal, err.Error())
+	}
+}
+
+// ─── Agent Suite Handlers ─────────────────────────────────────────────────
+
+func (h *BotHandler) ProvisionAgentSuite(ctx context.Context, req *pb.ProvisionAgentSuiteRequest) (*pb.ProvisionAgentSuiteResponse, error) {
+	suite, err := h.uc.ProvisionAgentSuite(ctx, req.GetServiceProviderId(), req.GetCreatedBySpUserId())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &pb.ProvisionAgentSuiteResponse{Suite: agentSuiteToProto(suite)}, nil
+}
+
+func (h *BotHandler) GetAgentSuite(ctx context.Context, req *pb.GetAgentSuiteRequest) (*pb.GetAgentSuiteResponse, error) {
+	suite, err := h.uc.GetAgentSuite(ctx, req.GetServiceProviderId())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &pb.GetAgentSuiteResponse{Suite: agentSuiteToProto(suite)}, nil
+}
+
+func (h *BotHandler) DelegateToAgent(ctx context.Context, req *pb.DelegateToAgentRequest) (*pb.DelegateToAgentResponse, error) {
+	out, err := h.uc.DelegateToAgent(ctx, usecase.DelegateInput{
+		ManagerBotID:   req.GetManagerBotId(),
+		SPID:           req.GetServiceProviderId(),
+		UserID:         req.GetUserId(),
+		ConversationID: req.GetConversationId(),
+		AgentType:      req.GetAgentType(),
+		TaskInput:      req.GetTaskInput(),
+		ActionType:     req.GetActionType(),
+	})
+	if err != nil && out == nil {
+		return nil, mapError(err)
+	}
+	if out == nil {
+		out = &usecase.DelegateOutput{}
+	}
+	return &pb.DelegateToAgentResponse{
+		Success:         out.Success,
+		OutputJson:      out.OutputJSON,
+		PolicyDecision:  out.PolicyDecision,
+		PolicyReason:    out.PolicyReason,
+		Escalated:       out.Escalated,
+		DurationMs:      int32(out.DurationMS),
+		IntentDetected:  out.IntentDetected,
+		ConfidenceScore: out.ConfidenceScore,
+	}, nil
+}
+
+func (h *BotHandler) ListDelegationLogs(ctx context.Context, req *pb.ListDelegationLogsRequest) (*pb.ListDelegationLogsResponse, error) {
+	logs, total, err := h.uc.ListDelegationLogs(ctx,
+		req.GetManagerBotId(), req.GetServiceProviderId(),
+		int(req.GetLimit()), int(req.GetOffset()),
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	protoLogs := make([]*pb.AgentDelegationLog, 0, len(logs))
+	for _, l := range logs {
+		protoLogs = append(protoLogs, delegationLogToProto(l))
+	}
+	return &pb.ListDelegationLogsResponse{Logs: protoLogs, Total: int32(total)}, nil
+}
+
+// ─── Agent Suite Mappers ──────────────────────────────────────────────────
+
+func agentSuiteToProto(s *entity.AgentSuite) *pb.AgentSuite {
+	if s == nil {
+		return nil
+	}
+	proto := &pb.AgentSuite{
+		Id:                s.ID,
+		ServiceProviderId: s.ServiceProviderID,
+		ManagerBotId:      s.ManagerBotID,
+		Status:            string(s.Status),
+		ProvisionedAt:     timestamppb.New(s.ProvisionedAt),
+	}
+	if s.Manager != nil {
+		proto.Manager = botToProto(s.Manager)
+	}
+	for _, a := range s.Agents {
+		proto.Agents = append(proto.Agents, botToProto(a))
+	}
+	return proto
+}
+
+func delegationLogToProto(l *entity.AgentDelegationLog) *pb.AgentDelegationLog {
+	return &pb.AgentDelegationLog{
+		Id:              l.ID,
+		ManagerBotId:    l.ManagerBotID,
+		TargetBotId:     l.TargetBotID,
+		UserId:          l.UserID,
+		ConversationId:  l.ConversationID,
+		IntentDetected:  l.IntentDetected,
+		ConfidenceScore: l.ConfidenceScore,
+		InputSummary:    l.InputSummary,
+		OutputSummary:   l.OutputSummary,
+		DurationMs:      int32(l.DurationMS),
+		Success:         l.Success,
+		ErrorMessage:    l.ErrorMessage,
+		CreatedAt:       timestamppb.New(l.CreatedAt),
 	}
 }

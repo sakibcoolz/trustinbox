@@ -75,7 +75,6 @@ function MoreMenu({ onClose }: { onClose: () => void }) {
           { label: 'Callbacks', href: '/callbacks', icon: PhoneCall },
           { label: 'Documents', href: '/documents', icon: LayoutDashboard },
           { label: 'Campaigns', href: '/campaigns', icon: LayoutDashboard },
-          { label: 'Bots', href: '/bots', icon: LayoutDashboard },
           { label: 'Settings', href: '/settings', icon: LayoutDashboard },
         ].map((item) => {
           const Icon = item.icon;

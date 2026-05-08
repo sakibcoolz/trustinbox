@@ -48,6 +48,8 @@ func (uc *BotUseCase) dispatchTool(
 		return uc.toolShareDocument(ctx, botID, spID, conversationID, userID, inputJSON)
 	case "escalate_to_human":
 		return uc.toolEscalateToHuman(ctx, botID, conversationID, userID, inputJSON)
+	case "delegate_to_agent":
+		return uc.toolDelegateToAgent(ctx, botID, spID, conversationID, userID, inputJSON)
 	default:
 		return "", bizerr.InvalidInput("unknown tool: " + toolName)
 	}

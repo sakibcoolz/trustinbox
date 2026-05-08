@@ -7,11 +7,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/redis/go-redis/v9"
 	grpcdelivery "github.com/trustinbox/ai-service/internal/delivery/grpc"
 	"github.com/trustinbox/ai-service/internal/domain/entity"
 	"github.com/trustinbox/ai-service/internal/domain/repository"
 	chromainfra "github.com/trustinbox/ai-service/internal/infra/chromadb"
 	"github.com/trustinbox/ai-service/internal/infra/llm"
+	redisinfra "github.com/trustinbox/ai-service/internal/infra/redis"
 	"github.com/trustinbox/ai-service/internal/usecase"
 	"github.com/trustinbox/cornerstone/config"
 	logger "github.com/trustinbox/cornerstone/logging"
@@ -86,6 +88,19 @@ func main() {
 
 	// Orchestrator
 	orch := usecase.NewOrchestrator(router, toolExecutor, rag, summarizer, categorizer, spamDetector)
+
+	// Redis conversation repository — persists summaries and message history
+	// partitioned by service_provider_id for tenant isolation.
+	redisURL := config.GetEnv("REDIS_URL", "redis://localhost:6379")
+	redisOpts, err := redis.ParseURL(redisURL)
+	if err != nil {
+		log.Warn("failed to parse REDIS_URL; conversation summaries will not be persisted", zap.Error(err))
+	} else {
+		rdb := redis.NewClient(redisOpts)
+		convRepo := redisinfra.NewConversationRepository(rdb)
+		orch = orch.WithConversationRepo(convRepo)
+		log.Info("conversation repository wired to Redis", zap.String("redis_url", redisURL))
+	}
 
 	// gRPC handler
 	handler := grpcdelivery.NewAIHandler(orch)

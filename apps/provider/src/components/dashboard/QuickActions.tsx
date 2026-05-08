@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell, Megaphone, Bot, PhoneCall, FileText, BarChart3 } from 'lucide-react';
+import { Bell, Megaphone, PhoneCall, FileText, BarChart3 } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import type { Permission } from '@/lib/roles';
 
@@ -16,7 +16,6 @@ interface QuickAction {
 const ACTIONS: QuickAction[] = [
   { label: 'Send Notification', icon: Bell, href: '/notifications/compose', permission: 'notifications:send', primary: true },
   { label: 'Create Campaign', icon: Megaphone, href: '/campaigns/new', permission: 'campaigns:create' },
-  { label: 'Create Bot', icon: Bot, href: '/bots/new', permission: 'bots:create' },
   { label: 'Request Callback', icon: PhoneCall, href: '/callbacks/new', permission: 'callbacks:manage' },
   { label: 'Upload Document', icon: FileText, href: '/documents/upload', permission: 'documents:upload' },
   { label: 'View Reports', icon: BarChart3, href: '/analytics', permission: 'analytics:view' },

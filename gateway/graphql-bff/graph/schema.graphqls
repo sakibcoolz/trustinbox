@@ -346,6 +346,17 @@ enum BotStatus {
   ARCHIVED
 }
 
+enum AgentType {
+  GENERAL
+  MANAGER
+  DOCUMENTATION_WRITER
+  CUSTOMER_SERVICE
+  APPOINTMENT_SCHEDULING
+  PAYMENT
+  ORDER_ACCEPTING
+  PRODUCT_SHOWCASE
+}
+
 enum KnowledgeSourceType {
   DOCUMENT
   URL
@@ -401,6 +412,8 @@ type Bot {
   permissions: [BotPermission!]!
   knowledgeSources: [KnowledgeSource!]!
   analytics: BotAnalytics
+  agentType: AgentType!
+  managerBotId: ID
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -492,6 +505,50 @@ type ExecuteBotActionResult {
   policyDecision: String
   policyReason: String
   escalated: Boolean!
+}
+
+# ─── Agent Suite Types ─────────────────────────────────────
+
+type AgentSuite {
+  id: ID!
+  serviceProviderId: ID!
+  managerBotId: ID!
+  status: String!
+  provisionedAt: DateTime!
+  manager: Bot
+  agents: [Bot!]!
+}
+
+type AgentDelegationLog {
+  id: ID!
+  managerBotId: ID!
+  targetBotId: ID!
+  userId: ID!
+  conversationId: ID
+  intentDetected: String!
+  confidenceScore: Float!
+  inputSummary: String!
+  outputSummary: String!
+  durationMs: Int!
+  success: Boolean!
+  errorMessage: String!
+  createdAt: DateTime!
+}
+
+type AgentDelegationLogConnection {
+  nodes: [AgentDelegationLog!]!
+  totalCount: Int!
+}
+
+type DelegateToAgentResult {
+  success: Boolean!
+  outputJson: String
+  policyDecision: String
+  policyReason: String
+  escalated: Boolean!
+  durationMs: Int!
+  intentDetected: String!
+  confidenceScore: Float!
 }
 
 # ============================================================
@@ -788,6 +845,16 @@ input ExecuteBotActionInput {
   inputJson: String
 }
 
+input DelegateToAgentInput {
+  managerBotId: ID!
+  serviceProviderId: ID!
+  userId: ID!
+  conversationId: ID
+  agentType: AgentType!
+  taskInput: String!
+  actionType: String
+}
+
 # ============================================================
 # WEBHOOK INPUTS
 # ============================================================
@@ -1021,6 +1088,13 @@ type Query {
     offset: Int
   ): BotActionLogConnection!
   botAnalytics(botId: ID!, serviceProviderId: ID!): BotAnalytics!
+  agentSuite(serviceProviderId: ID!): AgentSuite!
+  agentDelegationLogs(
+    managerBotId: ID!
+    serviceProviderId: ID!
+    limit: Int
+    offset: Int
+  ): AgentDelegationLogConnection!
 
   # Industry Profiles
   industryProfile(industryKey: String!): IndustryProfile!
@@ -1229,6 +1303,8 @@ type Mutation {
   addKnowledgeSource(input: AddKnowledgeSourceInput!): KnowledgeSource!
   removeKnowledgeSource(knowledgeSourceId: ID!, botId: ID!, serviceProviderId: ID!): Boolean!
   executeBotAction(input: ExecuteBotActionInput!): ExecuteBotActionResult!
+  provisionAgentSuite(serviceProviderId: ID!, createdBySpUserId: ID!): AgentSuite!
+  delegateToAgent(input: DelegateToAgentInput!): DelegateToAgentResult!
 
   # Webhook Subscriptions
   createWebhookSubscription(input: CreateWebhookSubscriptionInput!): WebhookSubscription!

@@ -113,7 +113,7 @@ func TestBotRepo_CRUD(t *testing.T) {
 	}
 
 	// ListBySP
-	bots, total, err := repo.ListBySP(ctx, spID, "", 10, 0)
+	bots, total, err := repo.ListBySP(ctx, spID, "", "", 10, 0)
 	if err != nil {
 		t.Fatalf("ListBySP: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestBotRepo_CRUD(t *testing.T) {
 	}
 
 	// ListBySP with status filter
-	bots, total, err = repo.ListBySP(ctx, spID, "ACTIVE", 10, 0)
+	bots, total, err = repo.ListBySP(ctx, spID, "ACTIVE", "", 10, 0)
 	if err != nil {
 		t.Fatalf("ListBySP filtered: %v", err)
 	}

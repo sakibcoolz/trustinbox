@@ -23,7 +23,7 @@ const defaultWebhooks: WebhookEntry[] = [
   { id: '2', url: 'https://api.acme.com/webhooks/analytics', events: ['campaign.completed'], status: 'Active', successRate: '98.8%' },
 ];
 
-const allEvents = ['notification.delivered', 'notification.failed', 'callback.requested', 'callback.completed', 'campaign.completed', 'bot.escalated'];
+const allEvents = ['notification.delivered', 'notification.failed', 'callback.requested', 'callback.completed', 'campaign.completed'];
 
 export default function WebhookManager({ webhooks = defaultWebhooks, onAdd, onDelete, onTest }: WebhookManagerProps) {
   const [showAdd, setShowAdd] = useState(false);

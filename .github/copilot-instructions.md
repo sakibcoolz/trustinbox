@@ -971,3 +971,8 @@ Fonts:        Inter (sans) · JetBrains Mono (mono)
 6. **Privacy by design** — real phone numbers never exposed; PII encrypted at rest; audit trails for all admin actions.
 7. **DND enforcement** — communications blocked during user-defined Do Not Disturb windows.
 8. **Spam protection** — spam scores tracked, ad caps enforced, block/report mechanisms available.
+9. **One Manager AI bot per service provider** — every service provider has **exactly one** bot with `agent_type = 'MANAGER'`. The Manager is the only AI surface exposed to consumer apps (`apps/web/`, `apps/hybrid-app/`); all other bots (`CUSTOMER_SERVICE`, `APPOINTMENT_SCHEDULING`, `PAYMENT`, `ORDER_ACCEPTING`, `PRODUCT_SHOWCASE`, `DOCUMENTATION_WRITER`, `GENERAL`, …) are **sub-agents** and MUST set `manager_bot_id` to that Manager's id.
+   - **Provider portal** (`apps/provider/`) — manages all bots (Manager + sub-agents) via the AI Studio.
+   - **Web app + Hybrid app** — list/chat/handoff surfaces MUST only show the SP's Manager bot. Sub-agents are reachable only via Manager-driven delegation (capped at depth 3) on the backend.
+   - **Gateway/services** — when resolving "the SP's bot" for a consumer surface, always select `WHERE service_provider_id = $1 AND agent_type = 'MANAGER' AND status = 'ACTIVE'` and never expose sub-agent IDs in consumer-facing payloads.
+   - **Provisioning** — `bot-service.ProvisionAgentSuite` creates the Manager and its sub-agents atomically; uniqueness of the Manager per SP is enforced at the data layer.

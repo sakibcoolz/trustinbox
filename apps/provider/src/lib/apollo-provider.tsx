@@ -195,7 +195,6 @@ const cache = new InMemoryCache({
     CallbackRequest: { keyFields: ['id'] },
     Conversation: { keyFields: ['id'] },
     Campaign: { keyFields: ['id'] },
-    Bot: { keyFields: ['id'] },
     ServiceProvider: { keyFields: ['id'] },
     WebhookSubscription: { keyFields: ['id'] },
     WebhookDelivery: { keyFields: ['id'] },
@@ -208,7 +207,6 @@ const cache = new InMemoryCache({
     SpamReport: { keyFields: ['id'] },
     Message: { keyFields: ['id'] },
     Document: { keyFields: ['id'] },
-    BotActionLog: { keyFields: ['id'] },
   },
 });
 

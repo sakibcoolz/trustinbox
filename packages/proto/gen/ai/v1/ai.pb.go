@@ -555,13 +555,14 @@ func (x *ExecuteToolResponse) GetDurationMs() int32 {
 }
 
 type QueryKnowledgeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BotId         string                 `protobuf:"bytes,1,opt,name=bot_id,json=botId,proto3" json:"bot_id,omitempty"`
-	Query         string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
-	TopK          int32                  `protobuf:"varint,3,opt,name=top_k,json=topK,proto3" json:"top_k,omitempty"`
-	MinScore      float64                `protobuf:"fixed64,4,opt,name=min_score,json=minScore,proto3" json:"min_score,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	BotId             string                 `protobuf:"bytes,1,opt,name=bot_id,json=botId,proto3" json:"bot_id,omitempty"`
+	Query             string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
+	TopK              int32                  `protobuf:"varint,3,opt,name=top_k,json=topK,proto3" json:"top_k,omitempty"`
+	MinScore          float64                `protobuf:"fixed64,4,opt,name=min_score,json=minScore,proto3" json:"min_score,omitempty"`
+	ServiceProviderId string                 `protobuf:"bytes,5,opt,name=service_provider_id,json=serviceProviderId,proto3" json:"service_provider_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *QueryKnowledgeRequest) Reset() {
@@ -620,6 +621,13 @@ func (x *QueryKnowledgeRequest) GetMinScore() float64 {
 		return x.MinScore
 	}
 	return 0
+}
+
+func (x *QueryKnowledgeRequest) GetServiceProviderId() string {
+	if x != nil {
+		return x.ServiceProviderId
+	}
+	return ""
 }
 
 type KnowledgeChunk struct {
@@ -827,13 +835,14 @@ func (x *ConversationMessage) GetTimestamp() *timestamppb.Timestamp {
 }
 
 type SummarizeConversationRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	BotId          string                 `protobuf:"bytes,1,opt,name=bot_id,json=botId,proto3" json:"bot_id,omitempty"`
-	ConversationId string                 `protobuf:"bytes,2,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
-	Messages       []*ConversationMessage `protobuf:"bytes,3,rep,name=messages,proto3" json:"messages,omitempty"`
-	SummaryType    string                 `protobuf:"bytes,4,opt,name=summary_type,json=summaryType,proto3" json:"summary_type,omitempty"` // brief, detailed, action_items
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	BotId             string                 `protobuf:"bytes,1,opt,name=bot_id,json=botId,proto3" json:"bot_id,omitempty"`
+	ConversationId    string                 `protobuf:"bytes,2,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	Messages          []*ConversationMessage `protobuf:"bytes,3,rep,name=messages,proto3" json:"messages,omitempty"`
+	SummaryType       string                 `protobuf:"bytes,4,opt,name=summary_type,json=summaryType,proto3" json:"summary_type,omitempty"` // brief, detailed, action_items
+	ServiceProviderId string                 `protobuf:"bytes,5,opt,name=service_provider_id,json=serviceProviderId,proto3" json:"service_provider_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *SummarizeConversationRequest) Reset() {
@@ -890,6 +899,13 @@ func (x *SummarizeConversationRequest) GetMessages() []*ConversationMessage {
 func (x *SummarizeConversationRequest) GetSummaryType() string {
 	if x != nil {
 		return x.SummaryType
+	}
+	return ""
+}
+
+func (x *SummarizeConversationRequest) GetServiceProviderId() string {
+	if x != nil {
+		return x.ServiceProviderId
 	}
 	return ""
 }
@@ -1421,12 +1437,13 @@ const file_ai_v1_ai_proto_rawDesc = "" +
 	"resultJson\x12#\n" +
 	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12\x1f\n" +
 	"\vduration_ms\x18\x04 \x01(\x05R\n" +
-	"durationMs\"v\n" +
+	"durationMs\"\xa6\x01\n" +
 	"\x15QueryKnowledgeRequest\x12\x15\n" +
 	"\x06bot_id\x18\x01 \x01(\tR\x05botId\x12\x14\n" +
 	"\x05query\x18\x02 \x01(\tR\x05query\x12\x13\n" +
 	"\x05top_k\x18\x03 \x01(\x05R\x04topK\x12\x1b\n" +
-	"\tmin_score\x18\x04 \x01(\x01R\bminScore\"\xaa\x02\n" +
+	"\tmin_score\x18\x04 \x01(\x01R\bminScore\x12.\n" +
+	"\x13service_provider_id\x18\x05 \x01(\tR\x11serviceProviderId\"\xaa\x02\n" +
 	"\x0eKnowledgeChunk\x12\x19\n" +
 	"\bchunk_id\x18\x01 \x01(\tR\achunkId\x12\x1b\n" +
 	"\tsource_id\x18\x02 \x01(\tR\bsourceId\x12\x1f\n" +
@@ -1445,12 +1462,13 @@ const file_ai_v1_ai_proto_rawDesc = "" +
 	"\x13ConversationMessage\x12\x12\n" +
 	"\x04role\x18\x01 \x01(\tR\x04role\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x128\n" +
-	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\xb9\x01\n" +
+	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\xe9\x01\n" +
 	"\x1cSummarizeConversationRequest\x12\x15\n" +
 	"\x06bot_id\x18\x01 \x01(\tR\x05botId\x12'\n" +
 	"\x0fconversation_id\x18\x02 \x01(\tR\x0econversationId\x126\n" +
 	"\bmessages\x18\x03 \x03(\v2\x1a.ai.v1.ConversationMessageR\bmessages\x12!\n" +
-	"\fsummary_type\x18\x04 \x01(\tR\vsummaryType\"\xbe\x01\n" +
+	"\fsummary_type\x18\x04 \x01(\tR\vsummaryType\x12.\n" +
+	"\x13service_provider_id\x18\x05 \x01(\tR\x11serviceProviderId\"\xbe\x01\n" +
 	"\x1dSummarizeConversationResponse\x12\x18\n" +
 	"\asummary\x18\x01 \x01(\tR\asummary\x12\x1d\n" +
 	"\n" +

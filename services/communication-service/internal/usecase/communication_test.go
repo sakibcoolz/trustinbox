@@ -124,6 +124,16 @@ func (m *mockSpamRepo) ListBySP(_ context.Context, _ string, _, _ int) ([]entity
 }
 func (m *mockSpamRepo) UpdateStatus(_ context.Context, _, _ string) error { return nil }
 
+type mockDocShareRepo struct{}
+
+func (m *mockDocShareRepo) Create(_ context.Context, _ *entity.DocumentShare) error {
+	return nil
+}
+func (m *mockDocShareRepo) ListByUser(_ context.Context, _ string, _, _ int) ([]entity.DocumentShare, int, error) {
+	return nil, 0, nil
+}
+func (m *mockDocShareRepo) MarkOpened(_ context.Context, _ string) error { return nil }
+
 type mockPolicyChecker struct {
 	allowed bool
 	reason  string
@@ -151,7 +161,7 @@ func (m *mockPublisher) Close() error { return nil }
 
 func newUC(callbackRepo *mockCallbackRepo, policy *mockPolicyChecker, pub *mockPublisher) *usecase.CommunicationUseCase {
 	return usecase.NewCommunicationUseCase(
-		callbackRepo, &mockConvRepo{}, &mockMsgRepo{}, &mockSpamRepo{},
+		callbackRepo, &mockConvRepo{}, &mockMsgRepo{}, &mockSpamRepo{}, &mockDocShareRepo{},
 		policy, pub, zap.NewNop(),
 	)
 }
@@ -328,7 +338,7 @@ func TestSendMessage(t *testing.T) {
 	msgRepo := &mockMsgRepo{}
 
 	uc := usecase.NewCommunicationUseCase(
-		callbackRepo, &mockConvRepo{}, msgRepo, &mockSpamRepo{},
+		callbackRepo, &mockConvRepo{}, msgRepo, &mockSpamRepo{}, &mockDocShareRepo{},
 		policy, pub, zap.NewNop(),
 	)
 	ctx := context.Background()
@@ -368,7 +378,7 @@ func TestReportSpam(t *testing.T) {
 	pub := &mockPublisher{}
 
 	uc := usecase.NewCommunicationUseCase(
-		newMockCallbackRepo(), &mockConvRepo{}, &mockMsgRepo{}, spamRepo,
+		newMockCallbackRepo(), &mockConvRepo{}, &mockMsgRepo{}, spamRepo, &mockDocShareRepo{},
 		&mockPolicyChecker{allowed: true}, pub, zap.NewNop(),
 	)
 	ctx := context.Background()

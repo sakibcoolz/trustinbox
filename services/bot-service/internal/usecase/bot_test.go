@@ -50,13 +50,16 @@ func (m *mockBotRepo) Delete(_ context.Context, id string) error {
 	return nil
 }
 
-func (m *mockBotRepo) ListBySP(_ context.Context, spID, status string, limit, offset int) ([]*entity.Bot, int, error) {
+func (m *mockBotRepo) ListBySP(_ context.Context, spID, status, agentType string, limit, offset int) ([]*entity.Bot, int, error) {
 	var result []*entity.Bot
 	for _, b := range m.bots {
 		if b.ServiceProviderID != spID {
 			continue
 		}
 		if status != "" && string(b.Status) != status {
+			continue
+		}
+		if agentType != "" && string(b.AgentType) != agentType {
 			continue
 		}
 		result = append(result, b)
@@ -70,6 +73,25 @@ func (m *mockBotRepo) ListBySP(_ context.Context, spID, status string, limit, of
 		end = len(result)
 	}
 	return result[offset:end], total, nil
+}
+
+func (m *mockBotRepo) ListByManager(_ context.Context, managerBotID string) ([]*entity.Bot, error) {
+	var result []*entity.Bot
+	for _, b := range m.bots {
+		if b.ManagerBotID == managerBotID {
+			result = append(result, b)
+		}
+	}
+	return result, nil
+}
+
+func (m *mockBotRepo) GetManagerBySP(_ context.Context, spID string) (*entity.Bot, error) {
+	for _, b := range m.bots {
+		if b.ServiceProviderID == spID && string(b.AgentType) == "MANAGER" && string(b.Status) == "ACTIVE" {
+			return b, nil
+		}
+	}
+	return nil, bizerr.NotFound("manager bot", spID)
 }
 
 type mockConfigRepo struct {
@@ -676,7 +698,7 @@ func TestListBots_FilterByStatus(t *testing.T) {
 		&mockPolicyChecker{}, &mockPublisher{},
 	)
 
-	bots, total, err := uc.ListBots(context.Background(), "sp-1", "ACTIVE", 10, 0)
+	bots, total, err := uc.ListBots(context.Background(), "sp-1", "ACTIVE", "", 10, 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

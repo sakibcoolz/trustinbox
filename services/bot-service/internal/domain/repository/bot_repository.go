@@ -12,7 +12,11 @@ type BotRepository interface {
 	GetByID(ctx context.Context, id string) (*entity.Bot, error)
 	Update(ctx context.Context, bot *entity.Bot) error
 	Delete(ctx context.Context, id string) error
-	ListBySP(ctx context.Context, spID, status string, limit, offset int) ([]*entity.Bot, int, error)
+	ListBySP(ctx context.Context, spID, status, agentType string, limit, offset int) ([]*entity.Bot, int, error)
+	ListByManager(ctx context.Context, managerBotID string) ([]*entity.Bot, error)
+	// GetManagerBySP returns the SP's MANAGER bot. Per product rule #9 there is
+	// exactly one per service provider; sub-agents are never returned here.
+	GetManagerBySP(ctx context.Context, spID string) (*entity.Bot, error)
 }
 
 // BotConfigurationRepository defines persistence for bot configurations.

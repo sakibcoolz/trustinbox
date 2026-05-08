@@ -646,6 +646,13 @@ func handleProviderBots(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger
 
 		rest := strings.TrimPrefix(r.URL.Path, "/api/v1/bots")
 		rest = strings.TrimPrefix(rest, "/")
+
+		// ─── Agent Suite sub-routes ──────────────────────────────
+		if rest == "agent-suite" || strings.HasPrefix(rest, "agent-suite/") {
+			handleAgentSuite(svc, log)(w, r)
+			return
+		}
+
 		if rest != "" {
 			parts := strings.SplitN(rest, "/", 2)
 			id := parts[0]
@@ -974,6 +981,171 @@ func handleProviderBots(svc *clients.ServiceClients, db *sql.DB, log *zap.Logger
 		default:
 			writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
 		}
+	}
+}
+
+// ─── Agent Suite /api/v1/bots/agent-suite ──────────────────
+
+func handleAgentSuite(svc *clients.ServiceClients, log *zap.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		spID := spIDFromCtx(r.Context())
+		ctx := r.Context()
+
+		rest := strings.TrimPrefix(r.URL.Path, "/api/v1/bots/agent-suite")
+		rest = strings.TrimPrefix(rest, "/")
+
+		// GET /api/v1/bots/agent-suite/delegation-logs
+		if rest == "delegation-logs" && r.Method == http.MethodGet {
+			managerBotID := r.URL.Query().Get("managerBotId")
+			if managerBotID == "" {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "managerBotId required"})
+				return
+			}
+			lim, off := int32(20), int32(0)
+			if v := r.URL.Query().Get("limit"); v != "" {
+				if n, err := strconv.Atoi(v); err == nil {
+					lim = int32(n)
+				}
+			}
+			if v := r.URL.Query().Get("offset"); v != "" {
+				if n, err := strconv.Atoi(v); err == nil {
+					off = int32(n)
+				}
+			}
+			resp, err := svc.Bot.ListDelegationLogs(ctx, &botpb.ListDelegationLogsRequest{
+				ManagerBotId:      managerBotID,
+				ServiceProviderId: spID,
+				Limit:             lim,
+				Offset:            off,
+			})
+			if err != nil {
+				log.Error("list delegation logs", zap.Error(err))
+				writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+				return
+			}
+			type logEntry struct {
+				ID              string  `json:"id"`
+				ManagerBotID    string  `json:"managerBotId"`
+				TargetBotID     string  `json:"targetBotId"`
+				UserID          string  `json:"userId"`
+				ConversationID  string  `json:"conversationId"`
+				IntentDetected  string  `json:"intentDetected"`
+				ConfidenceScore float64 `json:"confidenceScore"`
+				InputSummary    string  `json:"inputSummary"`
+				OutputSummary   string  `json:"outputSummary"`
+				DurationMs      int32   `json:"durationMs"`
+				Success         bool    `json:"success"`
+				ErrorMessage    string  `json:"errorMessage"`
+				CreatedAt       string  `json:"createdAt"`
+			}
+			logs := make([]logEntry, len(resp.Logs))
+			for i, l := range resp.Logs {
+				ts := ""
+				if l.CreatedAt != nil {
+					ts = l.CreatedAt.AsTime().Format("2006-01-02T15:04:05Z")
+				}
+				logs[i] = logEntry{
+					ID: l.Id, ManagerBotID: l.ManagerBotId, TargetBotID: l.TargetBotId,
+					UserID: l.UserId, ConversationID: l.ConversationId,
+					IntentDetected: l.IntentDetected, ConfidenceScore: l.ConfidenceScore,
+					InputSummary: l.InputSummary, OutputSummary: l.OutputSummary,
+					DurationMs: l.DurationMs, Success: l.Success, ErrorMessage: l.ErrorMessage,
+					CreatedAt: ts,
+				}
+			}
+			writeJSON(w, http.StatusOK, map[string]interface{}{"nodes": logs, "total": resp.Total})
+			return
+		}
+
+		// GET /api/v1/bots/agent-suite  → GetAgentSuite
+		if rest == "" && r.Method == http.MethodGet {
+			resp, err := svc.Bot.GetAgentSuite(ctx, &botpb.GetAgentSuiteRequest{
+				ServiceProviderId: spID,
+			})
+			if err != nil {
+				if status.Code(err) == codes.NotFound {
+					writeJSON(w, http.StatusNotFound, errorResponse{Error: "agent suite not provisioned"})
+					return
+				}
+				log.Error("get agent suite", zap.Error(err))
+				writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, protoAgentSuiteToMap(resp.Suite))
+			return
+		}
+
+		// POST /api/v1/bots/agent-suite → ProvisionAgentSuite
+		if rest == "" && r.Method == http.MethodPost {
+			var req struct {
+				CreatedBySpUserID string `json:"createdBySpUserId"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+				return
+			}
+			resp, err := svc.Bot.ProvisionAgentSuite(ctx, &botpb.ProvisionAgentSuiteRequest{
+				ServiceProviderId: spID,
+				CreatedBySpUserId: req.CreatedBySpUserID,
+			})
+			if err != nil {
+				log.Error("provision agent suite", zap.Error(err))
+				writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, protoAgentSuiteToMap(resp.Suite))
+			return
+		}
+
+		writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+	}
+}
+
+func protoAgentSuiteToMap(s *botpb.AgentSuite) map[string]interface{} {
+	if s == nil {
+		return nil
+	}
+	agents := make([]map[string]interface{}, len(s.Agents))
+	for i, a := range s.Agents {
+		agents[i] = protoBotToMap(a)
+	}
+	provAt := ""
+	if s.ProvisionedAt != nil {
+		provAt = s.ProvisionedAt.AsTime().Format("2006-01-02T15:04:05Z")
+	}
+	return map[string]interface{}{
+		"id":                s.Id,
+		"serviceProviderId": s.ServiceProviderId,
+		"managerBotId":      s.ManagerBotId,
+		"status":            s.Status,
+		"provisionedAt":     provAt,
+		"manager":           protoBotToMap(s.Manager),
+		"agents":            agents,
+	}
+}
+
+func protoBotToMap(b *botpb.Bot) map[string]interface{} {
+	if b == nil {
+		return nil
+	}
+	createdAt, updatedAt := "", ""
+	if b.CreatedAt != nil {
+		createdAt = b.CreatedAt.AsTime().Format("2006-01-02T15:04:05Z")
+	}
+	if b.UpdatedAt != nil {
+		updatedAt = b.UpdatedAt.AsTime().Format("2006-01-02T15:04:05Z")
+	}
+	return map[string]interface{}{
+		"id":                b.Id,
+		"serviceProviderId": b.ServiceProviderId,
+		"name":              b.Name,
+		"purpose":           b.Purpose,
+		"status":            b.Status,
+		"agentType":         b.AgentType,
+		"managerBotId":      b.ManagerBotId,
+		"createdBySpUserId": b.CreatedBySpUserId,
+		"createdAt":         createdAt,
+		"updatedAt":         updatedAt,
 	}
 }
 

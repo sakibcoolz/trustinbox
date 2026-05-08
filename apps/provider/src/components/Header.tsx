@@ -22,7 +22,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/callbacks': 'Callbacks',
   '/documents': 'Documents',
   '/campaigns': 'Campaigns',
-  '/bots': 'Bots',
   '/cms': 'Content Management',
   '/cms/editor': 'Content Editor',
   '/cms/media': 'Media Library',

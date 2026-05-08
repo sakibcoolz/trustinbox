@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, PhoneCall, Shield, Bot, Megaphone, MessageSquare, FileText, PhoneOff, BellOff } from 'lucide-react';
+import { Bell, PhoneCall, Shield, Megaphone, MessageSquare, FileText, PhoneOff, BellOff } from 'lucide-react';
 import { Timeline } from '@/components/ui/Timeline';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { formatRelativeTime } from '@/lib/format';
@@ -14,7 +14,6 @@ const EVENT_MAP: Record<string, { type: 'success' | 'error' | 'warning' | 'info'
   CALLBACK_APPROVED: { type: 'success', icon: PhoneCall },
   CALLBACK_REJECTED: { type: 'error', icon: PhoneOff },
   POLICY_DENIED: { type: 'error', icon: Shield },
-  BOT_ESCALATED: { type: 'warning', icon: Bot },
   CAMPAIGN_LAUNCHED: { type: 'info', icon: Megaphone },
   CONVERSATION_STARTED: { type: 'info', icon: MessageSquare },
   DOCUMENT_SHARED: { type: 'success', icon: FileText },
@@ -25,7 +24,6 @@ function getEventHref(event: ActivityEvent): string {
     case 'USER': return `/customers/${event.targetId}`;
     case 'CONVERSATION': return `/conversations/${event.targetId}`;
     case 'CAMPAIGN': return `/campaigns/${event.targetId}`;
-    case 'BOT': return `/bots/${event.targetId}`;
     case 'NOTIFICATION': return `/notifications/${event.targetId}`;
     case 'CALLBACK': return `/callbacks/${event.targetId}`;
     case 'DOCUMENT': return `/documents/${event.targetId}`;

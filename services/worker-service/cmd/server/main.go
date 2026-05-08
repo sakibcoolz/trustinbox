@@ -74,9 +74,10 @@ func main() {
 	callbackProc := worker.NewCallbackReminderProcessor(svc, log)
 	campaignProc := worker.NewCampaignSendProcessor(svc, db, log)
 	cleanupProc := worker.NewCleanupProcessor(db, log)
+	agentSuiteProc := worker.NewAgentSuiteProcessor(svc.Bot, log)
 
 	// --- Dispatcher ---
-	dispatcher := worker.NewDispatcher(deliveryProc, callbackProc, campaignProc, log)
+	dispatcher := worker.NewDispatcher(deliveryProc, callbackProc, campaignProc, agentSuiteProc, log)
 
 	// --- Redis Streams Consumer ---
 	hostname, _ := os.Hostname()

@@ -7,7 +7,6 @@ export const SEGMENT_LABELS: Record<string, string> = {
   documents: 'Documents',
   campaigns: 'Campaigns',
   new: 'New',
-  bots: 'Bots',
   knowledge: 'Knowledge Base',
   analytics: 'Analytics',
   webhooks: 'Webhooks',

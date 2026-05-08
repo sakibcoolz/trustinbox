@@ -12,6 +12,7 @@ import (
 	"github.com/trustinbox/bot-service/internal/domain/repository"
 	bizerr "github.com/trustinbox/cornerstone/errors"
 	"github.com/trustinbox/cornerstone/events"
+	"github.com/trustinbox/cornerstone/pii"
 	"github.com/trustinbox/cornerstone/tracing"
 	aiv1 "github.com/trustinbox/proto/gen/ai/v1"
 	communicationv1 "github.com/trustinbox/proto/gen/communication/v1"
@@ -62,6 +63,8 @@ type BotUseCase struct {
 	statsRepo      repository.BotAnalyticsRepository
 	workflowRepo   repository.BotWorkflowConfigRepository
 	suspensionRepo repository.BotWorkflowSuspensionRepository
+	agentSuiteRepo repository.AgentSuiteRepository
+	delegationRepo repository.AgentDelegationRepository
 	policy         PolicyChecker
 	aiClient       aiv1.AIServiceClient
 	userClient     userv1.UserServiceClient
@@ -85,6 +88,8 @@ func NewBotUseCase(
 	statsRepo repository.BotAnalyticsRepository,
 	workflowRepo repository.BotWorkflowConfigRepository,
 	suspensionRepo repository.BotWorkflowSuspensionRepository,
+	agentSuiteRepo repository.AgentSuiteRepository,
+	delegationRepo repository.AgentDelegationRepository,
 	policy PolicyChecker,
 	aiClient aiv1.AIServiceClient,
 	userClient userv1.UserServiceClient,
@@ -106,6 +111,8 @@ func NewBotUseCase(
 		statsRepo:      statsRepo,
 		workflowRepo:   workflowRepo,
 		suspensionRepo: suspensionRepo,
+		agentSuiteRepo: agentSuiteRepo,
+		delegationRepo: delegationRepo,
 		policy:         policy,
 		aiClient:       aiClient,
 		userClient:     userClient,
@@ -247,14 +254,28 @@ func (uc *BotUseCase) UpdateBot(ctx context.Context, botID, spID, name, purpose,
 	return bot, nil
 }
 
-// ListBots returns bots for a service provider.
-func (uc *BotUseCase) ListBots(ctx context.Context, spID, status string, limit, offset int) ([]*entity.Bot, int, error) {
+// ListBots returns bots for a service provider, optionally filtered by status
+// and agent type. Per product rule #9, consumer-facing callers MUST pass
+// agentType="MANAGER"; provider-portal callers may pass empty to list all.
+func (uc *BotUseCase) ListBots(ctx context.Context, spID, status, agentType string, limit, offset int) ([]*entity.Bot, int, error) {
 	ctx, span := tracing.StartSpan(ctx, "bot-service", "BotUseCase.ListBots",
+		attribute.String("service_provider_id", spID),
+		attribute.String("agent_type", agentType),
+	)
+	defer span.End()
+
+	return uc.botRepo.ListBySP(ctx, spID, status, agentType, limit, offset)
+}
+
+// GetManagerBot returns the SP's MANAGER bot. This is the only AI surface
+// exposed to consumer apps (web, hybrid) per product rule #9.
+func (uc *BotUseCase) GetManagerBot(ctx context.Context, spID string) (*entity.Bot, error) {
+	ctx, span := tracing.StartSpan(ctx, "bot-service", "BotUseCase.GetManagerBot",
 		attribute.String("service_provider_id", spID),
 	)
 	defer span.End()
 
-	return uc.botRepo.ListBySP(ctx, spID, status, limit, offset)
+	return uc.botRepo.GetManagerBySP(ctx, spID)
 }
 
 // DeleteBot archives a bot (soft delete).
@@ -321,19 +342,24 @@ func (uc *BotUseCase) ExecuteAction(ctx context.Context, botID, spID, conversati
 		return "", false, bizerr.Internal("policy evaluation failed", err)
 	}
 
+	// Redact PII from the raw input before persisting to audit log.
+	scanner := pii.New()
+	redactedInput, _ := scanner.Redact(inputJSON)
+
 	actionLog := &entity.BotActionLog{
-		ID:             uuid.New().String(),
-		BotID:          botID,
-		ConversationID: conversationID,
-		UserID:         userID,
-		ActionType:     actionType,
-		ToolUsed:       toolName,
-		InputSummary:   truncate(inputJSON, 500),
-		PolicyDecision: "ALLOW",
-		PolicyReason:   policyReason,
-		DurationMS:     int(time.Since(start).Milliseconds()),
-		Success:        true,
-		CreatedAt:      time.Now().UTC(),
+		ID:                uuid.New().String(),
+		BotID:             botID,
+		ServiceProviderID: spID,
+		ConversationID:    conversationID,
+		UserID:            userID,
+		ActionType:        actionType,
+		ToolUsed:          toolName,
+		InputSummary:      pii.Truncate(redactedInput, 500),
+		PolicyDecision:    "ALLOW",
+		PolicyReason:      policyReason,
+		DurationMS:        int(time.Since(start).Milliseconds()),
+		Success:           true,
+		CreatedAt:         time.Now().UTC(),
 	}
 
 	if !policyAllowed {

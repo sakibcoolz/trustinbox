@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell, CheckCircle, PhoneCall, MessageSquare, Megaphone, Bot, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Bell, CheckCircle, PhoneCall, MessageSquare, Megaphone, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { formatNumber, formatPercent } from '@/lib/format';
 import type { DashboardAnalytics } from '@/lib/graphql/dashboard';
@@ -14,7 +14,6 @@ const KPI_CONFIG = [
   { key: 'activeCallbacks', prevKey: 'previousActiveCallbacks', label: 'Active Callbacks', icon: PhoneCall, iconColor: 'text-accent-orange', iconBg: 'bg-accent-orange/10', href: '/callbacks', format: 'number' as const },
   { key: 'openConversations', prevKey: 'previousOpenConversations', label: 'Open Conversations', icon: MessageSquare, iconColor: 'text-accent-purple', iconBg: 'bg-accent-purple/10', href: '/conversations', format: 'number' as const },
   { key: 'activeCampaigns', prevKey: 'previousActiveCampaigns', label: 'Active Campaigns', icon: Megaphone, iconColor: 'text-status-warning', iconBg: 'bg-status-warning/10', href: '/campaigns', format: 'number' as const },
-  { key: 'botInteractions', prevKey: 'previousBotInteractions', label: 'Bot Interactions', icon: Bot, iconColor: 'text-accent-teal', iconBg: 'bg-accent-teal/10', href: '/bots', format: 'number' as const },
 ] as const;
 
 // ─── Trend helper ───────────────────────────────────────

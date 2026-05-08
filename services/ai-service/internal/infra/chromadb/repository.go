@@ -32,22 +32,24 @@ func NewRepository(client *Client, log *zap.Logger) *Repository {
 // Search queries the bot's ChromaDB collection using the provided natural
 // language query. It generates a real embedding via OpenAI, performs vector
 // similarity search in ChromaDB, and filters results below minScore.
+// serviceProviderID is used as a mandatory metadata filter (tenant isolation).
 //
 // Returns (chunks, totalResultsBeforeFilter, error).
 func (r *Repository) Search(
 	ctx context.Context,
-	botID, query string,
+	serviceProviderID, botID, query string,
 	topK int,
 	minScore float64,
 ) ([]entity.KnowledgeChunk, int, error) {
 	ctx, span := tracing.StartSpan(ctx, "ai-service", "ChromaRepository.Search",
 		attribute.String("bot_id", botID),
+		attribute.String("service_provider_id", serviceProviderID),
 		attribute.Int("top_k", topK),
 		attribute.Float64("min_score", minScore),
 	)
 	defer span.End()
 
-	results, err := r.client.Query(ctx, botID, query, topK)
+	results, err := r.client.Query(ctx, serviceProviderID, botID, query, topK)
 	if err != nil {
 		tracing.SetError(ctx, err)
 		return nil, 0, fmt.Errorf("chromadb search for bot %s: %w", botID, err)
@@ -72,6 +74,7 @@ func (r *Repository) Search(
 
 	r.log.Debug("chromadb search complete",
 		zap.String("bot_id", botID),
+		zap.String("service_provider_id", serviceProviderID),
 		zap.Int("total_candidates", total),
 		zap.Int("after_filter", len(chunks)),
 		zap.Float64("min_score", minScore),
@@ -82,7 +85,7 @@ func (r *Repository) Search(
 
 // Store generates an embedding for chunk.Content via OpenAI and upserts the
 // document into the bot's ChromaDB collection.
-// The chunk's bot_id must be present in chunk.Metadata["bot_id"].
+// chunk.Metadata must contain both "bot_id" and "service_provider_id".
 func (r *Repository) Store(ctx context.Context, chunk *entity.KnowledgeChunk) error {
 	ctx, span := tracing.StartSpan(ctx, "ai-service", "ChromaRepository.Store",
 		attribute.String("chunk_id", chunk.ChunkID),
@@ -91,15 +94,21 @@ func (r *Repository) Store(ctx context.Context, chunk *entity.KnowledgeChunk) er
 	defer span.End()
 
 	botID := ""
+	spID := ""
 	if chunk.Metadata != nil {
 		botID = chunk.Metadata["bot_id"]
+		spID = chunk.Metadata["service_provider_id"]
 	}
 	if botID == "" {
 		return fmt.Errorf("chunk.Metadata[\"bot_id\"] is required for ChromaDB storage")
 	}
+	if spID == "" {
+		return fmt.Errorf("chunk.Metadata[\"service_provider_id\"] is required for ChromaDB storage")
+	}
 
 	if err := r.client.Add(
 		ctx,
+		spID,
 		botID,
 		chunk.ChunkID,
 		chunk.SourceID,
@@ -115,6 +124,7 @@ func (r *Repository) Store(ctx context.Context, chunk *entity.KnowledgeChunk) er
 		zap.String("chunk_id", chunk.ChunkID),
 		zap.String("source_id", chunk.SourceID),
 		zap.String("bot_id", botID),
+		zap.String("service_provider_id", spID),
 	)
 	return nil
 }

@@ -64,11 +64,12 @@ func collectionName(botID string) string {
 
 // getOrCreateCollection returns the ChromaDB collection UUID for a given botID,
 // creating the collection with cosine distance metric if it does not exist.
-func (c *Client) getOrCreateCollection(ctx context.Context, botID string) (string, error) {
+// serviceProviderID is stored in collection metadata for cross-check purposes.
+func (c *Client) getOrCreateCollection(ctx context.Context, botID, serviceProviderID string) (string, error) {
 	body, err := json.Marshal(createCollectionReq{
 		Name:        collectionName(botID),
 		GetOrCreate: true,
-		Metadata:    map[string]string{"bot_id": botID, "hnsw:space": "cosine"},
+		Metadata:    map[string]string{"bot_id": botID, "service_provider_id": serviceProviderID, "hnsw:space": "cosine"},
 	})
 	if err != nil {
 		return "", fmt.Errorf("marshal collection request: %w", err)
@@ -104,7 +105,7 @@ type addRequest struct {
 // Add generates an embedding for content and upserts it into the bot's collection.
 func (c *Client) Add(
 	ctx context.Context,
-	botID, chunkID, sourceID, sourceName, content string,
+	serviceProviderID, botID, chunkID, sourceID, sourceName, content string,
 	extra map[string]string,
 ) error {
 	embedding, err := c.embed(ctx, content)
@@ -112,17 +113,18 @@ func (c *Client) Add(
 		return fmt.Errorf("embed chunk %s: %w", chunkID, err)
 	}
 
-	colID, err := c.getOrCreateCollection(ctx, botID)
+	colID, err := c.getOrCreateCollection(ctx, botID, serviceProviderID)
 	if err != nil {
 		return err
 	}
 
 	// Merge caller metadata with required system fields.
-	md := make(map[string]string, len(extra)+3)
+	md := make(map[string]string, len(extra)+4)
 	for k, v := range extra {
 		md[k] = v
 	}
 	md["bot_id"] = botID
+	md["service_provider_id"] = serviceProviderID
 	md["source_id"] = sourceID
 	md["source_name"] = sourceName
 
@@ -150,9 +152,10 @@ func (c *Client) Add(
 // ─── Query ────────────────────────────────────────────────────────────────────
 
 type queryRequest struct {
-	QueryEmbeddings [][]float32 `json:"query_embeddings"`
-	NResults        int         `json:"n_results"`
-	Include         []string    `json:"include"`
+	QueryEmbeddings [][]float32            `json:"query_embeddings"`
+	NResults        int                    `json:"n_results"`
+	Include         []string               `json:"include"`
+	Where           map[string]interface{} `json:"where,omitempty"`
 }
 
 type queryResponse struct {
@@ -174,13 +177,14 @@ type QueryResult struct {
 
 // Query performs a vector similarity search against the bot's ChromaDB collection.
 // Results are ordered by descending similarity score (closest first).
-func (c *Client) Query(ctx context.Context, botID, queryText string, nResults int) ([]QueryResult, error) {
+// serviceProviderID is used as an additional metadata filter to enforce tenant isolation.
+func (c *Client) Query(ctx context.Context, serviceProviderID, botID, queryText string, nResults int) ([]QueryResult, error) {
 	embedding, err := c.embed(ctx, queryText)
 	if err != nil {
 		return nil, fmt.Errorf("embed query: %w", err)
 	}
 
-	colID, err := c.getOrCreateCollection(ctx, botID)
+	colID, err := c.getOrCreateCollection(ctx, botID, serviceProviderID)
 	if err != nil {
 		return nil, err
 	}
@@ -189,6 +193,12 @@ func (c *Client) Query(ctx context.Context, botID, queryText string, nResults in
 		QueryEmbeddings: [][]float32{embedding},
 		NResults:        nResults,
 		Include:         []string{"documents", "distances", "metadatas"},
+		Where: map[string]interface{}{
+			"$and": []map[string]interface{}{
+				{"bot_id": map[string]string{"$eq": botID}},
+				{"service_provider_id": map[string]string{"$eq": serviceProviderID}},
+			},
+		},
 	})
 
 	resp, err := c.doChromaRequest(ctx, http.MethodPost, "/collections/"+colID+"/query", body)

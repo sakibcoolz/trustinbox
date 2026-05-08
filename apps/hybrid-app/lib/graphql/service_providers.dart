@@ -67,6 +67,9 @@ const String serviceProviderQuery = r'''
   }
 ''';
 
+// Per product rule #9, the gateway restricts this consumer-facing query to
+// MANAGER bots only. Each service provider has exactly one MANAGER, so this
+// returns at most one bot. Sub-agents are not exposed to consumer apps.
 const String serviceProviderActiveBotsQuery = r'''
   query ServiceProviderActiveBots($serviceProviderId: ID!, $limit: Int, $offset: Int) {
     bots(serviceProviderId: $serviceProviderId, status: ACTIVE, limit: $limit, offset: $offset) {

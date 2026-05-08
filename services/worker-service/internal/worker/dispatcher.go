@@ -10,23 +10,26 @@ import (
 
 // Dispatcher routes events to the appropriate processor based on event type.
 type Dispatcher struct {
-	delivery *DeliveryProcessor
-	callback *CallbackReminderProcessor
-	campaign *CampaignSendProcessor
-	log      *zap.Logger
+	delivery   *DeliveryProcessor
+	callback   *CallbackReminderProcessor
+	campaign   *CampaignSendProcessor
+	agentSuite *AgentSuiteProcessor
+	log        *zap.Logger
 }
 
 func NewDispatcher(
 	delivery *DeliveryProcessor,
 	callback *CallbackReminderProcessor,
 	campaign *CampaignSendProcessor,
+	agentSuite *AgentSuiteProcessor,
 	log *zap.Logger,
 ) *Dispatcher {
 	return &Dispatcher{
-		delivery: delivery,
-		callback: callback,
-		campaign: campaign,
-		log:      log,
+		delivery:   delivery,
+		callback:   callback,
+		campaign:   campaign,
+		agentSuite: agentSuite,
+		log:        log,
 	}
 }
 
@@ -49,6 +52,10 @@ func (d *Dispatcher) Handle(ctx context.Context, evt *events.Event) error {
 	// Campaign fan-out
 	case events.CampaignLaunched:
 		return d.campaign.ProcessEvent(ctx, evt)
+
+	// Agent suite auto-provisioning
+	case events.ServiceProviderCreated:
+		return d.agentSuite.ProcessEvent(ctx, evt)
 
 	default:
 		d.log.Debug("unhandled event type, skipping",

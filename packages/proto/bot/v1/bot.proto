@@ -14,6 +14,10 @@ service BotService {
   rpc ListBots(ListBotsRequest) returns (ListBotsResponse);
   rpc DeleteBot(DeleteBotRequest) returns (DeleteBotResponse);
 
+  // Consumer-facing: returns the SP's MANAGER bot.
+  // Per product rule #9, this is the only AI surface exposed to web/hybrid apps.
+  rpc GetManagerBot(GetManagerBotRequest) returns (Bot);
+
   // Bot configuration
   rpc GetBotConfiguration(GetBotConfigurationRequest) returns (BotConfiguration);
   rpc UpdateBotConfiguration(UpdateBotConfigurationRequest) returns (BotConfiguration);
@@ -33,6 +37,12 @@ service BotService {
 
   // Bot analytics
   rpc GetBotAnalytics(GetBotAnalyticsRequest) returns (BotAnalytics);
+
+  // Agent suite (Manager + specialized sub-agents)
+  rpc ProvisionAgentSuite(ProvisionAgentSuiteRequest) returns (ProvisionAgentSuiteResponse);
+  rpc GetAgentSuite(GetAgentSuiteRequest) returns (GetAgentSuiteResponse);
+  rpc DelegateToAgent(DelegateToAgentRequest) returns (DelegateToAgentResponse);
+  rpc ListDelegationLogs(ListDelegationLogsRequest) returns (ListDelegationLogsResponse);
 }
 
 // ─── Bot ───────────────────────────────────────────────────
@@ -49,6 +59,9 @@ message Bot {
   string created_by_sp_user_id = 9;
   google.protobuf.Timestamp created_at = 10;
   google.protobuf.Timestamp updated_at = 11;
+  // Agent suite fields
+  string agent_type = 12;      // GENERAL, MANAGER, DOCUMENTATION_WRITER, CUSTOMER_SERVICE, APPOINTMENT_SCHEDULING, PAYMENT, ORDER_ACCEPTING, PRODUCT_SHOWCASE
+  string manager_bot_id = 13; // set on sub-agents; empty on GENERAL/MANAGER bots
 }
 
 message CreateBotRequest {
@@ -81,11 +94,19 @@ message ListBotsRequest {
   string status = 2;
   int32 limit = 3;
   int32 offset = 4;
+  // Optional filter: GENERAL | MANAGER | CUSTOMER_SERVICE | ...
+  // Provider-portal callers may pass empty to list every agent_type;
+  // consumer-facing callers MUST pass "MANAGER".
+  string agent_type = 5;
 }
 
 message ListBotsResponse {
   repeated Bot bots = 1;
   int32 total = 2;
+}
+
+message GetManagerBotRequest {
+  string service_provider_id = 1;
 }
 
 message DeleteBotRequest {
@@ -275,4 +296,84 @@ message BotAnalytics {
 message GetBotAnalyticsRequest {
   string bot_id = 1;
   string service_provider_id = 2;
+}
+
+// ─── Agent Suite ───────────────────────────────────────────
+
+message AgentSuite {
+  string id = 1;
+  string service_provider_id = 2;
+  string manager_bot_id = 3;
+  string status = 4; // ACTIVE, PAUSED, DEACTIVATED
+  google.protobuf.Timestamp provisioned_at = 5;
+  Bot manager = 6;
+  repeated Bot agents = 7;
+}
+
+message ProvisionAgentSuiteRequest {
+  string service_provider_id = 1;
+  string created_by_sp_user_id = 2;
+}
+
+message ProvisionAgentSuiteResponse {
+  AgentSuite suite = 1;
+}
+
+message GetAgentSuiteRequest {
+  string service_provider_id = 1;
+}
+
+message GetAgentSuiteResponse {
+  AgentSuite suite = 1;
+}
+
+// ─── Agent Delegation ──────────────────────────────────────
+
+message AgentDelegationLog {
+  string id = 1;
+  string manager_bot_id = 2;
+  string target_bot_id = 3;
+  string user_id = 4;
+  string conversation_id = 5;
+  string intent_detected = 6;
+  double confidence_score = 7;
+  string input_summary = 8;
+  string output_summary = 9;
+  int32 duration_ms = 10;
+  bool success = 11;
+  string error_message = 12;
+  google.protobuf.Timestamp created_at = 13;
+}
+
+message DelegateToAgentRequest {
+  string manager_bot_id = 1;
+  string service_provider_id = 2;
+  string user_id = 3;
+  string conversation_id = 4;
+  string agent_type = 5; // target agent type (e.g. CUSTOMER_SERVICE)
+  string task_input = 6; // user's original message / task description
+  string action_type = 7;
+}
+
+message DelegateToAgentResponse {
+  bool success = 1;
+  string output_json = 2;
+  string policy_decision = 3;
+  string policy_reason = 4;
+  bool escalated = 5;
+  int32 duration_ms = 6;
+  string intent_detected = 7;
+  double confidence_score = 8;
+}
+
+message ListDelegationLogsRequest {
+  string manager_bot_id = 1;
+  string service_provider_id = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListDelegationLogsResponse {
+  repeated AgentDelegationLog logs = 1;
+  int32 total = 2;
 }

@@ -116,7 +116,6 @@ export const WEBHOOK_EVENTS = [
   'CallbackCreated', 'CallbackApproved', 'CallbackRejected', 'CallbackCompleted',
   'MessageReceived', 'MessageSent',
   'CampaignLaunched', 'CampaignCompleted',
-  'BotActionExecuted', 'BotEscalated',
 ] as const;
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────

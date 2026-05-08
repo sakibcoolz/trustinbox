@@ -336,6 +336,8 @@ func mapBotFromProto(b *botpb.Bot) *model.Bot {
 		IndustryProfileID: ptrString(b.IndustryProfileId),
 		Status:            mapBotStatusFromProto(b.Status),
 		CreatedBySpUserID: b.CreatedBySpUserId,
+		AgentType:         mapAgentTypeFromProto(b.AgentType),
+		ManagerBotID:      ptrString(b.ManagerBotId),
 		Permissions:       []*model.BotPermission{},
 		KnowledgeSources:  []*model.KnowledgeSource{},
 		CreatedAt:         timeFromTimestamp(b.CreatedAt),
@@ -353,4 +355,58 @@ func mapBotConnectionFromProto(resp *botpb.ListBotsResponse) *model.BotConnectio
 		Nodes:      nodes,
 		TotalCount: int(resp.Total),
 	}
+}
+
+func mapAgentTypeFromProto(agentType string) model.AgentType {
+	t := model.AgentType(agentType)
+	if t.IsValid() {
+		return t
+	}
+	return model.AgentTypeGeneral
+}
+
+func mapAgentSuiteFromProto(s *botpb.AgentSuite) *model.AgentSuite {
+	if s == nil {
+		return nil
+	}
+	suite := &model.AgentSuite{
+		ID:                s.Id,
+		ServiceProviderID: s.ServiceProviderId,
+		ManagerBotID:      s.ManagerBotId,
+		Status:            s.Status,
+		ProvisionedAt:     timeFromTimestamp(s.ProvisionedAt),
+		Agents:            []*model.Bot{},
+	}
+	if s.Manager != nil {
+		suite.Manager = mapBotFromProto(s.Manager)
+	}
+	for _, a := range s.Agents {
+		suite.Agents = append(suite.Agents, mapBotFromProto(a))
+	}
+	return suite
+}
+
+func mapAgentDelegationLogFromProto(l *botpb.AgentDelegationLog) *model.AgentDelegationLog {
+	if l == nil {
+		return nil
+	}
+	log := &model.AgentDelegationLog{
+		ID:              l.Id,
+		ManagerBotID:    l.ManagerBotId,
+		TargetBotID:     l.TargetBotId,
+		UserID:          l.UserId,
+		IntentDetected:  l.IntentDetected,
+		ConfidenceScore: l.ConfidenceScore,
+		InputSummary:    l.InputSummary,
+		OutputSummary:   l.OutputSummary,
+		DurationMs:      int(l.DurationMs),
+		Success:         l.Success,
+		ErrorMessage:    l.ErrorMessage,
+		CreatedAt:       timeFromTimestamp(l.CreatedAt),
+	}
+	if l.ConversationId != "" {
+		s := l.ConversationId
+		log.ConversationID = &s
+	}
+	return log
 }

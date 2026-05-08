@@ -23,6 +23,7 @@ func NewBotConfigurationRepository(db *sql.DB) repository.BotConfigurationReposi
 func (r *configRepo) Get(ctx context.Context, botID string) (*entity.BotConfiguration, error) {
 	var c entity.BotConfiguration
 	var workingDays []int64
+	var whStart, whEnd sql.NullString
 	err := r.db.QueryRowContext(ctx,
 		`SELECT bot_id, tone, writing_style, supported_languages, working_hours_start, working_hours_end,
 		        working_days, max_turns_before_escalation, escalation_rules, human_handoff_policy,
@@ -31,7 +32,7 @@ func (r *configRepo) Get(ctx context.Context, botID string) (*entity.BotConfigur
 		 FROM bot_configurations WHERE bot_id = $1`, botID,
 	).Scan(
 		&c.BotID, &c.Tone, &c.WritingStyle, pq.Array(&c.SupportedLanguages),
-		&c.WorkingHoursStart, &c.WorkingHoursEnd,
+		&whStart, &whEnd,
 		pq.Array(&workingDays), &c.MaxTurnsBeforeEscalation,
 		&c.EscalationRules, &c.HumanHandoffPolicy,
 		&c.ApprovalPolicy, &c.FallbackActions, &c.ComplianceRestrictions,
@@ -43,6 +44,8 @@ func (r *configRepo) Get(ctx context.Context, botID string) (*entity.BotConfigur
 	if err != nil {
 		return nil, fmt.Errorf("get bot configuration: %w", err)
 	}
+	c.WorkingHoursStart = whStart.String
+	c.WorkingHoursEnd = whEnd.String
 	c.WorkingDays = make([]int, len(workingDays))
 	for i, d := range workingDays {
 		c.WorkingDays[i] = int(d)
@@ -55,6 +58,31 @@ func (r *configRepo) Upsert(ctx context.Context, config *entity.BotConfiguration
 	for i, d := range config.WorkingDays {
 		workingDays[i] = int64(d)
 	}
+	whStart := sql.NullString{String: config.WorkingHoursStart, Valid: config.WorkingHoursStart != ""}
+	whEnd := sql.NullString{String: config.WorkingHoursEnd, Valid: config.WorkingHoursEnd != ""}
+
+	// JSONB NOT NULL columns must receive valid JSON; default to empty array/object when unset.
+	escalationRules := config.EscalationRules
+	if escalationRules == "" {
+		escalationRules = "[]"
+	}
+	fallbackActions := config.FallbackActions
+	if fallbackActions == "" {
+		fallbackActions = "[]"
+	}
+	humanHandoffPolicy := config.HumanHandoffPolicy
+	if humanHandoffPolicy == "" {
+		humanHandoffPolicy = "{}"
+	}
+	approvalPolicy := config.ApprovalPolicy
+	if approvalPolicy == "" {
+		approvalPolicy = "{}"
+	}
+	complianceRestrictions := config.ComplianceRestrictions
+	if complianceRestrictions == "" {
+		complianceRestrictions = "{}"
+	}
+
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO bot_configurations (bot_id, tone, writing_style, supported_languages, working_hours_start, working_hours_end,
 		        working_days, max_turns_before_escalation, escalation_rules, human_handoff_policy,
@@ -74,10 +102,10 @@ func (r *configRepo) Upsert(ctx context.Context, config *entity.BotConfiguration
 		    ai_model = EXCLUDED.ai_model, max_response_tokens = EXCLUDED.max_response_tokens,
 		    updated_at = NOW()`,
 		config.BotID, config.Tone, config.WritingStyle, pq.Array(config.SupportedLanguages),
-		config.WorkingHoursStart, config.WorkingHoursEnd,
+		whStart, whEnd,
 		pq.Array(workingDays), config.MaxTurnsBeforeEscalation,
-		config.EscalationRules, config.HumanHandoffPolicy,
-		config.ApprovalPolicy, config.FallbackActions, config.ComplianceRestrictions,
+		escalationRules, humanHandoffPolicy,
+		approvalPolicy, fallbackActions, complianceRestrictions,
 		config.CustomSystemPrompt, config.Temperature, config.AIModel, config.MaxResponseTokens,
 	)
 	if err != nil {

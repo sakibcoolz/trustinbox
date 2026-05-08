@@ -24,6 +24,7 @@ const (
 	BotService_UpdateBot_FullMethodName              = "/bot.v1.BotService/UpdateBot"
 	BotService_ListBots_FullMethodName               = "/bot.v1.BotService/ListBots"
 	BotService_DeleteBot_FullMethodName              = "/bot.v1.BotService/DeleteBot"
+	BotService_GetManagerBot_FullMethodName          = "/bot.v1.BotService/GetManagerBot"
 	BotService_GetBotConfiguration_FullMethodName    = "/bot.v1.BotService/GetBotConfiguration"
 	BotService_UpdateBotConfiguration_FullMethodName = "/bot.v1.BotService/UpdateBotConfiguration"
 	BotService_SetBotPermission_FullMethodName       = "/bot.v1.BotService/SetBotPermission"
@@ -34,6 +35,10 @@ const (
 	BotService_ExecuteBotAction_FullMethodName       = "/bot.v1.BotService/ExecuteBotAction"
 	BotService_ListBotActionLogs_FullMethodName      = "/bot.v1.BotService/ListBotActionLogs"
 	BotService_GetBotAnalytics_FullMethodName        = "/bot.v1.BotService/GetBotAnalytics"
+	BotService_ProvisionAgentSuite_FullMethodName    = "/bot.v1.BotService/ProvisionAgentSuite"
+	BotService_GetAgentSuite_FullMethodName          = "/bot.v1.BotService/GetAgentSuite"
+	BotService_DelegateToAgent_FullMethodName        = "/bot.v1.BotService/DelegateToAgent"
+	BotService_ListDelegationLogs_FullMethodName     = "/bot.v1.BotService/ListDelegationLogs"
 )
 
 // BotServiceClient is the client API for BotService service.
@@ -46,6 +51,9 @@ type BotServiceClient interface {
 	UpdateBot(ctx context.Context, in *UpdateBotRequest, opts ...grpc.CallOption) (*Bot, error)
 	ListBots(ctx context.Context, in *ListBotsRequest, opts ...grpc.CallOption) (*ListBotsResponse, error)
 	DeleteBot(ctx context.Context, in *DeleteBotRequest, opts ...grpc.CallOption) (*DeleteBotResponse, error)
+	// Consumer-facing: returns the SP's MANAGER bot.
+	// Per product rule #9, this is the only AI surface exposed to web/hybrid apps.
+	GetManagerBot(ctx context.Context, in *GetManagerBotRequest, opts ...grpc.CallOption) (*Bot, error)
 	// Bot configuration
 	GetBotConfiguration(ctx context.Context, in *GetBotConfigurationRequest, opts ...grpc.CallOption) (*BotConfiguration, error)
 	UpdateBotConfiguration(ctx context.Context, in *UpdateBotConfigurationRequest, opts ...grpc.CallOption) (*BotConfiguration, error)
@@ -61,6 +69,11 @@ type BotServiceClient interface {
 	ListBotActionLogs(ctx context.Context, in *ListBotActionLogsRequest, opts ...grpc.CallOption) (*ListBotActionLogsResponse, error)
 	// Bot analytics
 	GetBotAnalytics(ctx context.Context, in *GetBotAnalyticsRequest, opts ...grpc.CallOption) (*BotAnalytics, error)
+	// Agent suite (Manager + specialized sub-agents)
+	ProvisionAgentSuite(ctx context.Context, in *ProvisionAgentSuiteRequest, opts ...grpc.CallOption) (*ProvisionAgentSuiteResponse, error)
+	GetAgentSuite(ctx context.Context, in *GetAgentSuiteRequest, opts ...grpc.CallOption) (*GetAgentSuiteResponse, error)
+	DelegateToAgent(ctx context.Context, in *DelegateToAgentRequest, opts ...grpc.CallOption) (*DelegateToAgentResponse, error)
+	ListDelegationLogs(ctx context.Context, in *ListDelegationLogsRequest, opts ...grpc.CallOption) (*ListDelegationLogsResponse, error)
 }
 
 type botServiceClient struct {
@@ -115,6 +128,16 @@ func (c *botServiceClient) DeleteBot(ctx context.Context, in *DeleteBotRequest, 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DeleteBotResponse)
 	err := c.cc.Invoke(ctx, BotService_DeleteBot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *botServiceClient) GetManagerBot(ctx context.Context, in *GetManagerBotRequest, opts ...grpc.CallOption) (*Bot, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Bot)
+	err := c.cc.Invoke(ctx, BotService_GetManagerBot_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -221,6 +244,46 @@ func (c *botServiceClient) GetBotAnalytics(ctx context.Context, in *GetBotAnalyt
 	return out, nil
 }
 
+func (c *botServiceClient) ProvisionAgentSuite(ctx context.Context, in *ProvisionAgentSuiteRequest, opts ...grpc.CallOption) (*ProvisionAgentSuiteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProvisionAgentSuiteResponse)
+	err := c.cc.Invoke(ctx, BotService_ProvisionAgentSuite_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *botServiceClient) GetAgentSuite(ctx context.Context, in *GetAgentSuiteRequest, opts ...grpc.CallOption) (*GetAgentSuiteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAgentSuiteResponse)
+	err := c.cc.Invoke(ctx, BotService_GetAgentSuite_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *botServiceClient) DelegateToAgent(ctx context.Context, in *DelegateToAgentRequest, opts ...grpc.CallOption) (*DelegateToAgentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DelegateToAgentResponse)
+	err := c.cc.Invoke(ctx, BotService_DelegateToAgent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *botServiceClient) ListDelegationLogs(ctx context.Context, in *ListDelegationLogsRequest, opts ...grpc.CallOption) (*ListDelegationLogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDelegationLogsResponse)
+	err := c.cc.Invoke(ctx, BotService_ListDelegationLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BotServiceServer is the server API for BotService service.
 // All implementations must embed UnimplementedBotServiceServer
 // for forward compatibility.
@@ -231,6 +294,9 @@ type BotServiceServer interface {
 	UpdateBot(context.Context, *UpdateBotRequest) (*Bot, error)
 	ListBots(context.Context, *ListBotsRequest) (*ListBotsResponse, error)
 	DeleteBot(context.Context, *DeleteBotRequest) (*DeleteBotResponse, error)
+	// Consumer-facing: returns the SP's MANAGER bot.
+	// Per product rule #9, this is the only AI surface exposed to web/hybrid apps.
+	GetManagerBot(context.Context, *GetManagerBotRequest) (*Bot, error)
 	// Bot configuration
 	GetBotConfiguration(context.Context, *GetBotConfigurationRequest) (*BotConfiguration, error)
 	UpdateBotConfiguration(context.Context, *UpdateBotConfigurationRequest) (*BotConfiguration, error)
@@ -246,6 +312,11 @@ type BotServiceServer interface {
 	ListBotActionLogs(context.Context, *ListBotActionLogsRequest) (*ListBotActionLogsResponse, error)
 	// Bot analytics
 	GetBotAnalytics(context.Context, *GetBotAnalyticsRequest) (*BotAnalytics, error)
+	// Agent suite (Manager + specialized sub-agents)
+	ProvisionAgentSuite(context.Context, *ProvisionAgentSuiteRequest) (*ProvisionAgentSuiteResponse, error)
+	GetAgentSuite(context.Context, *GetAgentSuiteRequest) (*GetAgentSuiteResponse, error)
+	DelegateToAgent(context.Context, *DelegateToAgentRequest) (*DelegateToAgentResponse, error)
+	ListDelegationLogs(context.Context, *ListDelegationLogsRequest) (*ListDelegationLogsResponse, error)
 	mustEmbedUnimplementedBotServiceServer()
 }
 
@@ -270,6 +341,9 @@ func (UnimplementedBotServiceServer) ListBots(context.Context, *ListBotsRequest)
 }
 func (UnimplementedBotServiceServer) DeleteBot(context.Context, *DeleteBotRequest) (*DeleteBotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteBot not implemented")
+}
+func (UnimplementedBotServiceServer) GetManagerBot(context.Context, *GetManagerBotRequest) (*Bot, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetManagerBot not implemented")
 }
 func (UnimplementedBotServiceServer) GetBotConfiguration(context.Context, *GetBotConfigurationRequest) (*BotConfiguration, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetBotConfiguration not implemented")
@@ -300,6 +374,18 @@ func (UnimplementedBotServiceServer) ListBotActionLogs(context.Context, *ListBot
 }
 func (UnimplementedBotServiceServer) GetBotAnalytics(context.Context, *GetBotAnalyticsRequest) (*BotAnalytics, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetBotAnalytics not implemented")
+}
+func (UnimplementedBotServiceServer) ProvisionAgentSuite(context.Context, *ProvisionAgentSuiteRequest) (*ProvisionAgentSuiteResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ProvisionAgentSuite not implemented")
+}
+func (UnimplementedBotServiceServer) GetAgentSuite(context.Context, *GetAgentSuiteRequest) (*GetAgentSuiteResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAgentSuite not implemented")
+}
+func (UnimplementedBotServiceServer) DelegateToAgent(context.Context, *DelegateToAgentRequest) (*DelegateToAgentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DelegateToAgent not implemented")
+}
+func (UnimplementedBotServiceServer) ListDelegationLogs(context.Context, *ListDelegationLogsRequest) (*ListDelegationLogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDelegationLogs not implemented")
 }
 func (UnimplementedBotServiceServer) mustEmbedUnimplementedBotServiceServer() {}
 func (UnimplementedBotServiceServer) testEmbeddedByValue()                    {}
@@ -408,6 +494,24 @@ func _BotService_DeleteBot_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BotServiceServer).DeleteBot(ctx, req.(*DeleteBotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BotService_GetManagerBot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetManagerBotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BotServiceServer).GetManagerBot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BotService_GetManagerBot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BotServiceServer).GetManagerBot(ctx, req.(*GetManagerBotRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -592,6 +696,78 @@ func _BotService_GetBotAnalytics_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BotService_ProvisionAgentSuite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProvisionAgentSuiteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BotServiceServer).ProvisionAgentSuite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BotService_ProvisionAgentSuite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BotServiceServer).ProvisionAgentSuite(ctx, req.(*ProvisionAgentSuiteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BotService_GetAgentSuite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAgentSuiteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BotServiceServer).GetAgentSuite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BotService_GetAgentSuite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BotServiceServer).GetAgentSuite(ctx, req.(*GetAgentSuiteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BotService_DelegateToAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DelegateToAgentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BotServiceServer).DelegateToAgent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BotService_DelegateToAgent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BotServiceServer).DelegateToAgent(ctx, req.(*DelegateToAgentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BotService_ListDelegationLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDelegationLogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BotServiceServer).ListDelegationLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BotService_ListDelegationLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BotServiceServer).ListDelegationLogs(ctx, req.(*ListDelegationLogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BotService_ServiceDesc is the grpc.ServiceDesc for BotService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -618,6 +794,10 @@ var BotService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteBot",
 			Handler:    _BotService_DeleteBot_Handler,
+		},
+		{
+			MethodName: "GetManagerBot",
+			Handler:    _BotService_GetManagerBot_Handler,
 		},
 		{
 			MethodName: "GetBotConfiguration",
@@ -658,6 +838,22 @@ var BotService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetBotAnalytics",
 			Handler:    _BotService_GetBotAnalytics_Handler,
+		},
+		{
+			MethodName: "ProvisionAgentSuite",
+			Handler:    _BotService_ProvisionAgentSuite_Handler,
+		},
+		{
+			MethodName: "GetAgentSuite",
+			Handler:    _BotService_GetAgentSuite_Handler,
+		},
+		{
+			MethodName: "DelegateToAgent",
+			Handler:    _BotService_DelegateToAgent_Handler,
+		},
+		{
+			MethodName: "ListDelegationLogs",
+			Handler:    _BotService_ListDelegationLogs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

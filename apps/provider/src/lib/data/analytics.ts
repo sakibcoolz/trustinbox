@@ -30,8 +30,3 @@ export async function fetchCallbackAnalytics(from?: string, to?: string) {
   const data = await serverFetch<Record<string, unknown>>(`/api/v1/analytics/callbacks${qs({ from, to })}`);
   return transformKeys(data) as Record<string, unknown>;
 }
-
-export async function fetchBotPerformanceAnalytics(botId: string, from?: string, to?: string) {
-  const data = await serverFetch<Record<string, unknown>>(`/api/v1/analytics/bots${qs({ botId, from, to })}`);
-  return transformKeys(data) as Record<string, unknown>;
-}

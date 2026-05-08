@@ -54,9 +54,11 @@ const (
 	CampaignCompleted EventType = "campaign.completed"
 
 	// Bot events
-	BotCreated        EventType = "bot.created"
-	BotActionExecuted EventType = "bot.action.executed"
-	BotEscalated      EventType = "bot.escalated"
+	BotCreated            EventType = "bot.created"
+	BotActionExecuted     EventType = "bot.action.executed"
+	BotEscalated          EventType = "bot.escalated"
+	AgentSuiteProvisioned EventType = "agent.suite.provisioned"
+	AgentDelegated        EventType = "agent.delegated"
 
 	// Webhook events
 	WebhookDeliverySucceeded EventType = "webhook.delivery.succeeded"

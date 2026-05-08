@@ -42,8 +42,6 @@ export type Permission =
   | 'documents:view' | 'documents:upload' | 'documents:share' | 'documents:delete'
   // Campaigns
   | 'campaigns:view' | 'campaigns:create' | 'campaigns:launch'
-  // Bots
-  | 'bots:view' | 'bots:create' | 'bots:deploy'
   // Analytics
   | 'analytics:view' | 'analytics:export'
   // Webhooks
@@ -55,7 +53,9 @@ export type Permission =
   // Settings
   | 'settings:view' | 'settings:team:manage' | 'settings:billing:manage'
   // API Keys
-  | 'apikeys:view' | 'apikeys:manage';
+  | 'apikeys:view' | 'apikeys:manage'
+  // AI Studio
+  | 'ai:view' | 'ai:configure' | 'ai:bots:create' | 'ai:knowledge:write' | 'ai:audit:view';
 
 const ALL_PERMISSIONS: Permission[] = [
   'dashboard:view',
@@ -65,13 +65,13 @@ const ALL_PERMISSIONS: Permission[] = [
   'callbacks:view', 'callbacks:manage', 'callbacks:assign',
   'documents:view', 'documents:upload', 'documents:share', 'documents:delete',
   'campaigns:view', 'campaigns:create', 'campaigns:launch',
-  'bots:view', 'bots:create', 'bots:deploy',
   'analytics:view', 'analytics:export',
   'webhooks:view', 'webhooks:manage',
   'compliance:view', 'compliance:manage',
   'integrations:view', 'integrations:manage',
   'settings:view', 'settings:team:manage', 'settings:billing:manage',
   'apikeys:view', 'apikeys:manage',
+  'ai:view', 'ai:configure', 'ai:bots:create', 'ai:knowledge:write', 'ai:audit:view',
 ];
 
 export const PERMISSION_MATRIX: Record<Role, Set<Permission>> = {
@@ -85,9 +85,9 @@ export const PERMISSION_MATRIX: Record<Role, Set<Permission>> = {
     'callbacks:view',
     'documents:view', 'documents:upload', 'documents:share',
     'campaigns:view', 'campaigns:create',
-    'bots:view',
     'analytics:view',
     'settings:view',
+    'ai:view', 'ai:configure', 'ai:knowledge:write',
   ]),
   AGENT: new Set<Permission>([
     'dashboard:view',
@@ -97,6 +97,7 @@ export const PERMISSION_MATRIX: Record<Role, Set<Permission>> = {
     'callbacks:view', 'callbacks:manage', 'callbacks:assign',
     'documents:view', 'documents:upload', 'documents:share',
     'settings:view',
+    'ai:view',
   ]),
   ANALYST: new Set<Permission>([
     'dashboard:view',
@@ -108,6 +109,7 @@ export const PERMISSION_MATRIX: Record<Role, Set<Permission>> = {
     'analytics:view', 'analytics:export',
     'compliance:view',
     'settings:view',
+    'ai:view', 'ai:audit:view',
   ]),
 };
 

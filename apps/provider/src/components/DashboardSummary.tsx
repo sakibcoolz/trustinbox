@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, Users, Bell, PhoneCall, Bot, Megaphone, TrendingUp, TrendingDown } from 'lucide-react';
+import { BarChart3, Users, Bell, PhoneCall, Megaphone, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface KPI {
   label: string;
@@ -18,7 +18,6 @@ const defaultKPIs: KPI[] = [
   { label: 'Active Customers', value: '12,480', change: '+8.2%', trending: 'up', icon: Users },
   { label: 'Notifications (24h)', value: '2,480', change: '+12.5%', trending: 'up', icon: Bell },
   { label: 'Callbacks Pending', value: '7', change: '-3', trending: 'down', icon: PhoneCall },
-  { label: 'Bot Conversations', value: '156', change: '+22%', trending: 'up', icon: Bot },
   { label: 'Active Campaigns', value: '4', change: '0', trending: 'up', icon: Megaphone },
   { label: 'Delivery Rate', value: '96.2%', change: '+0.8%', trending: 'up', icon: BarChart3 },
 ];
